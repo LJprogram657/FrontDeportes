@@ -1,0 +1,125 @@
+/* Estilos para el encabezado */
+.header {
+    background-color: rgba(10, 10, 10, 0.85);
+    backdrop-filter: blur(10px);
+    padding: 1rem 0; /* Ajustamos el padding */
+    position: sticky;
+    top: 0;
+    width: 100%;
+    z-index: 1000;
+}
+
+.header .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 2rem; /* Restauramos el padding original */
+}
+
+.header nav ul {
+    list-style: none;
+    display: flex;
+    gap: 2.5rem;
+    align-items: center;
+    margin: 0;
+    padding: 0;
+}
+
+/* Eliminamos los estilos específicos del logo y el panel derecho del header */
+
+.header .nav-link {
+    color: var(--text-light);
+    font-family: "Times New Roman", Times, serif;
+    font-weight: bold;
+    font-size: 1.2rem;
+    position: relative;
+    transition: color 0.3s ease;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+}
+
+.header .nav-link:hover {
+    color: var(--primary-red);
+}
+
+.header .nav-link::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 2px;
+    bottom: -5px;
+    left: 50%;
+    background-color: var(--primary-red);
+    transition: width 0.3s ease, left 0.3s ease;
+}
+
+.header .nav-link:hover::after {
+    width: 100%;
+    left: 0;
+}
+
+.header .header-actions {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.btn-register {
+    background: transparent;
+    border: 2px solid var(--primary-red);
+}
+
+.header.scrolled {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* Estilos para la navegación */
+.header nav ul {
+    list-style: none;
+    display: flex;
+    gap: 30px;
+    margin: 0;
+    padding: 0;
+}
+
+.header nav a {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--light-text);
+    padding-bottom: 5px;
+    border-bottom: 2px solid transparent;
+    transition: color 0.3s, border-bottom-color 0.3s;
+}
+
+.header nav a:hover,
+.header nav a.active {
+    color: var(--primary-red);
+    border-bottom-color: var(--primary-red);
+}
+
+/* Estilo para el botón de login */
+.btn-login {
+    background-color: var(--primary-red);
+    color: var(--white);
+    padding: 10px 25px;
+    border-radius: 25px;
+    font-weight: bold;
+    transition: background-color 0.3s, transform 0.2s;
+    border: none;
+}
+
+.btn-login:hover {
+    background-color: #a00;
+    transform: translateY(-2px);
+}

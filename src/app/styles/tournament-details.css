@@ -1,0 +1,286 @@
+/* Estilos para la página de detalles del torneo */
+.tournament-details {
+  background-color: #1e1e1e;
+  padding: 2rem;
+  border-radius: 10px;
+  color: var(--light-text);
+}
+
+.tournament-details h2 {
+  text-align: center;
+  font-size: 2.2rem;
+  margin-bottom: 0.5rem;
+  color: var(--primary-color);
+}
+
+.tournament-location {
+  text-align: center;
+  font-size: 1.1rem;
+  margin-bottom: 2rem;
+  color: #aaa;
+}
+
+/* Pestañas de navegación */
+.tournament-tabs {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap; /* Para que quepan en pantallas pequeñas */
+  margin-bottom: 2rem;
+  border-bottom: 2px solid #333;
+}
+
+.tournament-tabs button {
+  background: none;
+  border: none;
+  color: #aaa;
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: color 0.3s, border-bottom 0.3s;
+  border-bottom: 3px solid transparent;
+}
+
+.tournament-tabs button.active {
+  color: var(--light-text);
+  border-bottom: 3px solid var(--primary-color);
+}
+
+/* Tabla de posiciones */
+.standings-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.standings-table th, .standings-table td {
+  padding: 0.8rem;
+  text-align: center;
+  border-bottom: 1px solid #333;
+}
+
+.standings-table th {
+  background-color: #2a2a2a;
+  font-weight: 600;
+}
+
+.standings-table td:first-child {
+  text-align: left;
+  font-weight: 500;
+}
+
+/* Bracket de eliminatorias */
+.bracket-container {
+  display: flex;
+  justify-content: space-around;
+  gap: 2rem;
+  padding: 1rem;
+  overflow-x: auto; /* Para pantallas pequeñas */
+}
+
+.bracket-round {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-width: 200px;
+}
+
+.bracket-round-title {
+  font-size: 1.2rem;
+  text-align: center;
+  margin-bottom: 1rem;
+  color: var(--primary-color);
+}
+
+.bracket-match {
+  background-color: #2a2a2a;
+  padding: 1rem;
+  border-radius: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border-left: 4px solid #444;
+}
+
+.bracket-match span.winner {
+  font-weight: bold;
+  color: #4caf50; /* Verde para el ganador */
+}
+
+.bracket-champion {
+  text-align: center;
+}
+
+.champion-team {
+  background-color: var(--primary-color);
+  color: var(--dark-text);
+  padding: 1rem;
+  border-radius: 5px;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.phase-content p {
+  text-align: center;
+  font-size: 1.2rem;
+  color: #888;
+  padding: 40px;
+}
+
+
+/* Nuevo layout de dos columnas */
+.tournament-details-layout {
+  display: grid;
+  grid-template-columns: 3fr 1fr; /* 75% para el contenido, 25% para la barra lateral */
+  gap: 2rem;
+  align-items: start;
+}
+
+.tournament-main-content {
+  /* El contenido principal ya está estilizado */
+}
+
+/* Estilos para la nueva barra lateral */
+.tournament-sidebar {
+  position: sticky;
+  top: 2rem; /* Para que se quede fija al hacer scroll */
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.sidebar-info-box, .sidebar-stats-box {
+  background-color: #1a1a1a;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #2a2a2a;
+}
+
+.sidebar-info-box h3, .sidebar-stats-box h3 {
+  color: var(--primary-color);
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 1.4rem;
+  border-bottom: 1px solid #333;
+  padding-bottom: 0.5rem;
+}
+
+.info-item {
+  margin-bottom: 1rem;
+}
+
+.info-item h4 {
+  margin: 0 0 0.25rem 0;
+  color: #aaa;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+}
+
+.info-item p {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--light-text);
+}
+
+.sidebar-stats-box p {
+  font-size: 1rem;
+  color: #ccc;
+  margin-bottom: 1rem;
+}
+
+.stats-button {
+  width: 100%;
+  padding: 0.8rem;
+  background-color: var(--primary-color);
+  color: var(--light-text);
+  border: none;
+  border-radius: 5px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.stats-button:hover {
+  background-color: #e03131; /* Un rojo un poco más oscuro */
+}
+
+/* Media query para pantallas más pequeñas */
+@media (max-width: 992px) {
+  .tournament-details-layout {
+    grid-template-columns: 1fr; /* Apila las columnas */
+  }
+
+  .tournament-sidebar {
+    position: static; /* Quita el sticky en móvil */
+    margin-top: 2rem;
+  }
+}
+
+
+/* Estilos para la nueva caja de equipos */
+.sidebar-teams-box {
+  background-color: #1a1a1a;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #2a2a2a;
+}
+
+.sidebar-teams-box h3 {
+  color: var(--primary-color);
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 1.4rem;
+  border-bottom: 1px solid #333;
+  padding-bottom: 0.5rem;
+}
+
+.team-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.team-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background-color: #252525;
+  padding: 0.75rem;
+  border-radius: 6px;
+}
+
+.team-logo {
+  border-radius: 50%; /* Para que el logo sea circular */
+  object-fit: cover;
+  background-color: #fff; /* Fondo blanco por si la imagen es transparente */
+}
+
+.team-item span {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--light-text);
+}
+
+/* Estilo para el botón "Ver más" */
+.view-more-button {
+  width: 100%;
+  margin-top: 1rem;
+  padding: 0.7rem;
+  background-color: #2a2a2a;
+  color: var(--light-text);
+  border: 1px solid #444;
+  border-radius: 5px;
+  font-size: 0.9rem;
+  font-weight: bold;
+  cursor: pointer;
+  text-align: center;
+  transition: background-color 0.3s, border-color 0.3s;
+}
+
+.view-more-button:hover {
+  background-color: #333;
+  border-color: #555;
+}

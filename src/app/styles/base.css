@@ -1,0 +1,169 @@
+/* Estilos base para el cuerpo del documento */
+:root {
+    --primary-red: #c00;
+    --dark-bg: #1a1a1a;
+    --light-text: #f4f4f9;
+    --dark-text: #333;
+    --white: #fff;
+    --border-color: #444;
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: var(--dark-bg);
+    color: var(--light-text);
+    line-height: 1.6;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.main-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1; /* Hace que el contenido principal crezca para empujar el footer hacia abajo */
+}
+
+/* Contenedor principal para centrar el contenido */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* Estilos para los enlaces */
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+/* Estilos base para los botones */
+.btn {
+    display: inline-block;
+    padding: 12px 24px;
+    border-radius: 25px; /* Bordes más redondeados */
+    font-size: 16px;
+    font-weight: bold;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease; /* Transición más suave */
+    background: linear-gradient(45deg, var(--primary-red), #ff3d3d); /* Gradiente */
+    color: var(--white);
+    border: none;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); /* Sombra para profundidad */
+}
+
+.btn:hover {
+    transform: translateY(-3px) scale(1.05); /* Efecto de elevación */
+    box-shadow: 0 8px 25px rgba(192, 0, 0, 0.4); /* Sombra más pronunciada */
+    filter: brightness(1.1);
+}
+
+/* Estilo para el logo */
+.logo span {
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--light-text);
+    vertical-align: middle;
+    margin-left: 10px;
+}
+
+/* Estilos para el Hero Section */
+.hero {
+  position: relative;
+  height: 90vh; /* Altura de la sección */
+  overflow: hidden; /* Oculta las otras diapositivas */
+  color: var(--light-text);
+}
+
+.hero-slider {
+  display: flex;
+  height: 100%;
+  transition: transform 0.8s ease-in-out;
+}
+
+.hero-slide {
+  min-width: 100%;
+  height: 100%;
+  position: relative;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 2rem;
+}
+
+/* Capa oscura para legibilidad en cada slide */
+.hero-slide::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 1;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2; /* Por encima de la capa oscura */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Contenedor del logo */
+.hero-logo-container {
+  margin-bottom: 2.5rem; /* Aumentado de 2rem a 2.5rem para darle más espacio arriba */
+}
+
+.hero-logo {
+  width: 180px; /* Aumentado de 150px a 180px */
+  height: 180px; /* Aseguramos que sea un círculo perfecto */
+  border-radius: 50%; /* Hacemos la imagen circular para que el brillo se vea mejor */
+  object-fit: cover; /* Nos aseguramos que la imagen llene el círculo */
+  /* Añadimos transición para el nuevo efecto de brillo (box-shadow) */
+  transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+}
+
+/* NUEVA ANIMACIÓN: Brillo pulsante al pasar el cursor */
+.hero-logo:hover {
+  transform: scale(1.1); /* Mantenemos el zoom que ya teníamos */
+  cursor: pointer;
+  /* La clave: un brillo rojo alrededor del logo */
+  box-shadow: 0 0 25px 8px rgba(220, 20, 60, 0.7);
+}
+
+/* Navegación del slider */
+.slider-nav {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
+    display: flex;
+    gap: 10px;
+}
+
+.slider-nav button {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 1px solid #fff;
+    background-color: transparent;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.slider-nav button.active {
+    background-color: #fff;
+}

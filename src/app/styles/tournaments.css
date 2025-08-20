@@ -1,0 +1,162 @@
+/* Estilos para la sección de torneos */
+.tournaments-section {
+    padding: 60px 0;
+    background-color: var(--dark-bg);
+    text-align: center;
+}
+
+.main-title {
+    font-size: 42px;
+    margin-bottom: 60px;
+    color: var(--light-text);
+}
+
+.tournament-category-section {
+    margin-bottom: 60px;
+}
+
+.category-title {
+    font-size: 32px;
+    text-align: center;
+    margin-bottom: 40px;
+    color: var(--light-text);
+    border-bottom: 2px solid var(--primary-red);
+    display: inline-block;
+    padding-bottom: 10px;
+}
+
+.tournaments-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 30px;
+    justify-content: center;
+}
+
+.tournament-card {
+    background-color: #2a2a2a;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.tournament-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 12px 25px rgba(192, 0, 0, 0.3);
+}
+
+.tournament-card-image-container {
+    width: 100%;
+    padding-top: 56.25%;
+    position: relative;
+    overflow: hidden;
+}
+
+.tournament-card-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.tournament-card-content {
+    padding: 25px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1; /* El contenedor crece */
+    justify-content: space-between; /* CLAVE: Empuja el contenido y el botón a los extremos */
+}
+
+.card-text-content {
+    text-align: left; /* Mantenemos el texto de la tarjeta alineado a la izquierda */
+}
+
+.tournament-card-content h3 {
+    font-size: 20px;
+    margin: 0 0 15px;
+    color: var(--light-text);
+}
+
+.tournament-card-content p {
+    font-size: 14px;
+    color: #ccc;
+    margin-bottom: 20px;
+}
+
+.tournament-card-content .btn {
+    width: 100%;
+    text-align: center;
+    /* Ya no se necesita margin-top: auto ni flex-grow en otros elementos */
+}
+
+.tournament-card-content .btn:hover {
+    filter: brightness(1.2);
+}
+
+
+.tournaments-page {
+  padding: 40px 0;
+  min-height: calc(100vh - 200px); /* Ajusta según el tamaño de tu header y footer */
+  background-color: var(--background-color);
+}
+
+/* Página de lista de torneos */
+.tournaments-list-page h1 {
+  color: var(--light-text);
+  text-align: center;
+  margin-bottom: 40px;
+  font-size: 2.5rem;
+}
+
+.tournaments-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 2rem;
+}
+
+.tournament-card {
+  background-color: #2d3748;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column; /* Apila los elementos verticalmente */
+  justify-content: space-between; /* Empuja el contenido y el botón a los extremos */
+  padding: 1.5rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.tournament-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+.tournament-card-content {
+  /* Este contenedor ya no es necesario para la alineación, 
+     pero lo mantenemos por si se añaden más elementos */
+}
+
+.tournament-card h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+}
+
+.tournament-card .btn {
+  align-self: flex-start; /* Alinea el botón a la izquierda dentro de la tarjeta */
+  width: auto; /* El botón tomará el ancho de su contenido */
+}
+
+/* Eliminamos estilos que ya no son necesarios o que se han movido */
+.tournament-card-image-container,
+.tournament-card-image,
+.card-text-content {
+  /* Estos estilos se pueden eliminar si no se usan en otro lugar, 
+     o se pueden ajustar según sea necesario. Por ahora, los comento. */
+  /* width: 100%; height: 200px; etc. */
+}

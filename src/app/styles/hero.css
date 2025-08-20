@@ -1,0 +1,105 @@
+/* Estilos para la sección del carrusel (hero) */
+.hero {
+    position: relative;
+    width: 100%;
+    height: 80vh;
+    overflow: hidden;
+    background-color: #000;
+}
+
+.hero-slider {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.5s ease-in-out;
+}
+
+.hero-slide {
+    flex: 0 0 100%;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+}
+
+.hero-slide::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1;
+}
+
+.hero-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #fff;
+    text-align: center;
+    z-index: 2;
+    width: 90%;
+    max-width: 800px;
+}
+
+.hero-content h1 {
+    font-size: 48px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.7);
+}
+
+.hero-content p {
+    font-size: 20px;
+    margin-bottom: 30px;
+}
+
+.hero-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+}
+
+.slider-nav {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+    z-index: 3;
+}
+
+.slider-nav button {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.5);
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.slider-nav button.active {
+    background-color: #fff;
+}
+
+.hero-buttons .btn {
+    background-color: var(--primary-red);
+    color: var(--white);
+    border: 2px solid var(--primary-red);
+}
+
+.hero-buttons .btn-secondary {
+    background-color: transparent;
+    color: var(--white);
+    border: 2px solid var(--white);
+}
+
+.hero-buttons .btn:hover {
+    filter: brightness(1.2);
+}

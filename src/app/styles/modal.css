@@ -1,0 +1,149 @@
+/* Estilos para la ventana modal de login */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.modal-content {
+    background: #2a2a2a;
+    padding: 40px;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 400px;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--border-color);
+}
+
+.modal-close {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: none;
+    border: none;
+    font-size: 28px;
+    color: #888;
+    cursor: pointer;
+}
+
+.modal-content h2 {
+    text-align: center;
+    margin: 0 0 30px;
+    font-size: 28px;
+    color: var(--light-text);
+}
+
+/* Estructura del formulario */
+.login-form {
+    display: flex;
+    flex-direction: column;
+}
+
+.login-form label {
+    text-align: left;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #ccc;
+}
+
+.login-form input {
+    width: 100%;
+    padding: 12px 15px;
+    margin-bottom: 20px; /* Espacio después de cada input */
+    border: 1px solid #555;
+    border-radius: 8px;
+    font-size: 16px;
+    background-color: #333;
+    color: var(--light-text);
+    box-sizing: border-box;
+}
+
+/* CLAVE: Contenedor para la contraseña */
+.password-wrapper {
+    display: flex; /* Lo convertimos en un contenedor flexible */
+    align-items: center; /* Alineamos verticalmente el input y el botón */
+    gap: 10px; /* Añadimos un espacio entre el input y el botón */
+    margin-bottom: 20px; /* Mantenemos el espacio inferior */
+}
+
+.password-wrapper input {
+    flex-grow: 1; /* El input ocupa el espacio disponible */
+    margin-bottom: 0; /* Quitamos el margen al input de dentro */
+}
+
+/* CLAVE: Estilo del botón del ojo */
+.toggle-password {
+    /* Ya no tiene posicionamiento absoluto */
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 24px;
+    padding: 0;
+    color: #ccc;
+    flex-shrink: 0; /* Evita que el botón se encoja */
+}
+
+.login-form-btn {
+    margin-top: 10px;
+}
+
+
+/* Estilos para el contenido del modal de contacto */
+.contact-info {
+  text-align: left;
+  margin-top: 20px;
+}
+
+.contact-info p {
+  margin-bottom: 15px;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #ccc;
+}
+
+.contact-info strong {
+  display: block;
+  font-weight: 600;
+  color: var(--light-text);
+  margin-bottom: 5px;
+}
+
+.contact-info a {
+  color: var(--primary-color); /* Usamos el color rojo principal */
+  text-decoration: none;
+  transition: text-decoration 0.3s;
+}
+
+.contact-info a:hover {
+  text-decoration: underline;
+}
+
+.contact-note {
+  margin-top: 25px;
+  font-style: italic;
+  text-align: center;
+  color: #aaa;
+}
+
+/* Estilo para el botón de navegación "Contáctenos" */
+.nav-button {
+  background: none;
+  border: none;
+  color: var(--light-text);
+  cursor: pointer;
+  font-size: inherit; /* Hereda el tamaño de fuente de los otros enlaces */
+  font-family: inherit; /* Hereda la fuente */
+  padding: 0;
+}
+
+.nav-button:hover {
+  color: var(--primary-color);
+}

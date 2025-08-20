@@ -1,0 +1,18 @@
+.site-logo-container {
+  position: absolute;
+  top: 40px; /* Lo bajamos para que no toque el header */
+  left: 60px; /* Le damos más espacio desde el borde */
+  z-index: 1100;
+  transition: transform 0.4s ease, filter 0.4s ease; /* Transición más suave */
+}
+
+.site-logo-container:hover {
+  transform: scale(1.08); /* Efecto de escala más notorio */
+  filter: drop-shadow(0 0 15px rgba(220, 20, 60, 0.7)); /* Efecto de brillo rojo carmesí */
+}
+
+.site-logo {
+  border-radius: 50%;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3); /* Sombra más profunda para mayor presencia */
+  transition: box-shadow 0.4s ease;
+}

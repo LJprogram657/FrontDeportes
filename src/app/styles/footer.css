@@ -1,0 +1,88 @@
+/* Estilos para el pie de página */
+.footer {
+    background-color: #2a2a2a; /* Un gris oscuro, más claro que el fondo principal */
+    color: #f4f4f9;
+    padding: 3rem 0 1rem;
+    border-top: 1px solid #444; /* Borde ligeramente más claro para que coincida */
+}
+
+.footer-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 2rem;
+}
+
+.footer-section {
+    flex: 1;
+    min-width: 220px; /* Evita que las secciones se compriman demasiado */
+}
+
+.footer-section h4 {
+    font-size: 1.2rem;
+    margin-bottom: 1.5rem;
+    position: relative;
+    padding-bottom: 0.5rem;
+}
+
+.footer-section h4::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 40px;
+    height: 2px;
+    background-color: var(--primary-red);
+}
+
+.footer-section.about p {
+    max-width: 300px;
+    line-height: 1.7;
+}
+
+.footer-section .footer-logo {
+    margin-bottom: 1rem;
+    border-radius: 50%;
+}
+
+.footer-section.links ul {
+    list-style: none;
+    padding: 0;
+}
+
+.footer-section.links ul li {
+    margin-bottom: 0.8rem;
+}
+
+.footer-section.links ul li a {
+    transition: color 0.3s ease;
+}
+
+.footer-section.links ul li a:hover {
+    color: var(--primary-red);
+}
+
+.footer-bottom {
+    text-align: center;
+    padding: 1rem 0;
+    border-top: 1px solid var(--border-color);
+    margin-top: 2rem;
+}
+
+.footer-section.social .social-icons {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.footer-section.social .social-icons a {
+    color: #ffffff;
+    font-size: 1.2rem;
+    transition: color 0.3s ease, transform 0.3s ease;
+}
+
+.footer-section.social .social-icons a:hover {
+    color: #dc143c;
+    transform: translateY(-2px);
+}

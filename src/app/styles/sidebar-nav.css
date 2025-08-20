@@ -1,0 +1,37 @@
+.page-with-sidebar {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+.main-content {
+  flex: 1;
+}
+
+.sidebar-nav {
+  width: 200px;
+  position: sticky;
+  top: 2rem;
+}
+
+.sidebar-logo-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.sidebar-logo {
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.8s ease-in-out, box-shadow 0.5s ease;
+}
+
+.sidebar-logo:hover {
+  transform: rotate(360deg) scale(1.1);
+  box-shadow: 0 0 30px 10px rgba(220, 20, 60, 0.7);
+}
+
+.sidebar-nav .back-button {
+  width: 100%;
+}
