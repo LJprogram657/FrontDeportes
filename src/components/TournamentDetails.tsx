@@ -3,20 +3,11 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 
-// Datos de ejemplo para la fase de grupos
-const groupStageData = [
-  { group: 'Grupo A', team: 'Real Acacías', P: 9, W: 3, D: 0, L: 0, GF: 10, GA: 2, GD: 8 },
-  { group: 'Grupo A', team: 'Atlético del Llano', P: 6, W: 2, D: 0, L: 1, GF: 5, GA: 4, GD: 1 },
-  { group: 'Grupo A', team: 'Deportivo Centauros', P: 3, W: 1, D: 0, L: 2, GF: 3, GA: 7, GD: -4 },
-  { group: 'Grupo A', team: 'Llaneros FC', P: 0, W: 0, D: 0, L: 3, GF: 1, GA: 6, GD: -5 },
-];
-
 // Componente interno para mostrar brackets por fase
 const PhaseBracket: React.FC<{ phase: string }> = ({ phase }) => {
   return (
     <div className="bracket-container">
       <p>Visualización del bracket para la fase: <strong>{phase}</strong>.</p>
-      {/* Aquí iría la lógica para renderizar solo los partidos de la fase correcta */}
     </div>
   );
 };
@@ -30,7 +21,6 @@ const TournamentDetails: React.FC<{ tournamentName: string }> = ({ tournamentNam
     fechaInicio: '25 de Agosto, 2024',
   };
 
-  // Lista de equipos más larga para el ejemplo
   const allTeams = [
     { name: 'Real Acacías', logo: '/images/logo-placeholder.png' },
     { name: 'Atlético del Llano', logo: '/images/logo-placeholder.png' },
@@ -45,7 +35,6 @@ const TournamentDetails: React.FC<{ tournamentName: string }> = ({ tournamentNam
 
   return (
     <div className="tournament-details-layout">
-      {/* Columna principal con las fases del torneo */}
       <div className="tournament-main-content">
         <h2>{tournamentName}</h2>
         <p className="tournament-location">📍 Acacías, Meta</p>
@@ -62,13 +51,13 @@ const TournamentDetails: React.FC<{ tournamentName: string }> = ({ tournamentNam
           {activeTab === 'all-vs-all' && (
             <div className="phase-content">
               <h3>Resultados - Todos contra Todos</h3>
-              <p>Contenido de la fase "Todos contra todos" próximamente.</p>
+              <p>Contenido de la fase &quot;Todos contra todos&quot; próximamente.</p>
             </div>
           )}
           {activeTab === 'groups' && (
             <div className="phase-content">
               <h3>Tabla de Posiciones - Fase de Grupos</h3>
-              <p>Contenido de la "Fase de Grupos" próximamente.</p>
+              <p>Contenido de la &quot;Fase de Grupos&quot; próximamente.</p>
             </div>
           )}
           {activeTab === 'quarters' && (
@@ -92,7 +81,6 @@ const TournamentDetails: React.FC<{ tournamentName: string }> = ({ tournamentNam
         </div>
       </div>
 
-      {/* Nueva barra lateral con información adicional */}
       <aside className="tournament-sidebar">
         <div className="sidebar-info-box">
           <h3>Detalles del Torneo</h3>
@@ -111,7 +99,6 @@ const TournamentDetails: React.FC<{ tournamentName: string }> = ({ tournamentNam
           <button className="stats-button">Ver Estadísticas</button>
         </div>
 
-        {/* Nueva caja para los equipos */}
         <div className="sidebar-teams-box">
           <h3>Equipos Participantes</h3>
           <ul className="team-list">

@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import TournamentDetails from '@/components/TournamentDetails';
 import BackButton from '@/components/BackButton';
 import SidebarNav from '@/components/SidebarNav';
+import Image from 'next/image';
 
 // Esta es la interfaz que define cómo son los props que recibirá nuestra página.
 // Next.js nos pasará un objeto `params` con el `id` de la URL.
@@ -40,12 +41,32 @@ const TournamentDetailsPage: React.FC<TournamentDetailsPageProps> = ({ params })
 };
 
 const TournamentPage = ({ params }: { params: { id: string } }) => {
+  const tournament = tournaments.find(t => t.id === parseInt(params.id, 10));
+
+  if (!tournament) {
+    notFound();
+  }
+
   return (
     <div className="container">
       <div className="back-button-container">
         <BackButton />
       </div>
-      <TournamentDetails tournamentId={params.id} />
+      <main className="main-container">
+        <div className="tournament-details">
+          <Image 
+            src={tournament.image} 
+            alt={tournament.title} 
+            width={800} 
+            height={400} 
+            className="tournament-image-large" 
+          />
+          <h1>{tournament.title}</h1>
+          <p>{tournament.description}</p>
+          <p><strong>ID del Torneo:</strong> {tournament.id}</p>
+        </div>
+      </main>
+      <TournamentDetails tournamentName={tournament.title} />
     </div>
   );
 };

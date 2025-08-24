@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import tournamentsData from '@/data/tournaments.json';
 
 interface Tournament {
@@ -13,7 +14,6 @@ interface Tournament {
 }
 
 const Tournaments: React.FC = () => {
-  // Filtramos los torneos por categoría
   const torneosMasculinos = tournamentsData.filter(
     (t) => t.category === 'Masculino'
   );
@@ -21,13 +21,13 @@ const Tournaments: React.FC = () => {
     (t) => t.category === 'Femenino'
   );
 
-  // Creamos un componente reutilizable para renderizar las tarjetas
   const TournamentCard = ({ tournament }: { tournament: Tournament }) => (
     <div key={tournament.id} className="tournament-card">
-      {/* Ya no necesitamos contenedores extra para la imagen o el contenido */}
-      <img
+      <Image
         src={tournament.image}
         alt={tournament.title}
+        width={300}
+        height={200}
         style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '4px', marginBottom: '1rem' }}
       />
       <h3>{tournament.title}</h3>
@@ -41,10 +41,8 @@ const Tournaments: React.FC = () => {
   return (
     <section className="tournaments-section">
       <div className="container">
-        {/* Título principal añadido */}
         <h1 className="main-title">Todos los Torneos Disponibles</h1>
 
-        {/* Sección para Torneos Masculinos */}
         <div className="tournament-category-section">
           <h2 className="category-title">Torneos Masculinos</h2>
           <div className="tournaments-grid">
@@ -54,7 +52,6 @@ const Tournaments: React.FC = () => {
           </div>
         </div>
 
-        {/* Sección para Torneos Femeninos */}
         <div className="tournament-category-section">
           <h2 className="category-title">Torneos Femeninos</h2>
           <div className="tournaments-grid">

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 const slides = [
   {
@@ -22,7 +23,7 @@ const Hero: React.FC = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       setCurrentIndex((prevIndex) => (prevIndex + 1) % slides.length);
-    }, 5000); // Cambia de slide cada 5 segundos
+    }, 5000);
     return () => clearTimeout(timer);
   }, [currentIndex]);
 
@@ -32,17 +33,16 @@ const Hero: React.FC = () => {
         {slides.map((slide, index) => (
           <div key={index} className="hero-slide" style={{ backgroundImage: `url(${slide.image})` }}>
             <div className="hero-content">
-              {/* Logo devuelto a su posición original en el Hero */}
               <div className="hero-logo-container">
                 <Link href="/">
-                  <img src="/images/logo.png" alt="Deportes Logo" className="hero-logo" />
+                  <Image src="/images/logo.png" alt="Deportes Logo" className="hero-logo" width={120} height={60} />
                 </Link>
               </div>
               <h1>{slide.title}</h1>
               <p>{slide.subtitle}</p>
               <div className="hero-buttons">
-                <a href="/tournaments/masculino" className="btn">Torneos Masculinos</a>
-                <a href="/tournaments/femenino" className="btn">Torneos Femeninos</a>
+                <Link href="/tournaments/masculino" className="btn">Torneos Masculinos</Link>
+                <Link href="/tournaments/femenino" className="btn">Torneos Femeninos</Link>
               </div>
             </div>
           </div>
