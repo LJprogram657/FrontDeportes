@@ -13,11 +13,14 @@ interface Tournament {
   category: 'Masculino' | 'Femenino';
 }
 
+// Aserción de tipo para asegurar que los datos del JSON coincidan con la interfaz
+const tournaments: Tournament[] = tournamentsData as Tournament[];
+
 const Tournaments: React.FC = () => {
-  const torneosMasculinos = tournamentsData.filter(
+  const torneosMasculinos = tournaments.filter(
     (t) => t.category === 'Masculino'
   );
-  const torneosFemeninos = tournamentsData.filter(
+  const torneosFemeninos = tournaments.filter(
     (t) => t.category === 'Femenino'
   );
 
