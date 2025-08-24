@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import Bracket from './Bracket';
-import Image from 'next/image'; // Importamos el componente Image de Next.js
+import Image from 'next/image';
 
 // Datos de ejemplo para la fase de grupos
 const groupStageData = [
@@ -12,9 +11,19 @@ const groupStageData = [
   { group: 'Grupo A', team: 'Llaneros FC', P: 0, W: 0, D: 0, L: 3, GF: 1, GA: 6, GD: -5 },
 ];
 
+// Componente interno para mostrar brackets por fase
+const PhaseBracket: React.FC<{ phase: string }> = ({ phase }) => {
+  return (
+    <div className="bracket-container">
+      <p>Visualización del bracket para la fase: <strong>{phase}</strong>.</p>
+      {/* Aquí iría la lógica para renderizar solo los partidos de la fase correcta */}
+    </div>
+  );
+};
+
 const TournamentDetails: React.FC<{ tournamentName: string }> = ({ tournamentName }) => {
   const [activeTab, setActiveTab] = useState('all-vs-all');
-  const [showAllTeams, setShowAllTeams] = useState(false); // Nuevo estado
+  const [showAllTeams, setShowAllTeams] = useState(false);
 
   const tournamentInfo = {
     cancha: 'Estadio Municipal de Acacías',
@@ -53,33 +62,31 @@ const TournamentDetails: React.FC<{ tournamentName: string }> = ({ tournamentNam
           {activeTab === 'all-vs-all' && (
             <div className="phase-content">
               <h3>Resultados - Todos contra Todos</h3>
-              {/* Aquí iría la tabla de la liguilla inicial */}
               <p>Contenido de la fase "Todos contra todos" próximamente.</p>
             </div>
           )}
           {activeTab === 'groups' && (
             <div className="phase-content">
               <h3>Tabla de Posiciones - Fase de Grupos</h3>
-              {/* Aquí puedes reutilizar la tabla de posiciones que ya teníamos */}
               <p>Contenido de la "Fase de Grupos" próximamente.</p>
             </div>
           )}
           {activeTab === 'quarters' && (
             <div className="phase-content">
               <h3>Cuartos de Final</h3>
-              <Bracket phase="quarters" />
+              <PhaseBracket phase="quarters" />
             </div>
           )}
           {activeTab === 'semis' && (
             <div className="phase-content">
               <h3>Semifinales</h3>
-              <Bracket phase="semis" />
+              <PhaseBracket phase="semis" />
             </div>
           )}
           {activeTab === 'final' && (
             <div className="phase-content">
               <h3>La Gran Final</h3>
-              <Bracket phase="final" />
+              <PhaseBracket phase="final" />
             </div>
           )}
         </div>
@@ -122,17 +129,6 @@ const TournamentDetails: React.FC<{ tournamentName: string }> = ({ tournamentNam
           )}
         </div>
       </aside>
-    </div>
-  );
-};
-
-// Actualizamos el componente Bracket para que acepte la fase
-const Bracket: React.FC<{ phase: string }> = ({ phase }) => {
-  // Lógica para mostrar solo la parte relevante del bracket
-  return (
-    <div className="bracket-container">
-      <p>Visualización del bracket para la fase: <strong>{phase}</strong>.</p>
-      {/* Aquí iría la lógica para renderizar solo los partidos de la fase correcta */}
     </div>
   );
 };
