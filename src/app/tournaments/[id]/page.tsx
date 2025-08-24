@@ -40,8 +40,16 @@ const TournamentDetailsPage: React.FC<TournamentDetailsPageProps> = ({ params })
   );
 };
 
-const TournamentPage = ({ params }: { params: { id: string } }) => {
-  const tournament = tournaments.find(t => t.id === parseInt(params.id, 10));
+// Interfaz actualizada para Next.js 15 con params asíncrono
+interface TournamentPageProps {
+  params: Promise<{ id: string }>;
+}
+
+const TournamentPage = async ({ params }: TournamentPageProps) => {
+  // Await the params since they're now async in Next.js 15
+  const { id } = await params;
+  
+  const tournament = tournaments.find(t => t.id === parseInt(id, 10));
 
   if (!tournament) {
     notFound();
