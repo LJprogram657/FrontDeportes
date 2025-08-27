@@ -2,17 +2,23 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { useAuth } from '../contexts/AuthContext';
 import LoginModal from './LoginModal';
 import ContactModal from './ContactModal';
 
 const Header: React.FC = () => {
   const [isLoginModalOpen, setIsLoginModalOpen] = React.useState(false);
   const [isContactModalOpen, setIsContactModalOpen] = React.useState(false);
+  const { user, isAuthenticated, logout } = useAuth();
 
   const openLoginModal = () => setIsLoginModalOpen(true);
   const closeLoginModal = () => setIsLoginModalOpen(false);
   const openContactModal = () => setIsContactModalOpen(true);
   const closeContactModal = () => setIsContactModalOpen(false);
+
+  const handleLogout = async () => {
+    await logout();
+  };
 
   return (
     <>
@@ -24,13 +30,29 @@ const Header: React.FC = () => {
               <li><Link href="/tournaments/masculino" className="nav-link">Torneos Masculinos</Link></li>
               <li><Link href="/tournaments/femenino" className="nav-link">Torneos Femeninos</Link></li>
               <li><button className="nav-button nav-link" onClick={openContactModal}>Contáctenos</button></li>
+              {isAuthenticated && user?.is_admin && (
+                <li><Link href="/admin/dashboard" className="nav-link">Panel Admin</Link></li>
+              )}
             </ul>
           </nav>
           <div className="header-actions">
-            <button className="btn btn-register">Crear Equipo</button>
-            <button className="btn btn-login" onClick={openLoginModal}>
-              Iniciar Sesión
-            </button>
+            {isAuthenticated ? (
+              <>
+                <span style={{ marginRight: '10px', color: '#333' }}>
+                  Hola, {user?.first_name || user?.email}
+                </span>
+                <button className="btn btn-register" onClick={handleLogout}>
+                  Cerrar Sesión
+                </button>
+              </>
+            ) : (
+              <>
+                <button className="btn btn-register">Crear Equipo</button>
+                <button className="btn btn-login" onClick={openLoginModal}>
+                  Iniciar Sesión
+                </button>
+              </>
+            )}
           </div>
         </div>
       </header>
