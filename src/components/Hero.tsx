@@ -5,16 +5,10 @@ import Link from 'next/link';
 import Image from 'next/image';
 
 const slides = [
-  {
-    image: '/images/slide1.jpg',
-    title: 'Organiza y Compite en los Mejores Torneos',
-    subtitle: 'La plataforma definitiva para los amantes del fútbol.',
-  },
-  {
-    image: '/images/slide2.jpg',
-    title: 'Vive la Pasión del Deporte Rey',
-    subtitle: 'Inscribe a tu equipo y demuestra que son los mejores.',
-  },
+  { image: '/images/slider1.jpg', title: 'Organiza y Compite en los Mejores Torneos', subtitle: 'La plataforma definitiva para los amantes del fútbol.' },
+  { image: '/images/slider2.jpg', title: 'Organiza y Compite en los Mejores Torneos', subtitle: 'La plataforma definitiva para los amantes del fútbol.' },
+  { image: '/images/slider4.jpg', title: 'Organiza y Compite en los Mejores Torneos', subtitle: 'La plataforma definitiva para los amantes del fútbol.' },
+  { image: '/images/slider5.jpg', title: 'Organiza y Compite en los Mejores Torneos', subtitle: 'La plataforma definitiva para los amantes del fútbol.' },
 ];
 
 const Hero: React.FC = () => {

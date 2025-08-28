@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';  // ← Ya no requerimos login
 import BackButton from '../../components/BackButton';
 import '../../app/styles/create-team.css';
 
@@ -34,7 +34,7 @@ interface TeamFormData {
 }
 
 const CreateTeamPage: React.FC = () => {
-  const { user, isAuthenticated } = useAuth();
+  // const { user, isAuthenticated } = useAuth();       // ← Quitado
   
   // Torneos disponibles (los mismos del admin)
   const availableTournaments: Tournament[] = [
@@ -175,15 +175,39 @@ const CreateTeamPage: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      // Aquí se enviaría la solicitud al backend
-      console.log('Enviando solicitud de equipo:', formData);
-      
-      // Simulación de envío
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      // Construir objeto de registro compatible con el admin
+      const newRegistration = {
+        id: Date.now(),
+        teamName: formData.teamName,
+        teamLogo: formData.teamLogoPreview || undefined,
+        contactNumber: formData.contactNumber,
+        contactPerson: formData.contactPerson,
+        tournament: {
+          id: Number(formData.selectedTournament?.id || 0),
+          name: formData.selectedTournament?.name || '',
+          code: formData.selectedTournament?.code || '',
+          logo: formData.selectedTournament?.logo || ''
+        },
+        players: formData.players.map((p, idx) => ({
+          id: idx + 1,
+          name: p.name,
+          lastName: p.lastName,
+          cedula: p.cedula,
+          photo: p.photoPreview // base64
+        })),
+        registrationDate: new Date().toISOString().slice(0, 10),
+        status: 'pending',
+        notes: ''
+      };
+
+      // Guardar en localStorage
+      const current = JSON.parse(localStorage.getItem('team_registrations') || '[]');
+      current.push(newRegistration);
+      localStorage.setItem('team_registrations', JSON.stringify(current));
+
       alert('¡Solicitud de equipo enviada exitosamente! El administrador revisará tu solicitud pronto.');
-      
-      // Resetear formulario
+
+      // Reset
       setFormData({
         teamName: '',
         selectedTournament: null,
@@ -194,7 +218,6 @@ const CreateTeamPage: React.FC = () => {
         players: []
       });
       setCurrentStep(1);
-      
     } catch (error) {
       console.error('Error al enviar solicitud:', error);
       alert('Hubo un error al enviar la solicitud. Por favor, inténtalo de nuevo.');
@@ -203,20 +226,8 @@ const CreateTeamPage: React.FC = () => {
     }
   };
 
-  if (!isAuthenticated) {
-    return (
-      <div className="container">
-        <div className="auth-required">
-          <h2>🔒 Inicia Sesión Requerida</h2>
-          <p>Debes iniciar sesión para crear un equipo y participar en los torneos.</p>
-          <button className="btn btn-primary" onClick={() => window.location.href = '/'}>
-            Ir al Inicio
-          </button>
-        </div>
-      </div>
-    );
-  }
-
+  // Eliminar el bloqueo por autenticación
+  // if (!isAuthenticated) { return (<div> ... </div>) }  // ← Quitar esta sección
   return (
     <div className="container">
       <div className="back-button-container">

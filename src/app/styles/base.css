@@ -88,6 +88,7 @@ a {
   transition: transform 0.8s ease-in-out;
 }
 
+/* IMPORTANTE: sin padding para que cada slide mida exactamente 100% */
 .hero-slide {
   min-width: 100%;
   height: 100%;
@@ -98,7 +99,8 @@ a {
   justify-content: center;
   align-items: center;
   text-align: center;
-  padding: 2rem;
+  padding: 0;                /* ← antes: 2rem */
+  box-sizing: border-box;   /* ← asegura cálculo correcto del ancho */
 }
 
 /* Capa oscura para legibilidad en cada slide */
@@ -119,6 +121,7 @@ a {
   display: flex;
   flex-direction: column;
   align-items: center;
+  padding: 0 2rem;          /* ← movemos el espacio aquí */
 }
 
 /* Contenedor del logo */

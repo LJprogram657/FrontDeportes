@@ -541,3 +541,88 @@
     gap: 15px;
   }
 }
+/* Estilos para Gestión de Registro */
+.registrations-container {
+  background: #fff;
+  border-radius: 15px;
+  padding: 25px;
+  border: 1px solid #e9ecef;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+}
+
+.filters-section { margin-bottom: 20px; }
+.filters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 15px;
+}
+.filter-group label { display: block; font-weight: 600; color: #333; margin-bottom: 6px; }
+.filter-group select {
+  width: 100%; padding: 10px 12px; border: 2px solid #e9ecef; border-radius: 8px; background: #fff;
+}
+
+.registrations-stats {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin: 20px 0 10px;
+}
+.stat-card {
+  background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 12px; padding: 16px; text-align: center;
+}
+.stat-card h4 { margin: 0 0 6px; color: #333; }
+.stat-card .stat-number { font-size: 1.6rem; font-weight: 800; color: var(--primary-red); }
+.stat-card.pending .stat-number { color: #ffc107; }
+.stat-card.approved .stat-number { color: #28a745; }
+.stat-card.rejected .stat-number { color: #dc3545; }
+
+.registrations-list { margin-top: 10px; }
+.no-registrations {
+  background: #f8f9fa; border: 1px dashed #e9ecef; border-radius: 12px; padding: 30px; text-align: center; color: #666;
+}
+
+.registrations-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px;
+}
+.registration-card {
+  background: #fff; border: 2px solid #e9ecef; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 14px; transition: .2s;
+}
+.registration-card:hover { border-color: var(--primary-red); box-shadow: 0 6px 16px rgba(0,0,0,0.08); }
+
+.registration-header {
+  display: flex; justify-content: space-between; align-items: center; gap: 10px; border-bottom: 1px solid #eee; padding-bottom: 10px;
+}
+.team-info { display: flex; align-items: center; gap: 10px; }
+.team-logo-small { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: #fff; }
+
+.tournament-info { display: flex; align-items: center; gap: 10px; }
+.tournament-logo-small { width: 34px; height: 34px; border-radius: 50%; object-fit: contain; background: #fff; padding: 4px; border: 1px solid #eee; }
+
+.registration-details p { margin: 6px 0; color: #555; }
+
+.status-badge { padding: 6px 10px; border-radius: 999px; font-size: .8rem; font-weight: 700; }
+.status-badge.pending { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+.status-badge.approved { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+.status-badge.rejected { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+
+.registration-detail { background: #fff; border: 1px solid #e9ecef; border-radius: 12px; padding: 20px; }
+.detail-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 12px; border-bottom: 1px solid #eee; margin-bottom: 15px; }
+.detail-content { display: grid; grid-template-columns: 1fr; gap: 20px; }
+.team-section .team-header { display: flex; gap: 14px; align-items: center; }
+.team-logo-large { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; background: #fff; }
+
+.players-section h5 { margin: 0 0 10px; }
+.players-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.player-card { display: flex; align-items: center; gap: 8px; background: #f8f9fa; border: 1px solid #eee; border-radius: 10px; padding: 8px; }
+.player-photo { width: 46px; height: 46px; border-radius: 50%; object-fit: cover; background: #fff; }
+
+.actions-section { border-top: 1px solid #eee; padding-top: 14px; }
+.action-buttons { display: flex; gap: 10px; }
+.btn-success, .btn-danger {
+  padding: 10px 16px; border-radius: 8px; font-weight: 700; border: none; cursor: pointer;
+}
+.btn-success { background: #28a745; color: #fff; }
+.btn-success:hover { background: #218838; }
+.btn-danger { background: #dc3545; color: #fff; }
+.btn-danger:hover { background: #c82333; }
+
+@media (max-width: 768px) {
+  .registrations-stats { grid-template-columns: repeat(2, 1fr); }
+}

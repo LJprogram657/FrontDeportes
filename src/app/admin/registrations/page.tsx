@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import '../../styles/admin-dashboard.css';
 
 interface Player {
   id: number;
@@ -106,11 +107,24 @@ const RegistrationsPage: React.FC = () => {
   useEffect(() => {
     // Simular carga de datos
     setTimeout(() => {
-      setRegistrations(mockRegistrations);
+      const local = JSON.parse(localStorage.getItem('team_registrations') || '[]');
+      // Unir primero los locales (nuevos) y luego los mock
+      setRegistrations([...local, ...mockRegistrations]);
       setIsLoading(false);
     }, 500);
-  }, []);
 
+    // Escuchar cambios del storage (por si se abre en otra pestaña)
+    const onStorage = () => {
+      const local = JSON.parse(localStorage.getItem('team_registrations') || '[]');
+      setRegistrations(prev => {
+        // Mantener mock, actualizar locales
+        const mocks = prev.filter(r => !String(r.id).startsWith('1')); // heurística simple si lo deseas
+        return [...local, ...mocks];
+      });
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
   const handleStatusChange = async (registrationId: number, newStatus: 'approved' | 'rejected') => {
     try {
       // Aquí iría la lógica para actualizar el estado en el backend

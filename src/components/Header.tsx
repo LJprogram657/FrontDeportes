@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import LoginModal from './LoginModal';
 import ContactModal from './ContactModal';
 
-const Header: React.FC = () => {
+function Header() {
   const [isLoginModalOpen, setIsLoginModalOpen] = React.useState(false);
   const [isContactModalOpen, setIsContactModalOpen] = React.useState(false);
   const { user, isAuthenticated, logout } = useAuth();
@@ -38,7 +38,7 @@ const Header: React.FC = () => {
           <div className="header-actions">
             {isAuthenticated ? (
               <>
-                <span style={{ marginRight: '10px', color: '#333' }}>
+                <span className="welcome-label" style={{ marginRight: '10px', color: '#333' }}>
                   Hola, {user?.first_name || user?.email}
                 </span>
                 <Link href="/create-team" className="btn btn-register">
@@ -65,6 +65,6 @@ const Header: React.FC = () => {
       <ContactModal isOpen={isContactModalOpen} onClose={closeContactModal} />
     </>
   );
-};
+}
 
 export default Header;
