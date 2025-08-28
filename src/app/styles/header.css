@@ -29,9 +29,9 @@
 
 .header .nav-link {
     color: var(--text-light);
-    font-family: "Times New Roman", Times, serif;
+    font-family: "Calibri", Times, serif;
     font-weight: bold;
-    font-size: 1.2rem;
+    font-size: 1.3rem;
     position: relative;
     transition: color 0.3s ease;
     background: none;

@@ -9,9 +9,112 @@
 }
 
 .sidebar-nav {
-  width: 200px;
-  position: sticky;
-  top: 2rem;
+  width: 280px;
+  background: linear-gradient(180deg, #1a1a1a 0%, #2c2c2c 100%);
+  color: #f4f4f9;
+  display: flex;
+  flex-direction: column;
+  border-right: 2px solid #444;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+  position: relative;
+}
+
+.sidebar-header {
+  padding: 30px 20px;
+  border-bottom: 2px solid #444;
+  background: rgba(192, 0, 0, 0.1);
+}
+
+.admin-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  text-align: center;
+}
+
+.logo-img {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  margin-bottom: 15px;
+  border: 3px solid var(--primary-red);
+  box-shadow: 0 0 15px rgba(192, 0, 0, 0.3);
+}
+
+.admin-logo h3 {
+  margin: 0;
+  font-size: 1.4rem;
+  color: #fff;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.nav-links {
+  display: flex;
+  flex-direction: column;
+  padding: 20px 0;
+  flex: 1;
+}
+
+.nav-link {
+  color: #f4f4f9;
+  text-decoration: none;
+  font-size: 1rem;
+  padding: 18px 25px;
+  margin: 5px 15px;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  position: relative;
+  border: 1px solid transparent;
+}
+
+.nav-link:hover {
+  background: linear-gradient(45deg, var(--primary-red), #ff3d3d);
+  color: #fff;
+  transform: translateX(5px);
+  box-shadow: 0 4px 15px rgba(192, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.nav-link.active {
+  background: linear-gradient(45deg, var(--primary-red), #ff3d3d);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(192, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.nav-icon {
+  font-size: 1.5rem;
+  width: 25px;
+  text-align: center;
+}
+
+.nav-text {
+  font-weight: 500;
+  flex: 1;
+}
+
+.nav-link::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 0;
+  background: #fff;
+  transition: height 0.3s ease;
+  border-radius: 2px;
+}
+
+.nav-link:hover::before,
+.nav-link.active::before {
+  height: 70%;
 }
 
 .sidebar-logo-container {

@@ -41,13 +41,18 @@ const Header: React.FC = () => {
                 <span style={{ marginRight: '10px', color: '#333' }}>
                   Hola, {user?.first_name || user?.email}
                 </span>
-                <button className="btn btn-register" onClick={handleLogout}>
+                <Link href="/create-team" className="btn btn-register">
+                  Crear Equipo
+                </Link>
+                <button className="btn btn-login" onClick={handleLogout}>
                   Cerrar Sesión
                 </button>
               </>
             ) : (
               <>
-                <button className="btn btn-register">Crear Equipo</button>
+                <Link href="/create-team" className="btn btn-register">
+                  Crear Equipo
+                </Link>
                 <button className="btn btn-login" onClick={openLoginModal}>
                   Iniciar Sesión
                 </button>

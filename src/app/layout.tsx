@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 import { AuthProvider } from '@/contexts/AuthContext';
+import MainLayout from "@/components/MainLayout";
 import "./styles/base.css";
 import "./styles/header.css";
 import "./styles/hero.css";
@@ -40,9 +39,7 @@ export default function RootLayout({
     <html lang="es">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <AuthProvider>
-          <Header />
-          <main>{children}</main>
-          <Footer />
+          <MainLayout>{children}</MainLayout>
         </AuthProvider>
       </body>
     </html>

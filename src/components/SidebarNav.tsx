@@ -1,20 +1,53 @@
-import Image from 'next/image';
-import BackButton from './BackButton';
+'use client';
 
-const SidebarNav = () => {
+import React from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import '../app/styles/sidebar-nav.css';
+
+const SidebarNav: React.FC = () => {
+  const pathname = usePathname();
+
+  const modules = [
+    {
+      name: 'Creación de torneos',
+      path: '/admin/tournaments/create',
+      icon: '🏆'
+    },
+    {
+      name: 'Actualización de información',
+      path: '/admin/tournaments/update',
+      icon: '📝'
+    },
+    {
+      name: 'Gestión de registro',
+      path: '/admin/registrations',
+      icon: '👥'
+    },
+    {
+      name: 'Programación de partidos',
+      path: '/admin/matches',
+      icon: '⚽'
+    }
+  ];
+
   return (
-    <aside className="sidebar-nav">
-      <div className="sidebar-logo-container">
-        <Image 
-          src="/images/logo.png" 
-          alt="Logo Animado" 
-          className="sidebar-logo" 
-          width={150} 
-          height={150} 
-        />
-        <BackButton />
+    <div className="sidebar-nav">
+      <div className="sidebar-header">
+        <div className="admin-logo">
+          <img src="/images/logo.png" alt="Logo" className="logo-img" />
+          <h3>Admin Panel</h3>
+        </div>
       </div>
-    </aside>
+      <nav className="nav-links">
+        {modules.map((module) => (
+          <Link key={module.path} href={module.path} className={`nav-link ${pathname === module.path ? 'active' : ''}`}>
+            <span className="nav-icon">{module.icon}</span>
+            <span className="nav-text">{module.name}</span>
+          </Link>
+        ))}
+      </nav>
+    </div>
   );
 };
 

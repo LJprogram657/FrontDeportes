@@ -97,11 +97,6 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
           </button>
         </form>
 
-        <div style={{ marginTop: '15px', fontSize: '12px', color: '#666', textAlign: 'center' }}>
-          <strong>Credenciales de Administrador:</strong><br/>
-          Email: admin@deportes.com<br/>
-          Contraseña: admin123456
-        </div>
       </div>
     </div>
   );
