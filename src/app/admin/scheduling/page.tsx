@@ -1,382 +1,362 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import '../../styles/admin-dashboard.css';
+import '../../styles/scheduling.css';
 
-type Tournament = { id: number; code: string; name: string; logo: string; category?: string; };
-type Team = { id: string; name: string; };
-type Phase = 'round_robin' | 'groups_knockout' | 'knockout';
+// Tipos de datos
+interface Tournament {
+  id: number;
+  name: string;
+  logo: string;
+  format: 'todos_contra_todos' | 'fase_grupos' | 'eliminatorias';
+  phases: string[];
+}
 
-type Match = {
+interface Team {
+  id: string;
+  name: string;
+  logo: string;
+}
+
+interface Match {
   id: string;
   phase: string;
+  homeTeam: Team | null;
+  awayTeam: Team | null;
+  date?: string;
+  time?: string;
+  venue?: string;
   round?: number;
   group?: string;
-  home: string;
-  away: string;
-  date?: string; // ISO Date
-  time?: string; // HH:mm
-  field?: string;
-};
+}
 
-const predeterminedTournaments: Tournament[] = [
-  { id: 1, code: 'LCG_FEM', name: 'Liga Comunal de Garzón Femenino', logo: '/images/tournaments/lcg-femenino.png' },
-  { id: 2, code: 'COPA_FEM', name: 'Copa Femenina Garzón', logo: '/images/tournaments/copa-femenina.png' },
-  { id: 3, code: 'LCG_FUTBOL', name: 'Liga Comunal de Garzón - Fútbol', logo: '/images/tournaments/lcg-futbol.png' },
-  { id: 4, code: 'LCG_FUTBOL11', name: 'Liga Comunal de Garzón - Fútbol 11', logo: '/images/tournaments/lcg-futbol11.png' },
-  { id: 5, code: 'LCG_SINTETICA', name: 'Liga Comunal de Garzón - Sintética', logo: '/images/tournaments/lcg-sintetica.png' },
+interface Venue {
+  id: string;
+  name: string;
+  address: string;
+}
+
+// --- DATOS DE EJEMPLO ---
+const mockTournaments: Tournament[] = [
+  { 
+    id: 1, 
+    name: 'Copa de Verano 2024', 
+    logo: '/images/masculino-futsal-1.png', 
+    format: 'eliminatorias',
+    phases: ['Fase de Grupos', 'Cuartos de Final', 'Semifinal', 'Final'] 
+  },
+  { 
+    id: 2, 
+    name: 'Liga Femenina Primavera', 
+    logo: '/images/femenino-futsal-1.png', 
+    format: 'todos_contra_todos',
+    phases: ['Todos contra Todos'] 
+  },
+  { 
+    id: 3, 
+    name: 'Torneo Masculino F7', 
+    logo: '/images/masculino-f7-1.png', 
+    format: 'fase_grupos',
+    phases: ['Fase de Grupos', 'Semifinal', 'Final'] 
+  },
 ];
 
-function generateRoundRobin(teams: Team[]): Match[] {
-  const list = [...teams];
-  if (list.length % 2 !== 0) list.push({ id: 'BYE', name: 'DESCANSA' });
+const mockTeams: Team[] = [
+  { id: 'team-1', name: 'Los Invencibles', logo: '/images/logo.png' },
+  { id: 'team-2', name: 'Guerreros FC', logo: '/images/logo.png' },
+  { id: 'team-3', name: 'Atlético Garzón', logo: '/images/logo.png' },
+  { id: 'team-4', name: 'Real Comunal', logo: '/images/logo.png' },
+  { id: 'team-5', name: 'Furia Roja', logo: '/images/logo.png' },
+  { id: 'team-6', name: 'Deportivo LCG', logo: '/images/logo.png' },
+  { id: 'team-7', name: 'Titanes del Balón', logo: '/images/logo.png' },
+  { id: 'team-8', name: 'Estrellas del Sur', logo: '/images/logo.png' },
+];
 
-  const n = list.length;
-  const half = n / 2;
-  const rounds = n - 1;
-  const matches: Match[] = [];
-  for (let r = 0; r < rounds; r++) {
-    for (let i = 0; i < half; i++) {
-      const home = list[i];
-      const away = list[n - 1 - i];
-      if (home.id !== 'BYE' && away.id !== 'BYE') {
-        matches.push({
-          id: `RR-${r + 1}-${i + 1}`,
-          phase: 'Todos contra Todos',
-          round: r + 1,
-          home: home.name,
-          away: away.name,
-        });
-      }
-    }
-    // rotación (método del círculo)
-    const fixed = list[0];
-    const rest = list.slice(1);
-    rest.unshift(rest.pop()!);
-    list.splice(0, list.length, fixed, ...rest);
-  }
-  return matches;
-}
+const mockVenues: Venue[] = [
+  { id: 'venue-1', name: 'Cancha Principal', address: 'Centro Deportivo LCG' },
+  { id: 'venue-2', name: 'Cancha Auxiliar', address: 'Centro Deportivo LCG' },
+  { id: 'venue-3', name: 'Polideportivo Municipal', address: 'Calle 15 #20-30' },
+  { id: 'venue-4', name: 'Cancha La Esperanza', address: 'Barrio La Esperanza' },
+];
+// --- FIN DE DATOS DE EJEMPLO ---
 
-function chunk<T>(arr: T[], size: number): T[][] {
-  const res: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) res.push(arr.slice(i, i + size));
-  return res;
-}
-
-function generateGroups(teams: Team[], groupsCount: number): Record<string, Team[]> {
-  const groups: Record<string, Team[]> = {};
-  for (let i = 0; i < groupsCount; i++) groups[String.fromCharCode(65 + i)] = [];
-  // serpentina
-  let forward = true; let index = 0;
-  for (const team of teams) {
-    const key = String.fromCharCode(65 + index);
-    groups[key].push(team);
-    if (forward) index++; else index--;
-    if (index === groupsCount) { index = groupsCount - 1; forward = false; }
-    if (index === -1) { index = 0; forward = true; }
-  }
-  return groups;
-}
-
-function rrForGroups(groups: Record<string, Team[]>): Match[] {
-  const matches: Match[] = [];
-  Object.entries(groups).forEach(([groupKey, teams]) => {
-    const rr = generateRoundRobin(teams);
-    rr.forEach((m) => { m.group = groupKey; m.phase = `Grupos (${groupKey})`; });
-    matches.push(...rr);
-  });
-  return matches;
-}
-
-function generateKnockoutPlaceholders(groupKeys: string[], advancePerGroup: number): Match[] {
-  // Crea placeholder para cuartos/semis/final dependiendo del total clasificados
-  const qualifiers: string[] = [];
-  groupKeys.forEach((g) => {
-    for (let i = 1; i <= advancePerGroup; i++) qualifiers.push(`${g}${i}`);
-  });
-  // Emparejamiento simple A1 vs B2, B1 vs A2, etc.
-  const pairs: [string, string][] = [];
-  for (let i = 0; i < qualifiers.length; i += 4) {
-    if (i + 3 < qualifiers.length) {
-      pairs.push([`${qualifiers[i]}`, `${qualifiers[i + 3]}`]);
-      pairs.push([`${qualifiers[i + 1]}`, `${qualifiers[i + 2]}`]);
-    }
-  }
-
-  const qf: Match[] = pairs.map((p, idx) => ({
-    id: `QF-${idx + 1}`,
-    phase: 'Cuartos de final',
-    home: `1º ${p[0][0]} (${p[0]})`,
-    away: `2º ${p[1][0]} (${p[1]})`,
-  }));
-
-  const sf: Match[] = [
-    { id: 'SF-1', phase: 'Semifinales', home: 'Ganador QF-1', away: 'Ganador QF-2' },
-    { id: 'SF-2', phase: 'Semifinales', home: 'Ganador QF-3', away: 'Ganador QF-4' },
-  ];
-
-  const final: Match[] = [
-    { id: 'F-1', phase: 'Final', home: 'Ganador SF-1', away: 'Ganador SF-2' },
-  ];
-
-  return [...qf, ...sf, ...final];
-}
-
-function assignTimeslots(matches: Match[], params: {
-  startDate: string; startTime: string; matchMinutes: number; breakMinutes: number;
-  fields: string[]; daysOfWeek: number[]; // 0-6 (Dom-Sáb)
-}): Match[] {
-  const out: Match[] = [];
-  let date = new Date(`${params.startDate}T${params.startTime}:00`);
-  let fieldIndex = 0;
-
-  const isAllowedDay = (d: Date) => params.daysOfWeek.includes(d.getDay());
-
-  for (const m of matches) {
-    while (!isAllowedDay(date)) {
-      date.setDate(date.getDate() + 1);
-      date.setHours(Number(params.startTime.split(':')[0]));
-      date.setMinutes(Number(params.startTime.split(':')[1]));
-    }
-    const field = params.fields[fieldIndex % params.fields.length];
-    out.push({
-      ...m,
-      date: date.toISOString().slice(0, 10),
-      time: date.toTimeString().slice(0, 5),
-      field,
-    });
-    // siguiente timeslot
-    date = new Date(date.getTime() + (params.matchMinutes + params.breakMinutes) * 60000);
-    fieldIndex++;
-  }
-  return out;
-}
 
 const SchedulingPage: React.FC = () => {
-  const [selectedTournamentId, setSelectedTournamentId] = useState<number | null>(null);
-  const [phase, setPhase] = useState<Phase>('round_robin');
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [useApprovedFromRegistrations, setUseApprovedFromRegistrations] = useState(true);
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // parámetros de horario
-  const [startDate, setStartDate] = useState<string>(new Date().toISOString().slice(0, 10));
-  const [startTime, setStartTime] = useState<string>('18:00');
-  const [matchMinutes, setMatchMinutes] = useState<number>(50);
-  const [breakMinutes, setBreakMinutes] = useState<number>(10);
-  const [fieldsText, setFieldsText] = useState<string>('Cancha 1, Cancha 2');
-  const [daysOfWeek, setDaysOfWeek] = useState<number[]>([1, 3, 5]); // L, M, V
-
-  // Cargar equipos aprobados desde localStorage + demo
-  const availableTeams = useMemo(() => {
-    try {
-      const local = JSON.parse(localStorage.getItem('team_registrations') || '[]');
-      const tournament = predeterminedTournaments.find(t => t.id === selectedTournamentId);
-      const byTournament = (local as any[])
-        .filter(r => r.tournament?.id === tournament?.id)
-        .filter(r => r.status === 'approved' || r.status === 'pending') // ajustar si quieres solo aprobados
-        .map((r: any) => ({ id: String(r.id), name: r.teamName }));
-      return byTournament;
-    } catch { return []; }
-  }, [selectedTournamentId]);
-
+  // Cargar torneos (debería usar los creados por el admin)
   useEffect(() => {
-    if (useApprovedFromRegistrations) {
-      setTeams(availableTeams);
-    }
-  }, [useApprovedFromRegistrations, availableTeams]);
+    // Por ahora, usamos los datos de ejemplo.
+    // TODO: Cargar torneos desde localStorage ('admin_created_tournaments')
+    setTournaments(mockTournaments);
+    setIsLoading(false);
+  }, []);
 
-  const [groupsCount, setGroupsCount] = useState<number>(2);
-  const [advancePerGroup, setAdvancePerGroup] = useState<number>(2);
-
-  const [generated, setGenerated] = useState<Match[]>([]);
-
-  const handleGenerate = () => {
-    if (!selectedTournamentId) {
-      alert('Selecciona un torneo');
-      return;
-    }
-    const teamList = teams.length ? teams : [];
-    if (teamList.length < 2) {
-      alert('Necesitas al menos 2 equipos');
-      return;
-    }
-
-    let matches: Match[] = [];
-    if (phase === 'round_robin') {
-      matches = generateRoundRobin(teamList);
-    } else if (phase === 'groups_knockout') {
-      const groups = generateGroups(teamList, groupsCount);
-      const rr = rrForGroups(groups);
-      const ko = generateKnockoutPlaceholders(Object.keys(groups), advancePerGroup);
-      matches = [...rr, ...ko];
-    } else {
-      // knockout directo simple por ahora (placeholders)
-      const rr = generateRoundRobin(teamList); // si hay impar, se usa BYE - puedes ajustar
-      matches = rr.slice(0, Math.ceil(teamList.length / 2)); // placeholder
-    }
-
-    const assigned = assignTimeslots(matches, {
-      startDate,
-      startTime,
-      matchMinutes,
-      breakMinutes,
-      fields: fieldsText.split(',').map(s => s.trim()).filter(Boolean),
-      daysOfWeek,
-    });
-
-    setGenerated(assigned);
-  };
+  if (isLoading) {
+    return (
+      <div className="loading-container">
+        <div className="loading-spinner"></div>
+        <p>Cargando torneos...</p>
+      </div>
+    );
+  }
 
   return (
     <div>
       <div className="content-header">
         <h2 className="content-title">📅 Programación de Partidos</h2>
-        <p className="content-subtitle">Selecciona el torneo, equipos, formato y genera el calendario (fechas, horas y canchas)</p>
+        <p className="content-subtitle">
+          {selectedTournament 
+            ? `Programando partidos para: ${selectedTournament.name}`
+            : 'Selecciona un torneo para comenzar a programar los partidos.'}
+        </p>
       </div>
 
-      <div className="tournament-form-container">
-        <div className="form-grid">
-          <div className="form-group">
-            <label>Torneo</label>
-            <select value={selectedTournamentId ?? ''} onChange={(e) => setSelectedTournamentId(Number(e.target.value))}>
-              <option value="">Selecciona un torneo</option>
-              {predeterminedTournaments.map(t => (
-                <option key={t.id} value={t.id}>{t.name}</option>
-              ))}
-            </select>
-          </div>
+      {!selectedTournament ? (
+        <TournamentSelector tournaments={tournaments} onSelect={setSelectedTournament} />
+      ) : (
+        <SchedulingPanel tournament={selectedTournament} onBack={() => setSelectedTournament(null)} />
+      )}
+    </div>
+  );
+};
 
-          <div className="form-group">
-            <label>Formato</label>
-            <select value={phase} onChange={(e) => setPhase(e.target.value as Phase)}>
-              <option value="round_robin">Todos contra Todos</option>
-              <option value="groups_knockout">Fase de Grupos + Eliminatorias</option>
-              <option value="knockout">Eliminatorias</option>
-            </select>
-          </div>
+// Componente para seleccionar un torneo
+interface TournamentSelectorProps {
+  tournaments: Tournament[];
+  onSelect: (tournament: Tournament) => void;
+}
 
-          {phase === 'groups_knockout' && (
-            <>
-              <div className="form-group">
-                <label>Número de grupos</label>
-                <input type="number" min={2} max={8} value={groupsCount} onChange={e => setGroupsCount(Number(e.target.value))} />
+const TournamentSelector: React.FC<TournamentSelectorProps> = ({ tournaments, onSelect }) => {
+  return (
+    <div className="tournament-selector-container">
+      {tournaments.map(t => (
+        <div key={t.id} className="tournament-select-card" onClick={() => onSelect(t)}>
+          <img src={t.logo} alt={`Logo de ${t.name}`} />
+          <h4>{t.name}</h4>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// Panel principal de programación para un torneo seleccionado
+interface SchedulingPanelProps {
+  tournament: Tournament;
+  onBack: () => void;
+}
+
+const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack }) => {
+  const [activePhase, setActivePhase] = useState(tournament.phases[0]);
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [availableTeams, setAvailableTeams] = useState<Team[]>(mockTeams);
+  const [draggedTeam, setDraggedTeam] = useState<Team | null>(null);
+
+  // Generar partidos automáticamente según el formato del torneo
+  const generateMatches = (phase: string) => {
+    const newMatches: Match[] = [];
+    
+    if (tournament.format === 'todos_contra_todos') {
+      // Generar todos los partidos posibles
+      for (let i = 0; i < availableTeams.length; i++) {
+        for (let j = i + 1; j < availableTeams.length; j++) {
+          newMatches.push({
+            id: `match-${i}-${j}`,
+            phase,
+            homeTeam: null,
+            awayTeam: null,
+            round: Math.floor(newMatches.length / (availableTeams.length / 2)) + 1
+          });
+        }
+      }
+    } else if (tournament.format === 'fase_grupos') {
+      // Generar partidos para grupos (ejemplo: 2 grupos de 4 equipos)
+      const groupSize = 4;
+      const numGroups = Math.ceil(availableTeams.length / groupSize);
+      
+      for (let group = 0; group < numGroups; group++) {
+        const groupLetter = String.fromCharCode(65 + group); // A, B, C...
+        for (let i = 0; i < groupSize; i++) {
+          for (let j = i + 1; j < groupSize; j++) {
+            newMatches.push({
+              id: `match-${group}-${i}-${j}`,
+              phase,
+              homeTeam: null,
+              awayTeam: null,
+              group: `Grupo ${groupLetter}`
+            });
+          }
+        }
+      }
+    } else if (tournament.format === 'eliminatorias') {
+      // Generar partidos eliminatorios
+      let numMatches = 0;
+      if (phase === 'Cuartos de Final') numMatches = 4;
+      else if (phase === 'Semifinal') numMatches = 2;
+      else if (phase === 'Final') numMatches = 1;
+      else numMatches = Math.floor(availableTeams.length / 2);
+      
+      for (let i = 0; i < numMatches; i++) {
+        newMatches.push({
+          id: `match-${phase}-${i}`,
+          phase,
+          homeTeam: null,
+          awayTeam: null
+        });
+      }
+    }
+    
+    setMatches(newMatches);
+  };
+
+  // Manejar drag and drop
+  const handleDragStart = (team: Team) => {
+    setDraggedTeam(team);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e: React.DragEvent, matchId: string, position: 'home' | 'away') => {
+    e.preventDefault();
+    if (!draggedTeam) return;
+
+    setMatches(prev => prev.map(match => {
+      if (match.id === matchId) {
+        const updatedMatch = { ...match };
+        if (position === 'home') {
+          updatedMatch.homeTeam = draggedTeam;
+        } else {
+          updatedMatch.awayTeam = draggedTeam;
+        }
+        return updatedMatch;
+      }
+      return match;
+    }));
+
+    setDraggedTeam(null);
+  };
+
+  const removeTeamFromMatch = (matchId: string, position: 'home' | 'away') => {
+    setMatches(prev => prev.map(match => {
+      if (match.id === matchId) {
+        const updatedMatch = { ...match };
+        if (position === 'home') {
+          updatedMatch.homeTeam = null;
+        } else {
+          updatedMatch.awayTeam = null;
+        }
+        return updatedMatch;
+      }
+      return match;
+    }));
+  };
+
+  const updateMatchVenue = (matchId: string, venue: string) => {
+    setMatches(prev => prev.map(match => 
+      match.id === matchId ? { ...match, venue } : match
+    ));
+  };
+
+  const updateMatchDateTime = (matchId: string, date: string, time: string) => {
+    setMatches(prev => prev.map(match => 
+      match.id === matchId ? { ...match, date, time } : match
+    ));
+  };
+
+  useEffect(() => {
+    generateMatches(activePhase);
+  }, [activePhase, tournament.format]);
+
+  return (
+    <div className="scheduling-panel">
+      <div className="panel-header">
+        <h3>{tournament.name}</h3>
+        <div className="header-actions">
+          <span className="tournament-format">Formato: {tournament.format.replace('_', ' ').toUpperCase()}</span>
+          <button className="btn-secondary" onClick={onBack}>← Volver a la lista</button>
+        </div>
+      </div>
+
+      <div className="phase-tabs">
+        {tournament.phases.map(phase => (
+          <button 
+            key={phase}
+            className={`phase-tab ${activePhase === phase ? 'active' : ''}`}
+            onClick={() => setActivePhase(phase)}
+          >
+            {phase}
+          </button>
+        ))}
+      </div>
+
+      <div className="scheduler-layout">
+        <div className="teams-list-container">
+          <h4>Equipos Disponibles</h4>
+          <div className="teams-grid">
+            {availableTeams.map(team => (
+              <div 
+                key={team.id}
+                className="team-card draggable"
+                draggable
+                onDragStart={() => handleDragStart(team)}
+              >
+                <img src={team.logo} alt={team.name} className="team-logo-small" />
+                <span className="team-name">{team.name}</span>
               </div>
-              <div className="form-group">
-                <label>Clasificados por grupo</label>
-                <input type="number" min={1} max={4} value={advancePerGroup} onChange={e => setAdvancePerGroup(Number(e.target.value))} />
-              </div>
-            </>
-          )}
-
-          <div className="form-group full-width">
-            <label>
-              Equipos
-              <small style={{ marginLeft: 8, color: '#666' }}>(puedes usar aprobados del registro o ingresar manualmente)</small>
-            </label>
-            <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 8 }}>
-              <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <input type="checkbox" checked={useApprovedFromRegistrations} onChange={e => setUseApprovedFromRegistrations(e.target.checked)} />
-                Usar equipos desde “Gestión de registro”
-              </label>
-              <button type="button" className="btn-secondary" onClick={() => setTeams(prev => [...prev, { id: String(Date.now()), name: `Equipo ${prev.length + 1}` }])}>
-                + Agregar equipo
+            ))}
+          </div>
+          
+          <div className="scheduling-instructions">
+            <h5>📋 Instrucciones:</h5>
+            <ul>
+              <li>Arrastra los equipos a los espacios de los partidos</li>
+              <li>Haz clic en "Generar Automático" para asignar equipos aleatoriamente</li>
+              <li>Selecciona la cancha y horario para cada partido</li>
+            </ul>
+            <button 
+              className="btn-primary auto-generate-btn"
+              onClick={() => generateMatches(activePhase)}
+            >
+              🎲 Generar Automático
+            </button>
+          </div>
+        </div>
+        
+        <div className="matches-container">
+          <h4>Partidos de: {activePhase}</h4>
+          <div className="matches-grid">
+            {matches.map(match => (
+              <MatchCard 
+                key={match.id}
+                match={match}
+                venues={mockVenues}
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onRemoveTeam={removeTeamFromMatch}
+                onUpdateVenue={updateMatchVenue}
+                onUpdateDateTime={updateMatchDateTime}
+              />
+            ))}
+          </div>
+          
+          {matches.length === 0 && (
+            <div className="no-matches">
+              <p>No hay partidos programados para esta fase.</p>
+              <button 
+                className="btn-primary"
+                onClick={() => generateMatches(activePhase)}
+              >
+                Generar Partidos
               </button>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 10 }}>
-              {teams.map((t, idx) => (
-                <div key={t.id} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <input
-                    type="text"
-                    value={t.name}
-                    onChange={(e) => setTeams(prev => prev.map((x, i) => i === idx ? { ...x, name: e.target.value } : x))}
-                    placeholder={`Nombre Equipo #${idx + 1}`}
-                  />
-                  <button type="button" className="btn-danger" onClick={() => setTeams(prev => prev.filter((_, i) => i !== idx))}>✕</button>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label>Fecha de inicio</label>
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-          </div>
-          <div className="form-group">
-            <label>Hora de inicio</label>
-            <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
-          </div>
-          <div className="form-group">
-            <label>Duración partido (min)</label>
-            <input type="number" min={20} value={matchMinutes} onChange={(e) => setMatchMinutes(Number(e.target.value))} />
-          </div>
-          <div className="form-group">
-            <label>Descanso entre partidos (min)</label>
-            <input type="number" min={0} value={breakMinutes} onChange={(e) => setBreakMinutes(Number(e.target.value))} />
-          </div>
-          <div className="form-group full-width">
-            <label>Canchas (separadas por coma)</label>
-            <input type="text" value={fieldsText} onChange={(e) => setFieldsText(e.target.value)} placeholder="Cancha 1, Cancha 2" />
-          </div>
-          <div className="form-group full-width">
-            <label>Días de juego</label>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'].map((d, idx) => (
-                <label key={idx} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                  <input
-                    type="checkbox"
-                    checked={daysOfWeek.includes(idx)}
-                    onChange={() =>
-                      setDaysOfWeek(prev => prev.includes(idx) ? prev.filter(x => x !== idx) : [...prev, idx])
-                    }
-                  />
-                  {d}
-                </label>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="form-actions">
-          <button className="btn-primary" onClick={handleGenerate}>Generar Calendario</button>
+          )}
         </div>
       </div>
-
-      {generated.length > 0 && (
-        <div className="update-container" style={{ marginTop: 20 }}>
-          <h3>Calendario generado</h3>
-          <div className="tournaments-grid" style={{ gridTemplateColumns: '1fr' }}>
-            <div className="tournament-card">
-              <table style="width:100%; border-collapse: collapse;">
-                <thead>
-                  <tr>
-                    <th style="text-align:left; padding:8px; border-bottom:1px solid #eee;">Fase</th>
-                    <th style="text-align:left; padding:8px; border-bottom:1px solid #eee;">Ronda/Grupo</th>
-                    <th style="text-align:left; padding:8px; border-bottom:1px solid #eee;">Local</th>
-                    <th style="text-align:left; padding:8px; border-bottom:1px solid #eee;">Visita</th>
-                    <th style="text-align:left; padding:8px; border-bottom:1px solid #eee;">Fecha</th>
-                    <th style="text-align:left; padding:8px; border-bottom:1px solid #eee;">Hora</th>
-                    <th style="text-align:left; padding:8px; border-bottom:1px solid #eee;">Cancha</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {generated.map(m => (
-                    <tr key={m.id}>
-                      <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{m.phase}</td>
-                      <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{m.group ? `Grupo ${m.group}` : (m.round ? `Ronda ${m.round}` : '-')}</td>
-                      <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{m.home}</td>
-                      <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{m.away}</td>
-                      <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{m.date || '-'}</td>
-                      <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{m.time || '-'}</td>
-                      <td style="padding:8px; border-bottom:1px solid #f0f0f0;">{m.field || '-'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

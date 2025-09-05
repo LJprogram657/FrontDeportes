@@ -26,7 +26,7 @@ const SidebarNav: React.FC = () => {
     },
     {
       name: 'Programación de partidos',
-      path: '/admin/matches',
+      path: '/admin/scheduling',
       icon: '⚽'
     }
   ];

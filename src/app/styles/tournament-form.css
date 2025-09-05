@@ -189,3 +189,21 @@
 .btn-primary:disabled {
   animation: loading 1.5s ease-in-out infinite;
 }
+
+.phase-chip {
+  display: inline-block;
+  padding: 8px 16px;
+  border-radius: 16px;
+  background-color: #f0f0f0;
+  color: #333;
+  cursor: pointer;
+  transition: background-color 0.3s, color 0.3s;
+  margin: 4px;
+  border: 1px solid #ccc;
+}
+
+.phase-chip.selected {
+  background-color: #007bff;
+  color: white;
+  border-color: #007bff;
+}
