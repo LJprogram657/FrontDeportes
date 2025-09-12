@@ -75,17 +75,29 @@ class ApiService {
       const response = await fetch(`${this.baseURL}/auth/refresh/`, {
         method: 'POST',
         headers: this.getHeaders(false),
-        body: JSON.stringify({ refresh: this.refreshToken })
+        body: JSON.stringify({ refresh: this.refreshToken }),
+        credentials: 'include'  // Añadir esta línea
       });
 
       if (response.ok) {
         const data = await response.json();
-        this.accessToken = data.access;
-        localStorage.setItem('access_token', data.access);
-        return true;
+        if (data.access) {
+          this.accessToken = data.access;
+          localStorage.setItem('access_token', data.access);
+          return true;
+        }
+      }
+      
+      // Si llegamos aquí, el refresh token no es válido o ha expirado
+      // Limpiar tokens y redirigir a login
+      this.logout();
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login';
       }
     } catch (error) {
       console.error('Error renovando token:', error);
+      // También limpiar tokens en caso de error
+      this.logout();
     }
 
     return false;
@@ -100,7 +112,8 @@ class ApiService {
     try {
       const response = await fetch(`${this.baseURL}${url}`, {
         ...options,
-        headers: this.getHeaders(includeAuth)
+        headers: this.getHeaders(includeAuth),
+        credentials: 'include'  // Añadir esta línea para incluir cookies en solicitudes cross-origin
       });
 
       // Si es 401 y tenemos refresh token, intentar renovar
@@ -110,7 +123,8 @@ class ApiService {
           // Reintentar con nuevo token
           const retryResponse = await fetch(`${this.baseURL}${url}`, {
             ...options,
-            headers: this.getHeaders(true)
+            headers: this.getHeaders(true),
+            credentials: 'include'  // Añadir también aquí
           });
           return this.handleResponse<T>(retryResponse);
         }

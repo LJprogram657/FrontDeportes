@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { GeistSans } from "geist/font/sans";
+import { GeistMono } from "geist/font/mono";
 import { AuthProvider } from '@/contexts/AuthContext';
 import MainLayout from "@/components/MainLayout";
 import "./styles/base.css";
@@ -15,15 +16,9 @@ import "./styles/back-button.css";
 import "./styles/logo.css";
 import "./styles/tournament-detail.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+const geistSans = GeistSans;
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const geistMono = GeistMono;
 
 export const metadata: Metadata = {
   title: "Sistema Deportivo Rey",
@@ -36,8 +31,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es">
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html lang="es" className={`${geistSans.variable} ${geistMono.variable}`}>
+      <body className={`${geistSans.className} ${geistMono.variable}`}>
         <AuthProvider>
           <MainLayout>{children}</MainLayout>
         </AuthProvider>

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { EnvelopeIcon, PhoneIcon } from '@heroicons/react/outline';
+import { EnvelopeIcon, PhoneIcon } from '@heroicons/react/24/outline';
 
 interface ContactModalProps {
   isOpen: boolean;
