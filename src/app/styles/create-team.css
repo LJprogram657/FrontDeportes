@@ -425,7 +425,8 @@
 }
 
 /* Acciones del formulario */
-.form-actions {
+/* Modificar la clase form-actions para pantallas pequeñas */
+@media (max-width: 768px) {
   display: flex;
   justify-content: space-between;
   gap: 20px;
@@ -434,7 +435,7 @@
 }
 
 .btn {
-  padding: 12px 30px;
+  padding: 12px 20px; /* Reducir el padding horizontal en los botones */
   border: none;
   border-radius: 8px;
   font-size: 1rem;
@@ -531,7 +532,9 @@
   }
   
   .form-actions {
-    flex-direction: column;
+    flex-direction: row; /* Cambiar de column a row */
+    justify-content: space-between; /* Mantener los botones separados */
+    gap: 10px; /* Reducir el espacio entre botones */
   }
   
   .selected-tournament-info {
@@ -558,5 +561,9 @@
   
   .tournament-card {
     padding: 20px;
+  }
+  
+  .btn {
+    padding: 10px 15px; /* Reducir aún más el padding en pantallas muy pequeñas */
   }
 }

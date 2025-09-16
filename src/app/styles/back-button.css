@@ -1,115 +1,54 @@
+/* Posicionar el botón en la esquina superior izquierda */
 .back-button-container {
-  width: 100%;
-  max-width: 1200px; /* Mismo ancho que el .container */
-  margin: 0 auto 1.5rem auto; /* Centrado y con margen inferior */
-  padding: 0 1rem; /* Mismo padding que el .container */
-  display: flex;
-  justify-content: flex-start;
-}
-
-.back-button {
   position: fixed;
-  bottom: 2rem;
+  top: 5rem; /* Distancia desde arriba para evitar superposición con la barra de navegación */
   left: 2rem;
-  z-index: 1000; /* Para que esté por encima de otros elementos */
-  
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  
-  background-color: var(--primary-color);
-  color: var(--light-text);
-  
-  border: none;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  
-  cursor: pointer;
-  transition: transform 0.3s ease, background-color 0.3s ease;
-}
-
-.back-button:hover {
-  transform: scale(1.1);
-  background-color: #e03131; /* Rojo más oscuro */
-}
-
-.back-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.75rem 1.5rem;
-  border-radius: 9999px; /* Botón completamente redondeado */
-  background-color: #e53e3e; /* Fondo rojo, para que contraste */
-  color: #ffffff; /* Texto blanco */
-  font-weight: 600;
-  text-decoration: none;
-  transition: background-color 0.3s ease, transform 0.2s ease;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  cursor: pointer;
-  border: 2px solid transparent;
-  /* margin-bottom se elimina de aquí y se gestiona en el contenedor */
-}
-
-.back-button:hover {
-  background-color: #c53030; /* Rojo más oscuro al pasar el ratón */
-  transform: translateY(-2px); /* Efecto de elevación */
-}
-
-.back-button:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.6); /* Anillo de enfoque */
-}
-
-.back-button svg {
-  margin-right: 0.5rem;
-  width: 20px;
-  height: 20px;
-}
-
-.back-button span {
-  display: inline-block;
-}
-
-/* Ocultar en pantallas muy pequeñas donde podría estorbar */
-@media (max-width: 768px) {
-  .back-button {
-    bottom: 1rem;
-    left: 1rem;
-    width: 45px;
-    height: 45px;
-  }
-}
-
-
-.back-button-container {
-  position: absolute;
-  top: 100px; /* Ajusta según la altura de tu header */
-  right: 20px;
   z-index: 1000;
 }
 
 .back-button {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  background-color: #dc143c;
+  justify-content: center;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background-color: #dc143c; /* Rojo */
   color: white;
   border: none;
-  border-radius: 5px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   cursor: pointer;
-  font-size: 1rem;
-  transition: background-color 0.3s ease;
+  transition: transform 0.3s ease, background-color 0.3s ease;
 }
 
 .back-button:hover {
-  background-color: #b22222;
+  transform: scale(1.1);
+  background-color: #b22222; /* Rojo más oscuro */
+}
+
+.back-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.6);
 }
 
 .back-button svg {
   width: 20px;
   height: 20px;
+}
+
+.back-button span {
+  display: none; /* Ocultar el texto para mantener solo el ícono */
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .back-button-container {
+    top: 4rem;
+    left: 1rem;
+  }
+  
+  .back-button {
+    width: 45px;
+    height: 45px;
+  }
 }
