@@ -34,10 +34,12 @@ const SidebarNav: React.FC = () => {
   return (
     <div className="sidebar-nav">
       <div className="sidebar-header">
-        <div className="admin-logo">
-          <img src="/images/logo.png" alt="Logo" className="logo-img" />
-          <h3>Admin Panel</h3>
-        </div>
+        <Link href="/" className="admin-logo-link">
+          <div className="admin-logo">
+            <img src="/images/logo.png" alt="Logo" className="logo-img" />
+            <h3>Admin Panel</h3>
+          </div>
+        </Link>
       </div>
       <nav className="nav-links">
         {modules.map((module) => (
