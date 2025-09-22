@@ -195,7 +195,8 @@ class ApiService {
         });
       }
     } catch (error) {
-      console.error('Error en logout:', error);
+      // No mostrar error si el backend no está disponible
+      console.warn('Backend no disponible para logout, limpiando tokens localmente:', error);
     } finally {
       // Limpiar tokens independientemente del resultado
       this.accessToken = null;

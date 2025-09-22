@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import '../../styles/admin-dashboard.css';
 import '../../styles/scheduling.css';
 
-// Tipos de datos
+// Interfaces
 interface Tournament {
   id: number;
   name: string;
@@ -39,122 +39,66 @@ interface Venue {
   id: string;
   name: string;
   address: string;
-  images: string[]; // Cambiado de image: string
+  images: string[];
   sports: string[];
 }
 
-// --- DATOS DE EJEMPLO ---
-const mockTournaments: Tournament[] = [
-  { 
-    id: 1, 
-    name: 'Copa de Verano 2024', 
-    logo: '/images/masculino-futsal-1.png', 
-    format: 'eliminatorias',
-    phases: ['Todos contra Todos', 'Fase de Grupos', 'Cuartos de Final', 'Semifinal', 'Final'],
-    sport: 'futbol.salon'
-  },
-  { 
-    id: 2, 
-    name: 'Liga Femenina Primavera', 
-    logo: '/images/femenino-futsal-1.png', 
-    format: 'todos_contra_todos',
-    phases: ['Todos contra Todos'],
-    sport: 'futbol.salon'
-  },
-  { 
-    id: 3, 
-    name: 'Torneo Masculino F7', 
-    logo: '/images/masculino-f7-1.png', 
-    format: 'fase_grupos',
-    phases: ['Fase de Grupos', 'Semifinal', 'Final'],
-    sport: 'futbol.7'
-  },
-];
+// DATOS LIMPIOS - SIN INFORMACIÓN DE PRUEBA
+const mockTournaments: Tournament[] = [];
 
-const mockTeams: Team[] = [
-  { id: 'team-1', name: 'Los Invencibles', logo: '/images/logo.png' },
-  { id: 'team-2', name: 'Guerreros FC', logo: '/images/logo.png' },
-  { id: 'team-3', name: 'Atlético Garzón', logo: '/images/logo.png' },
-  { id: 'team-4', name: 'Real Comunal', logo: '/images/logo.png' },
-  { id: 'team-5', name: 'Furia Roja', logo: '/images/logo.png' },
-  { id: 'team-6', name: 'Deportivo LCG', logo: '/images/logo.png' },
-  { id: 'team-7', name: 'Titanes del Balón', logo: '/images/logo.png' },
-  { id: 'team-8', name: 'Estrellas del Sur', logo: '/images/logo.png' },
-];
+// Equipos reales registrados (se cargarán del localStorage)
+const mockTeams: Team[] = [];
 
+// Canchas básicas reales (puedes personalizar estas según tu ubicación)
 const mockVenues: Venue[] = [
   {
     id: '1',
-    name: 'Cancha Aries',
-    address: 'Calle Ficticia 123',
-    images: ['/images/DSC_3835.jpg', '/images/DSC_3839.jpg'],
-    sports: ['futbol.pasto'],
+    name: 'Cancha Principal',
+    address: 'Dirección por definir',
+    images: ['/images/default-venue.jpg'],
+    sports: ['futbol.salon', 'futbol.7'],
   },
   {
     id: '2',
-    name: 'Cancha Villa Deportiva',
-    address: 'Avenida Siempre Viva 456',
-    images: ['/images/DSC_3829.jpg'],
-    sports: ['futbol.pasto'],
-  },
-  {
-    id: '3',
-    name: 'Bancarios',
-    address: 'Calle Falsa 123',
-    images: ['/images/DSC_3787.jpg', '/images/DSC_3791.jpg'],
-    sports: ['futbol.salon'],
-  },
-  {
-    id: '4',
-    name: 'El Playon',
-    address: 'Avenida Inventada 456',
-    images: ['/images/DSC_3797.jpg', '/images/DSC_3803.jpg'],
-    sports: ['futbol.salon'],
-  },
-  {
-    id: '5',
-    name: 'Villa Deportiva',
-    address: 'Calle Imaginaria 789',
-    images: ['/images/DSC_3816.jpg', '/images/DSC_3832.jpg'],
-    sports: ['futbol.salon'],
-  },
-  {
-    id: '6',
-    name: 'Villa Lucia',
-    address: 'Avenida Ficticia 012',
-    images: ['/images/DSC_3808.jpg', '/images/DSC_3817.jpg'],
-    sports: ['futbol.salon'],
-  },
-  {
-    id: '7',
-    name: 'El Reino',
-    address: 'Avenida Principal 123',
-    images: ['/images/DSC_3847.jpg', '/images/DSC_3850.jpg'],
-    sports: ['futbol.7'],
-  },
-  {
-    id: '8',
-    name: 'El Templo',
-    address: 'Avenida Secundaria 456',
-    images: ['/images/DSC_3853.jpg', '/images/DSC_3858.jpg'],
-    sports: ['futbol.7'],
-  },
+    name: 'Cancha Auxiliar',
+    address: 'Dirección por definir',
+    images: ['/images/default-venue.jpg'],
+    sports: ['futbol.salon', 'futbol.7'],
+  }
 ];
 
-// --- FIN DE DATOS DE EJEMPLO ---
-
-
+// Componente principal
 const SchedulingPage: React.FC = () => {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Cargar torneos (debería usar los creados por el admin)
+  // Cargar torneos reales del localStorage
   useEffect(() => {
-    // Por ahora, usamos los datos de ejemplo.
-    // TODO: Cargar torneos desde localStorage ('admin_created_tournaments')
-    setTournaments(mockTournaments);
-    setIsLoading(false);
+    const loadTournaments = () => {
+      try {
+        const adminTournaments = JSON.parse(localStorage.getItem('admin_created_tournaments') || '[]');
+        
+        // Convertir al formato esperado
+        const formattedTournaments = adminTournaments.map((t: any) => ({
+          id: t.id,
+          name: t.name,
+          logo: t.logo || '/images/default-tournament.png',
+          format: t.format === 'round-robin' ? 'todos_contra_todos' : 'eliminatorias',
+          phases: t.phases || ['Todos contra Todos'],
+          sport: t.modality === 'futsal' ? 'futbol.salon' : 'futbol.7'
+        }));
+        
+        setTournaments(formattedTournaments);
+      } catch (error) {
+        console.error('Error cargando torneos:', error);
+        setTournaments([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadTournaments();
   }, []);
 
   if (isLoading) {
@@ -162,6 +106,28 @@ const SchedulingPage: React.FC = () => {
       <div className="loading-container">
         <div className="loading-spinner"></div>
         <p>Cargando torneos...</p>
+      </div>
+    );
+  }
+
+  if (tournaments.length === 0) {
+    return (
+      <div>
+        <div className="content-header">
+          <h2 className="content-title">📅 Programación de Partidos</h2>
+          <p className="content-subtitle">No hay torneos disponibles para programar</p>
+        </div>
+        <div style={{ 
+          textAlign: 'center', 
+          padding: '3rem', 
+          backgroundColor: '#f8f9fa', 
+          borderRadius: '8px',
+          margin: '2rem 0'
+        }}>
+          <h3>🏆 No hay torneos creados</h3>
+          <p>Primero debes crear un torneo en la sección "Creación de Torneos"</p>
+          <p>Luego podrás programar los partidos aquí</p>
+        </div>
       </div>
     );
   }
@@ -212,17 +178,107 @@ interface SchedulingPanelProps {
 }
 
 const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack }) => {
-  const [activePhase, setActivePhase] = useState(tournament.phases[0]);
   const [matches, setMatches] = useState<Match[]>([]);
-  const [availableTeams, setAvailableTeams] = useState<Team[]>(mockTeams);
+  const [availableTeams, setAvailableTeams] = useState<Team[]>([]);
+  const [venues] = useState<Venue[]>(mockVenues);
+  const [selectedPhase, setSelectedPhase] = useState<string>(tournament.phases[0]);
   const [draggedTeam, setDraggedTeam] = useState<Team | null>(null);
-  const [filteredVenues, setFilteredVenues] = useState<Venue[]>([]);
+  const dragCounter = useRef(0);
 
-  // Filtrar canchas según el deporte del torneo
+  // Cargar equipos registrados reales
   useEffect(() => {
-    const venues = mockVenues.filter(venue => venue.sports.includes(tournament.sport));
-    setFilteredVenues(venues);
-  }, [tournament]);
+    const loadRegisteredTeams = () => {
+      try {
+        const registrations = JSON.parse(localStorage.getItem('team_registrations') || '[]');
+        
+        // Filtrar equipos registrados para este torneo específico
+        const tournamentTeams = registrations
+          .filter((reg: any) => reg.tournamentId === tournament.id)
+          .map((reg: any) => ({
+            id: `team-${reg.id}`,
+            name: reg.teamName,
+            logo: reg.teamLogo || '/images/default-team.png'
+          }));
+        
+        setAvailableTeams(tournamentTeams);
+        
+        // Si no hay equipos registrados, mostrar mensaje
+        if (tournamentTeams.length === 0) {
+          console.log('No hay equipos registrados para este torneo');
+        }
+      } catch (error) {
+        console.error('Error cargando equipos registrados:', error);
+        setAvailableTeams([]);
+      }
+    };
+
+    loadRegisteredTeams();
+  }, [tournament.id]);
+
+  // Generar partidos automáticamente basado en el formato del torneo
+  useEffect(() => {
+    if (availableTeams.length < 2) return;
+
+    const generateMatches = () => {
+      const newMatches: Match[] = [];
+      
+      if (tournament.format === 'todos_contra_todos') {
+        // Generar partidos de todos contra todos
+        for (let i = 0; i < availableTeams.length; i++) {
+          for (let j = i + 1; j < availableTeams.length; j++) {
+            newMatches.push({
+              id: `match-${i}-${j}`,
+              phase: 'Todos contra Todos',
+              homeTeam: null,
+              awayTeam: null,
+              status: 'scheduled'
+            });
+          }
+        }
+      } else {
+        // Para otros formatos, generar partidos básicos
+        const numMatches = Math.floor(availableTeams.length / 2) * 2;
+        for (let i = 0; i < numMatches; i += 2) {
+          newMatches.push({
+            id: `match-${i}`,
+            phase: tournament.phases[0],
+            homeTeam: null,
+            awayTeam: null,
+            status: 'scheduled'
+          });
+        }
+      }
+      
+      setMatches(newMatches);
+    };
+
+    generateMatches();
+  }, [availableTeams, tournament.format, tournament.phases]);
+
+  // Si no hay equipos registrados
+  if (availableTeams.length === 0) {
+    return (
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+          <h3>Programación: {tournament.name}</h3>
+          <button className="btn-secondary" onClick={onBack}>
+            ← Volver a torneos
+          </button>
+        </div>
+        
+        <div style={{ 
+          textAlign: 'center', 
+          padding: '3rem', 
+          backgroundColor: '#f8f9fa', 
+          borderRadius: '8px' 
+        }}>
+          <h4>👥 No hay equipos registrados</h4>
+          <p>Este torneo no tiene equipos registrados aún.</p>
+          <p>Ve a la sección "Gestión de Registro" para registrar equipos primero.</p>
+        </div>
+      </div>
+    );
+  }
 
   // Añadir un nuevo partido manualmente
   const addMatch = () => {

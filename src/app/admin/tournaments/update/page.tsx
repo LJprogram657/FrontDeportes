@@ -29,42 +29,8 @@ const UpdateTournamentPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // Datos de ejemplo (en un caso real vendrían del backend)
-  const mockTournaments: Tournament[] = [
-    {
-      id: 1,
-      name: "Copa de Verano 2024",
-      description: "Torneo de fútbol masculino",
-      sport: "futbol",
-      category: "masculino",
-      startDate: "2024-02-15",
-      endDate: "2024-02-28",
-      registrationDeadline: "2024-02-10",
-      maxTeams: 16,
-      location: "Estadio Municipal",
-      format: "round-robin",
-      prizePool: "$1000",
-      status: "upcoming",
-      origin: "mock",
-      modality: "futbol7"
-    },
-    {
-      id: 2,
-      name: "Liga Femenina Primavera",
-      description: "Torneo femenino de futsal",
-      sport: "futbol",
-      category: "femenino",
-      startDate: "2024-03-01",
-      endDate: "2024-04-15",
-      registrationDeadline: "2024-02-25",
-      maxTeams: 8,
-      location: "Polideportivo Central",
-      format: "round-robin",
-      prizePool: "Trofeos y medallas",
-      status: "active",
-      modality: "futsal"
-    }
-  ];
+  // DATOS LIMPIOS - SIN TORNEOS MOCK
+  const mockTournaments: Tournament[] = [];
 
   useEffect(() => {
     const key = 'admin_created_tournaments';
@@ -81,7 +47,9 @@ const UpdateTournamentPage: React.FC = () => {
         origin: 'created'
       };
     });
-    setTournaments([...withPhases, ...mockTournaments]);
+    
+    // Solo mostrar torneos creados, sin datos mock
+    setTournaments(withPhases);
     setIsLoading(false);
   }, []);
 

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';  // ← Ya no requerimos login
 import BackButton from '../../components/BackButton';
 import '../../app/styles/create-team.css';
@@ -36,49 +36,35 @@ interface TeamFormData {
 const CreateTeamPage: React.FC = () => {
   // const { user, isAuthenticated } = useAuth();       // ← Quitado
   
-  // Torneos disponibles (los mismos del admin)
-  const availableTournaments: Tournament[] = [
-    {
-      id: '1',
-      name: 'Liga Comunal de Garzón Femenino',
-      code: 'LCG_FEM',
-      logo: '/images/tournaments/lcg-femenino.png',
-      category: 'femenino',
-      status: 'active'
-    },
-    {
-      id: '2',
-      name: 'Copa Femenina Garzón',
-      code: 'COPA_FEM',
-      logo: '/images/tournaments/copa-femenina.png',
-      category: 'femenino',
-      status: 'upcoming'
-    },
-    {
-      id: '3',
-      name: 'Liga Comunal de Garzón - Fútbol',
-      code: 'LCG_FUTBOL',
-      logo: '/images/tournaments/lcg-futbol.png',
-      category: 'masculino',
-      status: 'active'
-    },
-    {
-      id: '4',
-      name: 'Liga Comunal de Garzón - Fútbol 11',
-      code: 'LCG_FUTBOL11',
-      logo: '/images/tournaments/lcg-futbol11.png',
-      category: 'masculino',
-      status: 'active'
-    },
-    {
-      id: '5',
-      name: 'Liga Comunal de Garzón - Sintética',
-      code: 'LCG_SINTETICA',
-      logo: '/images/tournaments/lcg-sintetica.png',
-      category: 'masculino',
-      status: 'upcoming'
-    }
-  ];
+  // DATOS LIMPIOS - SIN TORNEOS DE PRUEBA
+  const [availableTournaments, setAvailableTournaments] = useState<Tournament[]>([]);
+
+  // Cargar torneos reales del localStorage
+  useEffect(() => {
+    const loadTournaments = () => {
+      try {
+        // Cargar torneos creados por el admin
+        const adminTournaments = JSON.parse(localStorage.getItem('admin_created_tournaments') || '[]');
+        
+        // Convertir al formato esperado
+        const formattedTournaments = adminTournaments.map((t: any) => ({
+          id: t.id.toString(),
+          name: t.name,
+          code: t.code || `TORNEO_${t.id}`,
+          logo: t.logo || '/images/default-tournament.png',
+          category: t.category,
+          status: t.status === 'active' ? 'active' : 'upcoming'
+        }));
+        
+        setAvailableTournaments(formattedTournaments);
+      } catch (error) {
+        console.error('Error cargando torneos:', error);
+        setAvailableTournaments([]);
+      }
+    };
+
+    loadTournaments();
+  }, []);
 
   const [formData, setFormData] = useState<TeamFormData>({
     teamName: '',

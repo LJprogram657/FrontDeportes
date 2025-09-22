@@ -36,94 +36,24 @@ const RegistrationsPage: React.FC = () => {
   const [selectedRegistration, setSelectedRegistration] = useState<TeamRegistration | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Datos de ejemplo (en un caso real vendrían del backend)
-  const mockRegistrations: TeamRegistration[] = [
-    {
-      id: 1,
-      teamName: "Tigres FC",
-      teamLogo: "/images/teams/tigres-fc.png",
-      contactNumber: "3001234567",
-      contactPerson: "Carlos Martínez",
-      tournament: {
-        id: 1,
-        name: "Liga Comunal de Garzón - Fútbol",
-        code: "LCG_FUTBOL",
-        logo: "/images/tournaments/lcg-futbol.png"
-      },
-      players: [
-        { id: 1, name: "Juan", lastName: "Pérez", cedula: "12345678", photo: "/images/players/player1.jpg" },
-        { id: 2, name: "Luis", lastName: "González", cedula: "87654321", photo: "/images/players/player2.jpg" },
-        { id: 3, name: "Miguel", lastName: "Rodríguez", cedula: "11223344", photo: "/images/players/player3.jpg" },
-        { id: 4, name: "Pedro", lastName: "López", cedula: "55667788", photo: "/images/players/player4.jpg" },
-        { id: 5, name: "Diego", lastName: "Martín", cedula: "99887766", photo: "/images/players/player5.jpg" }
-      ],
-      registrationDate: "2024-01-15",
-      status: "pending",
-      notes: "Equipo con experiencia en torneos locales"
-    },
-    {
-      id: 2,
-      teamName: "Águilas Doradas",
-      contactNumber: "3109876543",
-      contactPerson: "Ana Rodríguez",
-      tournament: {
-        id: 2,
-        name: "Liga Comunal de Garzón Femenino",
-        code: "LCG_FEM",
-        logo: "/images/tournaments/lcg-femenino.png"
-      },
-      players: [
-        { id: 6, name: "María", lastName: "García", cedula: "22334455", photo: "/images/players/player6.jpg" },
-        { id: 7, name: "Carmen", lastName: "Jiménez", cedula: "66778899", photo: "/images/players/player7.jpg" },
-        { id: 8, name: "Laura", lastName: "Moreno", cedula: "33445566", photo: "/images/players/player8.jpg" },
-        { id: 9, name: "Sandra", lastName: "Vargas", cedula: "77889900", photo: "/images/players/player9.jpg" }
-      ],
-      registrationDate: "2024-01-18",
-      status: "approved"
-    },
-    {
-      id: 3,
-      teamName: "Leones FC",
-      teamLogo: "/images/teams/leones-fc.png",
-      contactNumber: "3157654321",
-      contactPerson: "Roberto Silva",
-      tournament: {
-        id: 3,
-        name: "Liga Comunal de Garzón - Sintética",
-        code: "LCG_SINTETICA",
-        logo: "/images/tournaments/lcg-sintetica.png"
-      },
-      players: [
-        { id: 10, name: "Andrés", lastName: "Castillo", cedula: "44556677", photo: "/images/players/player10.jpg" },
-        { id: 11, name: "Sebastián", lastName: "Torres", cedula: "88990011", photo: "/images/players/player11.jpg" },
-        { id: 12, name: "Nicolás", lastName: "Ramírez", cedula: "55667788", photo: "/images/players/player12.jpg" }
-      ],
-      registrationDate: "2024-01-20",
-      status: "rejected",
-      notes: "Documentación incompleta"
-    }
-  ];
-
+  // Cargar registros reales del localStorage
   useEffect(() => {
-    // Simular carga de datos
-    setTimeout(() => {
-      const local = JSON.parse(localStorage.getItem('team_registrations') || '[]');
-      // Unir primero los locales (nuevos) y luego los mock
-      setRegistrations([...local, ...mockRegistrations]);
-      setIsLoading(false);
-    }, 500);
-
-    // Escuchar cambios del storage (por si se abre en otra pestaña)
-    const onStorage = () => {
-      const local = JSON.parse(localStorage.getItem('team_registrations') || '[]');
-      setRegistrations(prev => {
-        // Mantener mock, actualizar locales
-        const mocks = prev.filter(r => !String(r.id).startsWith('1')); // heurística simple si lo deseas
-        return [...local, ...mocks];
-      });
+    const loadRegistrations = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Cargar registros de equipos del localStorage
+        const teamRegistrations = JSON.parse(localStorage.getItem('team_registrations') || '[]');
+        setRegistrations(teamRegistrations);
+      } catch (error) {
+        console.error('Error cargando registros:', error);
+        setRegistrations([]);
+      } finally {
+        setIsLoading(false);
+      }
     };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+
+    loadRegistrations();
   }, []);
   const handleStatusChange = async (registrationId: number, newStatus: 'approved' | 'rejected') => {
     try {
