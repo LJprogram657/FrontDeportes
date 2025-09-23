@@ -40,7 +40,8 @@ const CreateTournamentPage: React.FC = () => {
   const [customCategory, setCustomCategory] = useState<'masculino' | 'femenino'>('masculino');
   const [customModality, setCustomModality] = useState<'futsal' | 'futbol7'>('futsal');
   const [createdTournaments, setCreatedTournaments] = useState<CreatedTournament[]>([]);
-  
+  const [availableLogos, setAvailableLogos] = useState<string[]>([]);
+
   const router = useRouter();
 
   // Cargar torneos creados al inicializar
@@ -60,33 +61,7 @@ const CreateTournamentPage: React.FC = () => {
     loadCreatedTournaments();
   }, []);
 
-  // Función para limpiar localStorage si está lleno
-  const clearLocalStorageIfNeeded = () => {
-    try {
-      // Intentar una operación de prueba
-      localStorage.setItem('test', 'test');
-      localStorage.removeItem('test');
-    } catch (error) {
-      if (error instanceof DOMException && error.code === 22) {
-        // QuotaExceededError - localStorage lleno
-        const confirmClear = window.confirm(
-          'El almacenamiento local está lleno. ¿Quieres limpiar algunos datos para continuar? Esto eliminará registros antiguos pero mantendrá los torneos.'
-        );
-        
-        if (confirmClear) {
-          // Limpiar solo registros de equipos, mantener torneos
-          localStorage.removeItem('team_registrations');
-          alert('Datos de registros limpiados. Puedes continuar creando torneos.');
-        }
-      }
-    }
-  };
-
   const createAndRedirect = (base: { name: string; logo?: string | null; category: 'femenino' | 'masculino'; modality: 'futsal' | 'futbol7'; description?: string }) => {
-    // Verificar espacio en localStorage antes de guardar
-    clearLocalStorageIfNeeded();
-
-    // Función para obtener logo por defecto basado en categoría y modalidad
     const getDefaultLogo = (category: 'femenino' | 'masculino', modality: 'futsal' | 'futbol7') => {
       if (category === 'femenino' && modality === 'futsal') {
         return '/images/femenino-futsal-1.png';
@@ -126,10 +101,8 @@ const CreateTournamentPage: React.FC = () => {
       list.push(newTournament);
       localStorage.setItem(key, JSON.stringify(list));
       
-      // Actualizar la lista local
       setCreatedTournaments(list);
       
-      // Limpiar el formulario
       setCustomName('');
       setCustomLogo(null);
       setCustomCategory('masculino');
@@ -140,7 +113,6 @@ const CreateTournamentPage: React.FC = () => {
       
     } catch (error) {
       if (error instanceof DOMException && error.code === 22) {
-        clearLocalStorageIfNeeded();
         alert("Almacenamiento lleno. Intenta de nuevo después de limpiar datos.");
       } else {
         console.error("Error saving to localStorage", error);
@@ -149,18 +121,22 @@ const CreateTournamentPage: React.FC = () => {
     }
   };
 
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setCustomLogo(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    } else {
-      setCustomLogo(null);
-    }
-  };
+  useEffect(() => {
+    const imageFiles = [
+        'femenino-f7-1.png',
+        'femenino-f7-2.png',
+        'femenino-f7-3.png',
+        'femenino-f7-4.png',
+        'femenino-futsal-1.png',
+        'femenino-futsal-2.png',
+        'femenino-futsal-3.png',
+        'femenino-futsal-4.png',
+        'masculino-f7-1.png',
+        'masculino-f7-2.png',
+        'masculino-futsal-1.png',
+    ];
+    setAvailableLogos(imageFiles.map(file => `/images/${file}`));
+  }, []);
 
   const handleCustomSubmit = () => {
     if (!customName) {
@@ -225,17 +201,33 @@ const CreateTournamentPage: React.FC = () => {
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="customLogo" style={{ fontWeight: 'bold' }}>Logo del Torneo (Opcional)</label>
-                <input
-                  type="file"
-                  id="customLogo"
-                  accept="image/*"
-                  onChange={handleLogoChange}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ccc' }}
-                />
+                <label style={{ fontWeight: 'bold' }}>Logo del Torneo (Opcional)</label>
+                <div className="logo-selector" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '1rem', marginTop: '10px' }}>
+                  {availableLogos.filter(logo => logo.includes(customCategory) && logo.includes(customModality.replace('futbol7', 'f7'))).map(logo => (
+                      <div
+                          key={logo}
+                          className={`logo-option ${customLogo === logo ? 'selected' : ''}`}
+                          onClick={() => setCustomLogo(logo)}
+                          style={{
+                              cursor: 'pointer',
+                              border: customLogo === logo ? '3px solid #007bff' : '3px solid #eee',
+                              borderRadius: '8px',
+                              padding: '5px',
+                              textAlign: 'center',
+                              backgroundColor: customLogo === logo ? '#eef' : '#fff',
+                          }}
+                      >
+                          <img src={logo} alt="Tournament Logo" style={{ width: '100%', height: 'auto', borderRadius: '4px' }} />
+                      </div>
+                  ))}
+                </div>
                 {customLogo && (
-                  <div style={{ marginTop: '10px', textAlign: 'center' }}>
-                    <img src={customLogo} alt="Vista previa" style={{ maxWidth: '100px', maxHeight: '100px', borderRadius: '8px' }} />
+                  <div style={{ marginTop: '1rem', textAlign: 'center', padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
+                      <p style={{ fontWeight: 'bold' }}>Logo Seleccionado:</p>
+                      <img src={customLogo} alt="Logo Preview" style={{ maxWidth: '150px', borderRadius: '8px', border: '1px solid #ccc' }} />
+                      <button onClick={() => setCustomLogo(null)} style={{ marginLeft: '1rem', background: 'none', border: 'none', color: '#dc3545', cursor: 'pointer', fontWeight: 'bold' }}>
+                          Quitar
+                      </button>
                   </div>
                 )}
               </div>
