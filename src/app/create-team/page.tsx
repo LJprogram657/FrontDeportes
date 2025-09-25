@@ -113,36 +113,120 @@ const CreateTeamPage: React.FC = () => {
     }));
   };
 
-  // Manejar foto del jugador
-  const handlePlayerPhoto = (playerId: string, file: File | null) => {
+  // Función profesional para comprimir imágenes
+  const compressImage = (file: File, maxWidth: number = 400, quality: number = 0.7): Promise<string> => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d')!;
+      const img = new Image();
+      
+      img.onload = () => {
+        // Calcular nuevas dimensiones manteniendo aspect ratio
+        const ratio = Math.min(maxWidth / img.width, maxWidth / img.height);
+        canvas.width = img.width * ratio;
+        canvas.height = img.height * ratio;
+        
+        // Dibujar imagen redimensionada
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        
+        // Convertir a base64 comprimido
+        const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
+        resolve(compressedBase64);
+      };
+      
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
+  // Función para monitorear el uso de almacenamiento
+  const checkStorageUsage = () => {
+    try {
+      let usedSpace = 0;
+      
+      // Estimar espacio usado
+      for (let key in localStorage) {
+        if (localStorage.hasOwnProperty(key)) {
+          usedSpace += localStorage[key].length + key.length;
+        }
+      }
+      
+      const usedKB = Math.round(usedSpace / 1024);
+      console.log(`📊 Almacenamiento usado: ${usedKB} KB`);
+      
+      // Advertir si se acerca al límite (asumiendo 5MB = 5120KB)
+      if (usedKB > 4000) {
+        console.warn('⚠️ Almacenamiento casi lleno, iniciando limpieza automática...');
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error('Error verificando almacenamiento:', error);
+      return false;
+    }
+  };
+
+  // Manejar foto del jugador con compresión profesional
+  const handlePlayerPhoto = async (playerId: string, file: File | null) => {
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
+      try {
+        // Mostrar indicador de procesamiento
         setFormData(prev => ({
           ...prev,
           players: prev.players.map(player =>
             player.id === playerId 
-              ? { ...player, photo: file, photoPreview: e.target?.result as string }
+              ? { ...player, photoPreview: 'processing...' }
               : player
           )
         }));
-      };
-      reader.readAsDataURL(file);
+
+        // Comprimir imagen
+        const compressedBase64 = await compressImage(file, 300, 0.6);
+        
+        // Calcular tamaño
+        const sizeKB = Math.round(compressedBase64.length / 1024);
+        console.log(`📸 Foto comprimida: ${sizeKB} KB (original: ~${Math.round(file.size / 1024)} KB)`);
+        
+        setFormData(prev => ({
+          ...prev,
+          players: prev.players.map(player =>
+            player.id === playerId 
+              ? { ...player, photo: file, photoPreview: compressedBase64 }
+              : player
+          )
+        }));
+      } catch (error) {
+        console.error('Error procesando imagen:', error);
+        alert('Error al procesar la imagen. Intenta con una imagen más pequeña.');
+      }
     }
   };
 
-  // Manejar logo del equipo
-  const handleTeamLogo = (file: File | null) => {
+  // Manejar logo del equipo con compresión profesional
+  const handleTeamLogo = async (file: File | null) => {
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
+      try {
+        // Mostrar indicador de procesamiento
+        setFormData(prev => ({
+          ...prev,
+          teamLogoPreview: 'processing...'
+        }));
+
+        // Comprimir imagen
+        const compressedBase64 = await compressImage(file, 200, 0.7);
+        
+        // Calcular tamaño
+        const sizeKB = Math.round(compressedBase64.length / 1024);
+        console.log(`🏆 Logo comprimido: ${sizeKB} KB (original: ~${Math.round(file.size / 1024)} KB)`);
+        
         setFormData(prev => ({
           ...prev,
           teamLogo: file,
-          teamLogoPreview: e.target?.result as string
+          teamLogoPreview: compressedBase64
         }));
-      };
-      reader.readAsDataURL(file);
+      } catch (error) {
+        console.error('Error procesando logo:', error);
+        alert('Error al procesar el logo. Intenta con una imagen más pequeña.');
+      }
     }
   };
 
@@ -155,17 +239,19 @@ const CreateTeamPage: React.FC = () => {
     setCurrentStep(2);
   };
 
-  // Enviar formulario
+  // Enviar formulario con arquitectura profesional
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
-      // Construir objeto de registro compatible con el admin
-      const newRegistration = {
+      // Verificar espacio de almacenamiento antes de proceder
+      const hasSpace = checkStorageUsage();
+      
+      // Crear registro con metadata optimizada (sin imágenes grandes)
+      const registrationMetadata = {
         id: Date.now(),
         teamName: formData.teamName,
-        teamLogo: formData.teamLogoPreview || undefined,
         contactNumber: formData.contactNumber,
         contactPerson: formData.contactPerson,
         tournament: {
@@ -179,21 +265,114 @@ const CreateTeamPage: React.FC = () => {
           name: p.name,
           lastName: p.lastName,
           cedula: p.cedula,
-          photo: p.photoPreview // base64
+          hasPhoto: !!p.photoPreview && p.photoPreview !== 'processing...'
         })),
         registrationDate: new Date().toISOString().slice(0, 10),
         status: 'pending',
-        notes: ''
+        notes: '',
+        hasTeamLogo: !!formData.teamLogoPreview && formData.teamLogoPreview !== 'processing...'
       };
 
-      // Guardar en localStorage
-      const current = JSON.parse(localStorage.getItem('team_registrations') || '[]');
-      current.push(newRegistration);
-      localStorage.setItem('team_registrations', JSON.stringify(current));
+      // Crear registro completo con imágenes comprimidas (para backup)
+      const fullRegistration = {
+        ...registrationMetadata,
+        teamLogo: formData.teamLogoPreview || undefined,
+        players: formData.players.map((p, idx) => ({
+          id: idx + 1,
+          name: p.name,
+          lastName: p.lastName,
+          cedula: p.cedula,
+          photo: p.photoPreview && p.photoPreview !== 'processing...' ? p.photoPreview : undefined
+        }))
+      };
 
-      alert('¡Solicitud de equipo enviada exitosamente! El administrador revisará tu solicitud pronto.');
+      // Función para leer localStorage de forma segura
+      const getStorageData = (key: string) => {
+        try {
+          return JSON.parse(localStorage.getItem(key) || '[]');
+        } catch (error) {
+          console.warn(`Error leyendo ${key}, limpiando...`, error);
+          try {
+            localStorage.removeItem(key);
+            return [];
+          } catch (e) {
+            console.error(`Error crítico limpiando ${key}:`, e);
+            return [];
+          }
+        }
+      };
 
-      // Reset
+      // Estrategia de almacenamiento profesional
+      const saveRegistration = () => {
+        try {
+          // Paso 1: Intentar guardar metadata (ligera) en localStorage
+          const metadataList = getStorageData('team_registrations_meta');
+          metadataList.push(registrationMetadata);
+          
+          localStorage.setItem('team_registrations_meta', JSON.stringify(metadataList));
+          console.log('✅ Metadata guardada en localStorage');
+
+          // Paso 2: Intentar guardar registro completo (con imágenes) en localStorage
+          try {
+            const fullList = getStorageData('team_registrations');
+            fullList.push(fullRegistration);
+            
+            localStorage.setItem('team_registrations', JSON.stringify(fullList));
+            console.log('✅ Registro completo guardado en localStorage');
+            return 'localStorage';
+          } catch (error) {
+            if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+              console.warn('⚠️ LocalStorage lleno para imágenes, usando estrategia de limpieza...');
+              
+              // Limpiar registros antiguos y mantener solo los últimos 3
+              try {
+                const cleanList = getStorageData('team_registrations').slice(-2);
+                cleanList.push(fullRegistration);
+                localStorage.setItem('team_registrations', JSON.stringify(cleanList));
+                console.log('✅ Registro guardado después de limpieza');
+                return 'localStorage_cleaned';
+              } catch (e) {
+                // Si aún falla, usar sessionStorage como backup
+                try {
+                  sessionStorage.setItem('team_registrations_backup', JSON.stringify([fullRegistration]));
+                  console.log('⚠️ Registro guardado en sessionStorage (temporal)');
+                  return 'sessionStorage';
+                } catch (sessionError) {
+                  console.warn('❌ Fallo total de almacenamiento, solo metadata disponible');
+                  return 'metadata_only';
+                }
+              }
+            }
+            throw error;
+          }
+        } catch (error) {
+          console.error('Error crítico guardando registro:', error);
+          return 'failed';
+        }
+      };
+
+      // Ejecutar estrategia de guardado
+      const saveResult = saveRegistration();
+      
+      // Proporcionar feedback apropiado según el resultado
+      switch (saveResult) {
+        case 'localStorage':
+          alert('¡Solicitud de equipo enviada exitosamente! 🎉\nTodos los datos y fotos han sido guardados correctamente.');
+          break;
+        case 'localStorage_cleaned':
+          alert('¡Solicitud enviada exitosamente! 🎉\n⚠️ Se limpiaron registros antiguos para hacer espacio.');
+          break;
+        case 'sessionStorage':
+          alert('¡Solicitud enviada! ⚠️\nLas fotos se guardaron temporalmente. No cierres la pestaña hasta confirmar con el administrador.');
+          break;
+        case 'metadata_only':
+          alert('¡Solicitud enviada! ⚠️\nSolo se guardaron los datos básicos (sin fotos). Contacta al administrador para enviar las fotos por separado.');
+          break;
+        case 'failed':
+          throw new Error('No se pudo guardar el registro');
+      }
+
+      // Reset del formulario
       setFormData({
         teamName: '',
         selectedTournament: null,
@@ -204,9 +383,10 @@ const CreateTeamPage: React.FC = () => {
         players: []
       });
       setCurrentStep(1);
+
     } catch (error) {
       console.error('Error al enviar solicitud:', error);
-      alert('Hubo un error al enviar la solicitud. Por favor, inténtalo de nuevo.');
+      alert('❌ Hubo un error al enviar la solicitud. Por favor, inténtalo de nuevo o contacta al administrador.');
     } finally {
       setIsSubmitting(false);
     }
