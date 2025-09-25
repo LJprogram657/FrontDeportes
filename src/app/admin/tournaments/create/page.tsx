@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 interface PredeterminedTournament {
   code: string;
@@ -109,14 +110,14 @@ const CreateTournamentPage: React.FC = () => {
       setCustomModality('futsal');
       setIsCreatingCustom(false);
       
-      alert('¡Torneo creado exitosamente!');
+      toast.success('¡Torneo creado exitosamente!');
       
     } catch (error) {
       if (error instanceof DOMException && error.code === 22) {
-        alert("Almacenamiento lleno. Intenta de nuevo después de limpiar datos.");
+        toast.error("Almacenamiento lleno. Intenta de nuevo después de limpiar datos.");
       } else {
         console.error("Error saving to localStorage", error);
-        alert("No se pudo crear el torneo.");
+        toast.error("No se pudo crear el torneo.");
       }
     }
   };
@@ -140,7 +141,7 @@ const CreateTournamentPage: React.FC = () => {
 
   const handleCustomSubmit = () => {
     if (!customName) {
-      alert('Por favor, ingresa un nombre para el torneo.');
+      toast.error('Por favor, ingresa un nombre para el torneo.');
       return;
     }
     createAndRedirect({
@@ -168,10 +169,10 @@ const CreateTournamentPage: React.FC = () => {
         localStorage.setItem(key, JSON.stringify(updatedTournaments));
         setCreatedTournaments(updatedTournaments);
         
-        alert('Torneo eliminado exitosamente');
+        toast.success('Torneo eliminado exitosamente');
       } catch (error) {
         console.error('Error eliminando torneo:', error);
-        alert('Error al eliminar el torneo');
+        toast.error('Error al eliminar el torneo');
       }
     }
   };

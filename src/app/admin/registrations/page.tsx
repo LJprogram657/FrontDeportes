@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import '../../styles/admin-dashboard.css';
+import { toast } from 'sonner';
+import '..//..//styles/admin-dashboard.css';
 
 interface Player {
   id: number;
@@ -62,11 +63,11 @@ const RegistrationsPage: React.FC = () => {
         reg.id === registrationId ? { ...reg, status: newStatus } : reg
       ));
       
-      alert(`Solicitud ${newStatus === 'approved' ? 'aprobada' : 'rechazada'} exitosamente!`);
+      toast.success(`Solicitud ${newStatus === 'approved' ? 'aprobada' : 'rechazada'} exitosamente!`);
       setSelectedRegistration(null);
     } catch (error) {
       console.error('Error actualizando estado:', error);
-      alert('Error al actualizar el estado. Inténtalo de nuevo.');
+      toast.error('Error al actualizar el estado. Inténtalo de nuevo.');
     }
   };
 

@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import BackButton from '@/components/BackButton';
+import '..//styles/create-team.css';
 import { useAuth } from '../../contexts/AuthContext';  // ← Ya no requerimos login
-import BackButton from '../../components/BackButton';
-import '../../app/styles/create-team.css';
 
 interface Player {
   id: string;
@@ -196,7 +198,7 @@ const CreateTeamPage: React.FC = () => {
         }));
       } catch (error) {
         console.error('Error procesando imagen:', error);
-        alert('Error al procesar la imagen. Intenta con una imagen más pequeña.');
+        toast.error('Error al procesar la imagen. Intenta con una imagen más pequeña.');
       }
     }
   };
@@ -225,7 +227,7 @@ const CreateTeamPage: React.FC = () => {
         }));
       } catch (error) {
         console.error('Error procesando logo:', error);
-        alert('Error al procesar el logo. Intenta con una imagen más pequeña.');
+        toast.error('Error al procesar el logo. Intenta con una imagen más pequeña.');
       }
     }
   };
@@ -357,16 +359,16 @@ const CreateTeamPage: React.FC = () => {
       // Proporcionar feedback apropiado según el resultado
       switch (saveResult) {
         case 'localStorage':
-          alert('¡Solicitud de equipo enviada exitosamente! 🎉\nTodos los datos y fotos han sido guardados correctamente.');
+          toast.success('¡Solicitud de equipo enviada exitosamente! 🎉\nTodos los datos y fotos han sido guardados correctamente.');
           break;
         case 'localStorage_cleaned':
-          alert('¡Solicitud enviada exitosamente! 🎉\n⚠️ Se limpiaron registros antiguos para hacer espacio.');
+          toast.warning('¡Solicitud enviada exitosamente! 🎉\n⚠️ Se limpiaron registros antiguos para hacer espacio.');
           break;
         case 'sessionStorage':
-          alert('¡Solicitud enviada! ⚠️\nLas fotos se guardaron temporalmente. No cierres la pestaña hasta confirmar con el administrador.');
+          toast.warning('¡Solicitud enviada! ⚠️\nLas fotos se guardaron temporalmente. No cierres la pestaña hasta confirmar con el administrador.');
           break;
         case 'metadata_only':
-          alert('¡Solicitud enviada! ⚠️\nSolo se guardaron los datos básicos (sin fotos). Contacta al administrador para enviar las fotos por separado.');
+          toast.warning('¡Solicitud enviada! ⚠️\nSolo se guardaron los datos básicos (sin fotos). Contacta al administrador para enviar las fotos por separado.');
           break;
         case 'failed':
           throw new Error('No se pudo guardar el registro');
@@ -386,7 +388,7 @@ const CreateTeamPage: React.FC = () => {
 
     } catch (error) {
       console.error('Error al enviar solicitud:', error);
-      alert('❌ Hubo un error al enviar la solicitud. Por favor, inténtalo de nuevo o contacta al administrador.');
+      toast.error('❌ Hubo un error al enviar la solicitud. Por favor, inténtalo de nuevo o contacta al administrador.');
     } finally {
       setIsSubmitting(false);
     }

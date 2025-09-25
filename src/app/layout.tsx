@@ -3,6 +3,7 @@ import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { AuthProvider } from '@/contexts/AuthContext';
 import MainLayout from "@/components/MainLayout";
+import { Toaster } from 'sonner';
 import "./styles/base.css";
 import "./styles/header.css";
 import "./styles/hero.css";
@@ -34,7 +35,10 @@ export default function RootLayout({
     <html lang="es" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body className={`${geistSans.className} ${geistMono.variable}`}>
         <AuthProvider>
-          <MainLayout>{children}</MainLayout>
+          <MainLayout>
+            {children}
+            <Toaster />
+          </MainLayout>
         </AuthProvider>
       </body>
     </html>

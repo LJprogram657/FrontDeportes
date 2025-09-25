@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import '../../../styles/tournament-form.css'; // <--- AÑADE ESTA LÍNEA
 
 interface Tournament {
@@ -88,11 +89,11 @@ const UpdateTournamentPage: React.FC = () => {
       const createdOnly = updatedList.filter(t => t.origin === 'created');
       localStorage.setItem(key, JSON.stringify(createdOnly));
   
-      alert('Torneo actualizado exitosamente!');
+      toast.success('Torneo actualizado exitosamente!');
       setSelectedTournament(null);
     } catch (error) {
       console.error('Error actualizando torneo:', error);
-      alert('Error al actualizar el torneo. Inténtalo de nuevo.');
+      toast.error('Error al actualizar el torneo. Inténtalo de nuevo.');
     } finally {
       setIsUpdating(false);
     }
