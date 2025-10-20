@@ -190,29 +190,26 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
     const loadRegisteredTeams = () => {
       try {
         const registrations = JSON.parse(localStorage.getItem('team_registrations') || '[]');
-        
-        // Filtrar equipos registrados para este torneo específico
         const tournamentTeams = registrations
-          .filter((reg: any) => reg.tournamentId === tournament.id)
-          .map((reg: any) => ({
-            id: `team-${reg.id}`,
-            name: reg.teamName,
-            logo: reg.teamLogo || '/images/default-team.png'
-          }));
-        
+            .filter((reg: any) => {
+                const tid = reg?.tournament?.id ?? reg?.tournamentId;
+                return tid === tournament.id && reg.status === 'approved';
+            })
+            .map((reg: any) => ({
+                id: `team-${reg.id}`,
+                name: reg.teamName,
+                logo: reg.teamLogo || '/images/default-team.png',
+            }));
         setAvailableTeams(tournamentTeams);
-        
-        // Si no hay equipos registrados, mostrar mensaje
         if (tournamentTeams.length === 0) {
-          console.log('No hay equipos registrados para este torneo');
+            console.log('No hay equipos registrados para este torneo');
         }
-      } catch (error) {
+    } catch (error) {
         console.error('Error cargando equipos registrados:', error);
         setAvailableTeams([]);
-      }
-    };
-
-    loadRegisteredTeams();
+    }
+  };
+  loadRegisteredTeams();
   }, [tournament.id]);
 
   // Generar partidos automáticamente basado en el formato del torneo

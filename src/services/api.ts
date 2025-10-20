@@ -29,7 +29,7 @@ interface AuthResponse {
 }
 
 class ApiService {
-  private baseURL = 'http://localhost:8000/api';
+  private baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
   private accessToken: string | null = null;
   private refreshToken: string | null = null;
 

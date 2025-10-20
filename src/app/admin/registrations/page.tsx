@@ -28,6 +28,8 @@ interface TeamRegistration {
   status: 'pending' | 'approved' | 'rejected';
   contactPerson: string;
   notes?: string;
+  // Fallback opcional si algunos registros guardaron solo el id
+  tournamentId?: number;
 }
 
 const RegistrationsPage: React.FC = () => {
@@ -42,10 +44,8 @@ const RegistrationsPage: React.FC = () => {
     const loadRegistrations = async () => {
       try {
         setIsLoading(true);
-        
-        // Cargar registros de equipos del localStorage
         const teamRegistrations = JSON.parse(localStorage.getItem('team_registrations') || '[]');
-        setRegistrations(teamRegistrations);
+        setRegistrations(Array.isArray(teamRegistrations) ? teamRegistrations : []);
       } catch (error) {
         console.error('Error cargando registros:', error);
         setRegistrations([]);
@@ -53,21 +53,94 @@ const RegistrationsPage: React.FC = () => {
         setIsLoading(false);
       }
     };
-
     loadRegistrations();
   }, []);
+
+  // Sincronizar cambios entre pestañas/ventanas del navegador
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'team_registrations' || e.key === 'team_registrations_meta') {
+        try {
+          const list = JSON.parse(localStorage.getItem('team_registrations') || '[]');
+          setRegistrations(Array.isArray(list) ? list : []);
+        } catch (err) {
+          console.warn('No se pudo recargar registros desde localStorage:', err);
+        }
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
   const handleStatusChange = async (registrationId: number, newStatus: 'approved' | 'rejected') => {
     try {
-      // Aquí iría la lógica para actualizar el estado en el backend
-      setRegistrations(prev => prev.map(reg => 
+      const updated = registrations.map(reg =>
         reg.id === registrationId ? { ...reg, status: newStatus } : reg
-      ));
-      
+      );
+      setRegistrations(updated);
+
+      // Persistir en localStorage para que “Programación” lo vea
+      try {
+        localStorage.setItem('team_registrations', JSON.stringify(updated));
+        const metaList = JSON.parse(localStorage.getItem('team_registrations_meta') || '[]');
+        const updatedMeta = Array.isArray(metaList)
+          ? metaList.map((m: any) => (m.id === registrationId ? { ...m, status: newStatus } : m))
+          : [];
+        localStorage.setItem('team_registrations_meta', JSON.stringify(updatedMeta));
+      } catch (storageError) {
+        console.warn('No se pudo persistir el estado en localStorage:', storageError);
+      }
+
       toast.success(`Solicitud ${newStatus === 'approved' ? 'aprobada' : 'rechazada'} exitosamente!`);
       setSelectedRegistration(null);
     } catch (error) {
       console.error('Error actualizando estado:', error);
       toast.error('Error al actualizar el estado. Inténtalo de nuevo.');
+    }
+  };
+
+  const handleDeleteRegistration = (registrationId: number) => {
+    const confirmDelete = window.confirm('¿Eliminar esta solicitud de equipo? Esta acción no se puede deshacer.');
+    if (!confirmDelete) return;
+
+    try {
+      const current = JSON.parse(localStorage.getItem('team_registrations') || '[]');
+      const updated = Array.isArray(current) ? current.filter((reg: any) => reg.id !== registrationId) : [];
+      localStorage.setItem('team_registrations', JSON.stringify(updated));
+      setRegistrations(prev => prev.filter(reg => reg.id !== registrationId));
+
+      // Sincronizar metadata si existe
+      try {
+        const meta = JSON.parse(localStorage.getItem('team_registrations_meta') || '[]');
+        const updatedMeta = Array.isArray(meta) ? meta.filter((m: any) => m.id !== registrationId) : [];
+        localStorage.setItem('team_registrations_meta', JSON.stringify(updatedMeta));
+      } catch (e) {
+        console.warn('No se pudo actualizar team_registrations_meta:', e);
+      }
+
+      if (selectedRegistration?.id === registrationId) {
+        setSelectedRegistration(null);
+      }
+      toast.success('Solicitud eliminada exitosamente');
+    } catch (error) {
+      console.error('Error eliminando solicitud:', error);
+      toast.error('No se pudo eliminar la solicitud');
+    }
+  };
+
+  const clearAllRegistrations = () => {
+    const confirmClear = window.confirm('¿Eliminar TODAS las solicitudes de equipos? Esta acción no se puede deshacer.');
+    if (!confirmClear) return;
+
+    try {
+      localStorage.removeItem('team_registrations');
+      localStorage.removeItem('team_registrations_meta');
+      setRegistrations([]);
+      setSelectedRegistration(null);
+      toast.success('Todas las solicitudes han sido eliminadas');
+    } catch (error) {
+      console.error('Error al limpiar solicitudes:', error);
+      toast.error('No se pudieron eliminar las solicitudes');
     }
   };
 
@@ -77,7 +150,7 @@ const RegistrationsPage: React.FC = () => {
       approved: 'status-badge approved',
       rejected: 'status-badge rejected'
     };
-    
+
     const statusText = {
       pending: 'Pendiente',
       approved: 'Aprobado',
@@ -92,15 +165,19 @@ const RegistrationsPage: React.FC = () => {
   };
 
   const getTournaments = () => {
-    const tournaments = registrations.map(reg => reg.tournament);
-    const uniqueTournaments = tournaments.filter((tournament, index, self) => 
-      index === self.findIndex(t => t.id === tournament.id)
-    );
-    return uniqueTournaments;
+    const map = new Map<number, { id: number; name: string; code: string; logo: string }>();
+    registrations.forEach(reg => {
+      const tid = reg.tournament?.id ?? reg.tournamentId;
+      if (tid && !map.has(tid) && reg.tournament) {
+        map.set(tid, reg.tournament);
+      }
+    });
+    return Array.from(map.values());
   };
 
   const filteredRegistrations = registrations.filter(reg => {
-    const tournamentMatch = selectedTournament === 'all' || reg.tournament.id.toString() === selectedTournament;
+    const tid = reg.tournament?.id ?? reg.tournamentId;
+    const tournamentMatch = selectedTournament === 'all' || String(tid) === selectedTournament;
     const statusMatch = selectedStatus === 'all' || reg.status === selectedStatus;
     return tournamentMatch && statusMatch;
   });
@@ -158,6 +235,15 @@ const RegistrationsPage: React.FC = () => {
               </div>
             </div>
 
+            {/* Botón global para limpiar todas las solicitudes */}
+            <div className="actions-section" style={{ marginBottom: '10px' }}>
+              <div className="action-buttons">
+                <button className="btn-danger" onClick={clearAllRegistrations}>
+                  🗑️ Eliminar todas las solicitudes
+                </button>
+              </div>
+            </div>
+
             <div className="registrations-stats">
               <div className="stat-card">
                 <h4>Total</h4>
@@ -189,8 +275,8 @@ const RegistrationsPage: React.FC = () => {
                       <div className="registration-header">
                         <div className="team-info">
                           {registration.teamLogo && (
-                            <img 
-                              src={registration.teamLogo} 
+                            <img
+                              src={registration.teamLogo}
                               alt={registration.teamName}
                               className="team-logo-small"
                             />
@@ -204,14 +290,18 @@ const RegistrationsPage: React.FC = () => {
                       </div>
 
                       <div className="tournament-info">
-                        <img 
-                          src={registration.tournament.logo} 
-                          alt={registration.tournament.name}
-                          className="tournament-logo-small"
-                        />
+                        {registration.tournament?.logo && (
+                          <img
+                            src={registration.tournament.logo}
+                            alt={registration.tournament?.name || 'Torneo'}
+                            className="tournament-logo-small"
+                          />
+                        )}
                         <div>
-                          <strong>{registration.tournament.name}</strong>
-                          <p>Código: {registration.tournament.code}</p>
+                          <strong>{registration.tournament?.name || 'Torneo'}</strong>
+                          {registration.tournament?.code && (
+                            <p>Código: {registration.tournament.code}</p>
+                          )}
                         </div>
                       </div>
 
@@ -221,11 +311,18 @@ const RegistrationsPage: React.FC = () => {
                         <p><strong>Fecha:</strong> {new Date(registration.registrationDate).toLocaleDateString()}</p>
                       </div>
 
-                      <button 
+                      <button
                         className="btn-primary"
                         onClick={() => setSelectedRegistration(registration)}
                       >
                         Ver Detalles
+                      </button>
+                      <button
+                        className="btn-danger"
+                        onClick={() => handleDeleteRegistration(registration.id)}
+                        style={{ marginLeft: '8px' }}
+                      >
+                        Eliminar
                       </button>
                     </div>
                   ))}
@@ -237,7 +334,7 @@ const RegistrationsPage: React.FC = () => {
           <div className="registration-detail">
             <div className="detail-header">
               <h3>Detalles de la Solicitud</h3>
-              <button 
+              <button
                 className="btn-secondary"
                 onClick={() => setSelectedRegistration(null)}
               >
@@ -248,38 +345,42 @@ const RegistrationsPage: React.FC = () => {
             <div className="detail-content">
               <div className="team-section">
                 <div className="team-header">
-                  {selectedRegistration.teamLogo && (
-                    <img 
-                      src={selectedRegistration.teamLogo} 
+                  {selectedRegistration?.teamLogo && (
+                    <img
+                      src={selectedRegistration.teamLogo}
                       alt={selectedRegistration.teamName}
                       className="team-logo-large"
                     />
                   )}
                   <div>
-                    <h4>{selectedRegistration.teamName}</h4>
-                    <p><strong>Persona de contacto:</strong> {selectedRegistration.contactPerson}</p>
-                    <p><strong>Teléfono:</strong> {selectedRegistration.contactNumber}</p>
-                    <p><strong>Fecha de registro:</strong> {new Date(selectedRegistration.registrationDate).toLocaleDateString()}</p>
-                    {getStatusBadge(selectedRegistration.status)}
+                    <h4>{selectedRegistration?.teamName}</h4>
+                    <p><strong>Persona de contacto:</strong> {selectedRegistration?.contactPerson}</p>
+                    <p><strong>Teléfono:</strong> {selectedRegistration?.contactNumber}</p>
+                    <p><strong>Fecha de registro:</strong> {new Date(selectedRegistration!.registrationDate).toLocaleDateString()}</p>
+                    {getStatusBadge(selectedRegistration!.status)}
                   </div>
                 </div>
 
                 <div className="tournament-section">
                   <h5>Torneo:</h5>
                   <div className="tournament-info">
-                    <img 
-                      src={selectedRegistration.tournament.logo} 
-                      alt={selectedRegistration.tournament.name}
-                      className="tournament-logo-small"
-                    />
+                    {selectedRegistration?.tournament?.logo && (
+                      <img
+                        src={selectedRegistration.tournament.logo}
+                        alt={selectedRegistration.tournament.name}
+                        className="tournament-logo-small"
+                      />
+                    )}
                     <div>
-                      <strong>{selectedRegistration.tournament.name}</strong>
-                      <p>Código: {selectedRegistration.tournament.code}</p>
+                      <strong>{selectedRegistration?.tournament?.name}</strong>
+                      {selectedRegistration?.tournament?.code && (
+                        <p>Código: {selectedRegistration.tournament.code}</p>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                {selectedRegistration.notes && (
+                {selectedRegistration?.notes && (
                   <div className="notes-section">
                     <h5>Notas:</h5>
                     <p>{selectedRegistration.notes}</p>
@@ -288,12 +389,12 @@ const RegistrationsPage: React.FC = () => {
               </div>
 
               <div className="players-section">
-                <h5>Jugadores ({selectedRegistration.players.length}):</h5>
+                <h5>Jugadores ({selectedRegistration?.players.length}):</h5>
                 <div className="players-grid">
-                  {selectedRegistration.players.map(player => (
+                  {selectedRegistration?.players.map(player => (
                     <div key={player.id} className="player-card">
-                      <img 
-                        src={player.photo} 
+                      <img
+                        src={player.photo}
                         alt={`${player.name} ${player.lastName}`}
                         className="player-photo"
                       />
@@ -306,21 +407,29 @@ const RegistrationsPage: React.FC = () => {
                 </div>
               </div>
 
-              {selectedRegistration.status === 'pending' && (
-                <div className="actions-section">
-                  <h5>Acciones:</h5>
+              {/* Acciones de aprobación/rechazo/eliminación */}
+              {selectedRegistration?.status === 'pending' && (
+                <div className="actions-section" style={{ marginTop: '10px' }}>
                   <div className="action-buttons">
-                    <button 
+                    <button
                       className="btn-success"
-                      onClick={() => handleStatusChange(selectedRegistration.id, 'approved')}
+                      onClick={() => handleStatusChange(selectedRegistration!.id, 'approved')}
                     >
-                      ✓ Aprobar Solicitud
+                      Aprobar Solicitud
                     </button>
-                    <button 
-                      className="btn-danger"
-                      onClick={() => handleStatusChange(selectedRegistration.id, 'rejected')}
+                    <button
+                      className="btn-warning"
+                      onClick={() => handleStatusChange(selectedRegistration!.id, 'rejected')}
+                      style={{ marginLeft: '8px' }}
                     >
-                      ✗ Rechazar Solicitud
+                      Rechazar Solicitud
+                    </button>
+                    <button
+                      className="btn-danger"
+                      onClick={() => handleDeleteRegistration(selectedRegistration!.id)}
+                      style={{ marginLeft: '8px' }}
+                    >
+                      🗑️ Eliminar Solicitud
                     </button>
                   </div>
                 </div>

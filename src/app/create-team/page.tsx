@@ -256,6 +256,7 @@ const CreateTeamPage: React.FC = () => {
         teamName: formData.teamName,
         contactNumber: formData.contactNumber,
         contactPerson: formData.contactPerson,
+        tournamentId: Number(formData.selectedTournament?.id || 0), // ← NUEVO
         tournament: {
           id: Number(formData.selectedTournament?.id || 0),
           name: formData.selectedTournament?.name || '',
@@ -278,6 +279,7 @@ const CreateTeamPage: React.FC = () => {
       // Crear registro completo con imágenes comprimidas (para backup)
       const fullRegistration = {
         ...registrationMetadata,
+        tournamentId: registrationMetadata.tournamentId, // ← GARANTIZA EL CAMPO
         teamLogo: formData.teamLogoPreview || undefined,
         players: formData.players.map((p, idx) => ({
           id: idx + 1,
@@ -328,7 +330,7 @@ const CreateTeamPage: React.FC = () => {
               
               // Limpiar registros antiguos y mantener solo los últimos 3
               try {
-                const cleanList = getStorageData('team_registrations').slice(-2);
+                const cleanList = getStorageData('team_registrations').slice(-3); // ← ANTES -2
                 cleanList.push(fullRegistration);
                 localStorage.setItem('team_registrations', JSON.stringify(cleanList));
                 console.log('✅ Registro guardado después de limpieza');
