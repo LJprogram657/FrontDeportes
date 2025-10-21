@@ -181,7 +181,7 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
   const [matches, setMatches] = useState<Match[]>([]);
   const [availableTeams, setAvailableTeams] = useState<Team[]>([]);
   const [venues] = useState<Venue[]>(mockVenues);
-  const [selectedPhase, setSelectedPhase] = useState<string>(tournament.phases[0]);
+  const filteredVenues = venues.filter(v => v.sports.includes(tournament.sport));
   const [draggedTeam, setDraggedTeam] = useState<Team | null>(null);
   const dragCounter = useRef(0);
 
@@ -279,14 +279,14 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
 
   // Añadir un nuevo partido manualmente
   const addMatch = () => {
-      const newMatch: Match = {
-          id: `match-${selectedPhase}-${matches.length + 1}`,
-          phase: selectedPhase,
-          homeTeam: null,
-          awayTeam: null,
-          status: 'scheduled',
-      };
-      setMatches(prev => [...prev, newMatch]);
+    const newMatch: Match = {
+      id: `match-${selectedPhase}-${matches.length + 1}`,
+      phase: selectedPhase,
+      homeTeam: null,
+      awayTeam: null,
+      status: 'scheduled',
+    };
+    setMatches(prev => [...prev, newMatch]);
   };
 
   // Manejar drag and drop
@@ -354,7 +354,7 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
   useEffect(() => {
     // Limpiar partidos al cambiar de fase
     setMatches([]);
-  }, [activePhase]);
+  }, [selectedPhase]);
 
   return (
     <div className="scheduling-panel">
@@ -377,8 +377,8 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
         {tournament.phases.map(phase => (
           <button 
             key={phase}
-            className={`phase-tab ${activePhase === phase ? 'active' : ''}`}
-            onClick={() => setActivePhase(phase)}
+            className={`phase-tab ${selectedPhase === phase ? 'active' : ''}`}
+            onClick={() => setSelectedPhase(phase)}
           >
             {phase}
           </button>
@@ -418,7 +418,7 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
         </div>
         
         <div className="matches-container">
-          <h4>Partidos de: {activePhase}</h4>
+          <h4>Partidos de: {selectedPhase}</h4>
           <div className="matches-grid">
             {matches.map(match => (
               <MatchCard 
