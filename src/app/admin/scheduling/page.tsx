@@ -279,14 +279,14 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
 
   // Añadir un nuevo partido manualmente
   const addMatch = () => {
-    const newMatch: Match = {
-      id: `match-${selectedPhase}-${matches.length + 1}`,
-      phase: selectedPhase,
-      homeTeam: null,
-      awayTeam: null,
-      status: 'scheduled',
-    };
-    setMatches(prev => [...prev, newMatch]);
+      const newMatch: Match = {
+          id: `match-${selectedPhase}-${matches.length + 1}`,
+          phase: selectedPhase,
+          homeTeam: null,
+          awayTeam: null,
+          status: 'scheduled',
+      };
+      setMatches(prev => [...prev, newMatch]);
   };
 
   // Manejar drag and drop
