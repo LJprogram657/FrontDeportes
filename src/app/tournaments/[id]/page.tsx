@@ -14,7 +14,10 @@ const TournamentPage = async ({ params }: TournamentPageProps) => {
   // Await the params since they're now async in Next.js 15
   const { id } = await params;
   
-  const tournament = tournaments.find(t => t.id === parseInt(id, 10));
+  // Handle empty tournaments array
+  const tournament = tournaments.length > 0 
+    ? tournaments.find((t: any) => t.id === parseInt(id, 10))
+    : undefined;
 
   if (!tournament) {
     notFound();
