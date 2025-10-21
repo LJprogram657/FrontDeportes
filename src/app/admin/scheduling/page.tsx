@@ -280,8 +280,8 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
   // Añadir un nuevo partido manualmente
   const addMatch = () => {
     const newMatch: Match = {
-      id: `match-${activePhase}-${matches.length + 1}`,
-      phase: activePhase,
+      id: `match-${selectedPhase}-${matches.length + 1}`,
+      phase: selectedPhase,
       homeTeam: null,
       awayTeam: null,
       status: 'scheduled',
