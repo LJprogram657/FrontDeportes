@@ -10,13 +10,23 @@ const Breadcrumbs = () => {
 
   const breadcrumbs = [{ label: 'Inicio', href: '/' }];
 
+  // Tipado explícito del JSON para evitar 'never'
+  interface TournamentData {
+    id: number;
+    title: string;
+    category: string;
+  }
+  const tournamentsData: TournamentData[] = Array.isArray(tournaments)
+    ? (tournaments as unknown as TournamentData[])
+    : [];
+
   // Detectar si es una página de detalles por el ID numérico
   const lastSegment = pathSegments[pathSegments.length - 1];
   const isDetailsPage = lastSegment && /^\d+$/.test(lastSegment);
 
   if (isDetailsPage) {
     const tournamentId = parseInt(lastSegment, 10);
-    const tournament = tournaments.find(t => t.id === tournamentId);
+    const tournament = tournamentsData.find(t => t.id === tournamentId);
     if (tournament) {
       const categoryPath = `/tournaments/${tournament.category.toLowerCase()}`;
       const categoryLabel = `Torneos ${tournament.category}`;
