@@ -10,14 +10,24 @@ interface TournamentPageProps {
   params: Promise<{ id: string }>;
 }
 
+// Tipado explícito del JSON para evitar 'never'
+interface TournamentData {
+  id: number;
+  title: string;
+  description: string;
+  image: string;
+}
+
 const TournamentPage = async ({ params }: TournamentPageProps) => {
   // Await the params since they're now async in Next.js 15
   const { id } = await params;
-  
-  // Handle empty tournaments array
-  const tournament = tournaments.length > 0 
-    ? tournaments.find((t: any) => t.id === parseInt(id, 10))
-    : undefined;
+
+  // Cast seguro del JSON; si está vacío, el array será []
+  const tournamentsData: TournamentData[] = Array.isArray(tournaments)
+    ? (tournaments as unknown as TournamentData[])
+    : [];
+
+  const tournament = tournamentsData.find(t => t.id === parseInt(id, 10));
 
   if (!tournament) {
     notFound();
