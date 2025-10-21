@@ -181,9 +181,12 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
   const [matches, setMatches] = useState<Match[]>([]);
   const [availableTeams, setAvailableTeams] = useState<Team[]>([]);
   const [venues] = useState<Venue[]>(mockVenues);
-  const filteredVenues = venues.filter(v => v.sports.includes(tournament.sport));
+  const [selectedPhase, setSelectedPhase] = useState<string>(tournament.phases[0]);
   const [draggedTeam, setDraggedTeam] = useState<Team | null>(null);
   const dragCounter = useRef(0);
+
+  // Filtrar canchas por deporte del torneo (evita error de variable no definida)
+  const filteredVenues = venues.filter(v => v.sports.includes(tournament.sport));
 
   // Cargar equipos registrados reales
   useEffect(() => {
