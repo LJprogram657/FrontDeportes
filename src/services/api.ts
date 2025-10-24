@@ -29,7 +29,10 @@ interface AuthResponse {
 }
 
 class ApiService {
-  private baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+  private baseURL = (() => {
+    const origin = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/+$/, '');
+    return `${origin}/api`;
+  })();
   private accessToken: string | null = null;
   private refreshToken: string | null = null;
 
