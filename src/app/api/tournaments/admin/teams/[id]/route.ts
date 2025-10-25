@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/src/lib/prisma';
-import { requireAdmin } from '@/src/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { requireAdmin } from '@/lib/auth';
 
 export async function GET(_: Request, { params }: { params: { id: string } }) {
   const admin = await requireAdmin(_ as any);
