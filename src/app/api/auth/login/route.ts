@@ -29,7 +29,7 @@ export async function POST(req: Request) {
         message: 'Login exitoso',
         access,
         refresh: null,
-        user: { id: user.id, username: user.email, email: user.email, is_admin: user.isAdmin }
+        user: { id: user.id, username: user.email, email: user.email, is_admin: user.isAdmin },
       },
       { status: 200 }
     );
