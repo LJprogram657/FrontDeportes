@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Category {
+  masculino
+  femenino
+}
+
+enum TournamentStatus {
+  active
+  upcoming
+  finished
+}
+
+enum TournamentFormat {
+  round_robin
+  knockout
+  group_stage
+}
+
+enum TeamStatus {
+  pending
+  approved
+  rejected
+}
+
+model User {
+  id         Int      @id @default(autoincrement())
+  email      String   @unique
+  password   String
+  firstName  String   @default("")
+  lastName   String   @default("")
+  isAdmin    Boolean  @default(false)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Tournament {
+  id                   Int               @id @default(autoincrement())
+  name                 String
+  code                 String            @unique
+  category             Category
+  logo                 String?
+  status               TournamentStatus  @default(active)
+  description          String?
+  startDate            DateTime?
+  endDate              DateTime?
+  registrationDeadline DateTime?
+  maxTeams             Int               @default(16)
+  format               TournamentFormat  @default(round_robin)
+  location             String?
+  prizePool            String?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  teams Team[]
+}
+
+model Team {
+  id            Int        @id @default(autoincrement())
+  name          String
+  logo          String?
+  tournamentId  Int
+  contactPerson String
+  contactNumber String
+  status        TeamStatus  @default(pending)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id])
+  players    Player[]
+
+  @@index([tournamentId])
+}
+
+model Player {
+  id       Int    @id @default(autoincrement())
+  teamId   Int
+  name     String
+  lastName String
+  cedula   String
+  photo    String?
+  createdAt DateTime @default(now())
+
+  team Team @relation(fields: [teamId], references: [id])
+
+  @@unique([cedula, teamId]) // igual que unique_together en Django
+}

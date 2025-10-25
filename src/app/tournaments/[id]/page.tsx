@@ -7,7 +7,7 @@ import Image from 'next/image';
 
 // Interfaz actualizada para Next.js 15 con params asíncrono
 interface TournamentPageProps {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }
 
 // Tipado explícito del JSON para evitar 'never'
@@ -19,8 +19,7 @@ interface TournamentData {
 }
 
 const TournamentPage = async ({ params }: TournamentPageProps) => {
-  // Await the params since they're now async in Next.js 15
-  const { id } = await params;
+  const { id } = params;
 
   // Cast seguro del JSON; si está vacío, el array será []
   const tournamentsData: TournamentData[] = Array.isArray(tournaments)

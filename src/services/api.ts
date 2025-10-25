@@ -140,17 +140,22 @@ class ApiService {
   // Métodos de autenticación
   async login(data: LoginData): Promise<AuthResponse> {
     try {
-      const response = await this.makeRequest<AuthResponse>('/auth/login/', {
+      const response = await this.makeRequest<AuthResponse>('/auth/login', {
         method: 'POST',
         body: JSON.stringify(data)
       }, false);
 
-      if (response.success && response.access && response.refresh) {
+      if (response.success && response.access) {
         this.accessToken = response.access;
-        this.refreshToken = response.refresh;
         localStorage.setItem('access_token', response.access);
-        localStorage.setItem('refresh_token', response.refresh);
-        localStorage.setItem('user', JSON.stringify(response.user));
+        // Guardar refresh token solo si existe
+        if (response.refresh) {
+          this.refreshToken = response.refresh;
+          localStorage.setItem('refresh_token', response.refresh);
+        }
+        if (response.user) {
+          localStorage.setItem('user', JSON.stringify(response.user));
+        }
       }
 
       return response;
@@ -164,17 +169,22 @@ class ApiService {
 
   async register(data: RegisterData): Promise<AuthResponse> {
     try {
-      const response = await this.makeRequest<AuthResponse>('/auth/register/', {
+      const response = await this.makeRequest<AuthResponse>('/auth/register', {
         method: 'POST',
         body: JSON.stringify(data)
       }, false);
 
-      if (response.success && response.access && response.refresh) {
+      if (response.success && response.access) {
         this.accessToken = response.access;
-        this.refreshToken = response.refresh;
         localStorage.setItem('access_token', response.access);
-        localStorage.setItem('refresh_token', response.refresh);
-        localStorage.setItem('user', JSON.stringify(response.user));
+        // Guardar refresh token solo si existe
+        if (response.refresh) {
+          this.refreshToken = response.refresh;
+          localStorage.setItem('refresh_token', response.refresh);
+        }
+        if (response.user) {
+          localStorage.setItem('user', JSON.stringify(response.user));
+        }
       }
 
       return response;
@@ -222,7 +232,7 @@ class ApiService {
 
   async updateProfile(data: Partial<User>): Promise<AuthResponse> {
     try {
-      return await this.makeRequest<AuthResponse>('/auth/profile/update/', {
+      return await this.makeRequest<AuthResponse>('/auth/profile/', {
         method: 'PUT',
         body: JSON.stringify(data)
       });
