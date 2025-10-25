@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-export async function GET(request: Request) {
+export async function GET(request: Request, { params }: { params: { id: string } }) {
   const id = Number(params.id);
+
   const t = await prisma.tournament.findUnique({
     where: { id },
     include: {
@@ -20,6 +21,11 @@ export async function GET(request: Request) {
     (!!t.registrationDeadline ? new Date() <= new Date(t.registrationDeadline) : t.status === 'active') &&
     t.status === 'active';
 
+  const basicStats = {
+    teams: await prisma.team.count({ where: { tournamentId: id } }),
+    players: await prisma.player.count({ where: { team: { tournamentId: id } } }),
+  };
+
   return NextResponse.json({
     tournament_info: {
       id: t.id, name: t.name, code: t.code, category: t.category, logo: t.logo, status: t.status,
@@ -32,8 +38,10 @@ export async function GET(request: Request) {
     teams_approved: approved,
     teams_rejected: rejected,
     max_teams: t.maxTeams,
-    is_full: t._count.teams >= t.maxTeams,
+    is_full: t._count.teams >= (t.maxTeams ?? 0),
     is_registration_open: isRegistrationOpen,
     registration_deadline: t.registrationDeadline,
+    teams: basicStats.teams,
+    players: basicStats.players,
   });
 }

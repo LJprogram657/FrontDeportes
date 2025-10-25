@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-export async function GET(request: Request) {
+export async function GET(request: Request, { params }: { params: { id: string } }) {
   const id = Number(params.id);
   const teams = await prisma.team.findMany({
     where: { tournamentId: id, status: 'approved' },

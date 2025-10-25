@@ -2,11 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 
 export async function GET(request: Request) {
-  const user = await requireAuth(req as any);
-  if (!user) return NextResponse.json({ success: false, message: 'No autorizado' }, { status: 401 });
-
-  return NextResponse.json(
-    { success: true, message: 'Token válido', user_id: user.id, email: user.email },
-    { status: 200 }
-  );
+  const user = await requireAuth(request as any);
+  if (!user) return NextResponse.json({ authenticated: false }, { status: 200 });
+  return NextResponse.json({ authenticated: true, user }, { status: 200 });
 }

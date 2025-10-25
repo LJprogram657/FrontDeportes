@@ -45,7 +45,7 @@ export async function POST(req: Request) {
   );
 }
 export async function GET(request: Request) {
-  const body = await req.json();
+  const body = await request.json();
   const tournamentId = Number(body.tournament);
   if (!tournamentId) return NextResponse.json({ error: 'Torneo no encontrado' }, { status: 404 });
 
