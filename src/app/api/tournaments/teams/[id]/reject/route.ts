@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/src/lib/prisma';
-import { requireAdmin } from '@/src/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { requireAdmin } from '@/lib/auth';
 
-export async function POST(_: Request, { params }: { params: { id: string } }) {
+export async function POST(request: Request) {
   const admin = await requireAdmin(_ as any);
   if (!admin) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 

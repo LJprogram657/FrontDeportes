@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/src/lib/prisma';
+import { prisma } from '@/lib/prisma';
 
-export async function GET(_: Request, { params }: { params: { id: string } }) {
+export async function GET(request: Request) {
   const id = Number(params.id);
   const t = await prisma.tournament.findUnique({ where: { id } });
   if (!t) return NextResponse.json({ error: 'Torneo no encontrado' }, { status: 404 });

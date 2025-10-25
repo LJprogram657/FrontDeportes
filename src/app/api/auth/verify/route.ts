@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { requireAuth } from '@/src/lib/auth';
+import { requireAuth } from '@/lib/auth';
 
-export async function GET(req: Request) {
+export async function GET(request: Request) {
   const user = await requireAuth(req as any);
   if (!user) return NextResponse.json({ success: false, message: 'No autorizado' }, { status: 401 });
 

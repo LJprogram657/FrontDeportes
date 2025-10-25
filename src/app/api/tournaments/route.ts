@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/src/lib/prisma';
-import { requireAuth } from '@/src/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { requireAuth } from '@/lib/auth';
 
-export async function GET() {
+export async function GET(request: Request) {
   const tournaments = await prisma.tournament.findMany({
     orderBy: { createdAt: 'desc' },
     select: {
