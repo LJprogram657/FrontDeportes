@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyPassword, signAccessToken } from '@/lib/auth';
+import { ensureAdminExists } from '@/lib/bootstrap';
 
 export async function POST(req: Request) {
   try {
@@ -12,14 +13,17 @@ export async function POST(req: Request) {
       );
     }
 
+    // Bootstrap: asegura que el admin exista antes de validar credenciales
+    await ensureAdminExists();
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
       return NextResponse.json({ success: false, message: 'Credenciales inválidas' }, { status: 401 });
     }
 
     const ok = await verifyPassword(password, user.password);
-    if (!ok || !user.isActive) {
-      return NextResponse.json({ success: false, message: 'Credenciales inválidas' }, { status: 401 });
+    // Solo permite login si es admin y está activo
+    if (!ok || !user.isActive || !user.isAdmin) {
+      return NextResponse.json({ success: false, message: 'Credenciales inválidas o no autorizado' }, { status: 401 });
     }
 
     const access = signAccessToken({ sub: user.id, email: user.email, isAdmin: user.isAdmin });

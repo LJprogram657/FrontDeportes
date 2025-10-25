@@ -13,6 +13,15 @@ export async function POST(req: Request) {
       );
     }
 
+    // Permitir crear SOLO el primer usuario (admin). Si existe alguno, bloquear registro.
+    const totalUsers = await prisma.user.count();
+    if (totalUsers > 0) {
+      return NextResponse.json(
+        { success: false, message: 'Registro deshabilitado: ya existe un usuario administrador.' },
+        { status: 403 }
+      );
+    }
+
     const exists = await prisma.user.findUnique({ where: { email } });
     if (exists) {
       return NextResponse.json(
@@ -23,14 +32,15 @@ export async function POST(req: Request) {
 
     const hashed = await hashPassword(password);
     const user = await prisma.user.create({
-      data: { email, password: hashed, firstName: first_name, lastName: last_name, isAdmin: false, isActive: true },
+      // El PRIMER usuario se crea como ADMIN y activo
+      data: { email, password: hashed, firstName: first_name, lastName: last_name, isAdmin: true, isActive: true },
     });
 
     const access = signAccessToken({ sub: user.id, email: user.email, isAdmin: user.isAdmin });
     return NextResponse.json(
       {
         success: true,
-        message: 'Usuario registrado exitosamente',
+        message: 'Usuario administrador creado exitosamente',
         access,
         refresh: null, // puedes implementar refresh token luego
         user: { id: user.id, username: user.email, email: user.email, is_admin: user.isAdmin },
