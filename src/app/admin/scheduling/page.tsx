@@ -1,6 +1,7 @@
+// Módulo (imports en la cabecera)
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import '../../styles/admin-dashboard.css';
 import '../../styles/scheduling.css';
 
@@ -171,6 +172,7 @@ interface SchedulingPanelProps {
   onBack: () => void;
 }
 
+// Dentro: const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack }) => {
 const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack }) => {
   const [matches, setMatches] = useState<Match[]>([]);
   const [availableTeams, setAvailableTeams] = useState<Team[]>([]);
@@ -181,32 +183,62 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
   // Filtrar canchas por deporte del torneo
   const filteredVenues = venues.filter(v => v.sports.includes(tournament.sport));
 
-  // Cargar equipos registrados reales
-  useEffect(() => {
-    const loadRegisteredTeams = () => {
-      try {
-        const registrations = JSON.parse(localStorage.getItem('team_registrations') || '[]');
-        const tournamentTeams = registrations
-          .filter((reg: any) => {
-            const tid = reg?.tournament?.id ?? reg?.tournamentId;
-            return tid === tournament.id && reg.status === 'approved';
-          })
-          .map((reg: any) => ({
-            id: `team-${reg.id}`,
-            name: reg.teamName,
-            logo: reg.teamLogo || '/images/default-team.png',
-          }));
-        setAvailableTeams(tournamentTeams);
-        if (tournamentTeams.length === 0) {
-          console.log('No hay equipos registrados para este torneo');
-        }
-      } catch (error) {
-        console.error('Error cargando equipos registrados:', error);
-        setAvailableTeams([]);
+  // Cargar equipos registrados reales (deduplicando por id y nombre)
+  const loadRegisteredTeams = useCallback(() => {
+    try {
+      const registrations = JSON.parse(localStorage.getItem('team_registrations') || '[]');
+
+      const mapped: Team[] = registrations
+        .filter((reg: any) => {
+          const tid = reg?.tournament?.id ?? reg?.tournamentId;
+          return tid === tournament.id && reg.status === 'approved';
+        })
+        .map((reg: any) => ({
+          id: `team-${reg.id}`,
+          name: reg.teamName,
+          logo: reg.teamLogo || '/images/default-team.png',
+        }));
+
+      // Deduplicar por id y por nombre normalizado
+      const seenIds = new Set<string>();
+      const seenNames = new Set<string>();
+      const unique: Team[] = [];
+
+      for (const team of mapped) {
+        const normName = (team.name || '').trim().toLowerCase();
+        if (seenIds.has(team.id) || seenNames.has(normName)) continue;
+        seenIds.add(team.id);
+        seenNames.add(normName);
+        unique.push(team);
       }
-    };
-    loadRegisteredTeams();
+
+      setAvailableTeams(unique);
+    } catch (error) {
+      console.error('Error cargando equipos registrados:', error);
+      setAvailableTeams([]);
+    }
   }, [tournament.id]);
+
+  // Cargar al montar/actualizar torneo
+  useEffect(() => {
+    loadRegisteredTeams();
+  }, [loadRegisteredTeams]);
+
+  // Refrescar lista cuando cambia localStorage (otra pestaña) o al volver a la pestaña
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'team_registrations') loadRegisteredTeams();
+    };
+    const onVisibility = () => {
+      if (!document.hidden) loadRegisteredTeams();
+    };
+    window.addEventListener('storage', onStorage);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [loadRegisteredTeams]);
 
   // Generar partidos automáticamente basado en el formato del torneo
   useEffect(() => {
@@ -384,24 +416,66 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
       <div className="scheduler-layout">
         <div className="teams-list-container">
           <h4>Equipos Disponibles</h4>
-          <div className="teams-grid">
-            {availableTeams.map(team => (
-              <div 
-                key={team.id}
-                className="team-card draggable"
-                draggable
-                onDragStart={() => handleDragStart(team)}
-              >
-                <img src={team.logo} alt={team.name} className="team-logo-small" />
-                <span className="team-name">{team.name}</span>
-              </div>
-            ))}
-          </div>
+
+          {/* Mini tabla dinámica con filas arrastrables */}
+          // Nuevo componente dentro del mismo archivo
+          interface TeamsTableProps {
+            teams: Team[];
+            onDragStart: (team: Team) => void;
+          }
           
+          const TeamsTable: React.FC<TeamsTableProps> = ({ teams, onDragStart }) => {
+            return (
+              <div style={{ overflowX: 'auto', marginBottom: '1rem' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ background: '#f5f6f8' }}>
+                      <th style={{ textAlign: 'left', padding: '0.75rem' }}>Logo</th>
+                      <th style={{ textAlign: 'left', padding: '0.75rem' }}>Equipo</th>
+                      <th style={{ textAlign: 'left', padding: '0.75rem' }}>Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {teams.length === 0 ? (
+                      <tr>
+                        <td colSpan={3} style={{ padding: '1rem', textAlign: 'center', color: '#6c757d' }}>
+                          No hay equipos registrados para este torneo todavía.
+                        </td>
+                      </tr>
+                    ) : (
+                      teams.map(team => (
+                        <tr 
+                          key={team.id}
+                          draggable
+                          onDragStart={() => onDragStart(team)}
+                          style={{ borderTop: '1px solid #e9ecef', cursor: 'grab' }}
+                          title="Arrastra esta fila hacia un partido"
+                        >
+                          <td style={{ padding: '0.75rem' }}>
+                            <img 
+                              src={team.logo} 
+                              alt={team.name} 
+                              style={{ width: 28, height: 28, borderRadius: 4, objectFit: 'cover' }} 
+                            />
+                          </td>
+                          <td style={{ padding: '0.75rem', fontWeight: 600 }}>
+                            {team.name}
+                          </td>
+                          <td style={{ padding: '0.75rem', fontSize: 12, color: '#6c757d' }}>
+                            Arrastra a un partido
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            );
+          };
           <div className="scheduling-instructions">
             <h5>📋 Instrucciones:</h5>
             <ul>
-              <li>Arrastra los equipos a los espacios de los partidos</li>
+              <li>Arrastra los equipos desde la tabla a los espacios de los partidos</li>
               <li>Selecciona la cancha y horario para cada partido</li>
             </ul>
             <button 
