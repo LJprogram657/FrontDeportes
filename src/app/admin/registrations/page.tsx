@@ -40,7 +40,7 @@ const RegistrationsPage: React.FC = () => {
   const [selectedRegistration, setSelectedRegistration] = useState<TeamRegistration | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // NUEVO: mantener metadata (notificaciones) separada
+ 
   // Tipado explícito de la metadata de notificaciones
   interface RegistrationMeta {
     id: number;
