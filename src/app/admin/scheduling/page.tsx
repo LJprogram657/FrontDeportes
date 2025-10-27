@@ -256,7 +256,7 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
     generateMatches();
   }, [availableTeams, tournament.format, tournament.phases]);
 
-  // LIMPIEZA DE PARTIDOS: mover este hook arriba, antes de cualquier return condicional
+  // FIX: asegurar orden estable de hooks en todos los renders
   useEffect(() => {
     setMatches([]);
   }, [selectedPhase]);
