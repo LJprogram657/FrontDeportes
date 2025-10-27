@@ -5,9 +5,6 @@ import bcrypt from 'bcryptjs';
 // - Si no existe, lo crea.
 // - Si existe, asegura isAdmin/isActive y opcionalmente resetea la contraseña si ADMIN_FORCE_RESET=true.
 export async function ensureAdminExists() {
-  const count = await prisma.user.count();
-  if (count > 0) return;
-
   const email = process.env.ADMIN_EMAIL || 'admin@deportes.cam';
   const password = process.env.ADMIN_PASSWORD || 'Depo!Admin#2024';
   const forceReset = process.env.ADMIN_FORCE_RESET === 'true';
