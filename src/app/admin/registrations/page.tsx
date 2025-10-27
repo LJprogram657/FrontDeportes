@@ -111,6 +111,14 @@ const RegistrationsPage: React.FC = () => {
     localStorage.setItem('team_registrations_meta', JSON.stringify(updatedMeta));
   };
 
+  // Actualizar estado del registro (approve/reject)
+  const updateRegistrationStatus = (regId: number, status: 'approved' | 'rejected' | 'pending') => {
+    const next = registrations.map(r => (r.id === regId ? { ...r, status } : r));
+    setRegistrations(next);
+    localStorage.setItem('team_registrations', JSON.stringify(next));
+    toast.success(`Estado actualizado a: ${status}`);
+  };
+
   // Filtrar y ocultar notificaciones "dismissed"
   const filteredRegistrations = registrations.filter(r => {
     if (selectedTournament !== 'all') {
@@ -128,6 +136,22 @@ const RegistrationsPage: React.FC = () => {
     if (meta?.dismissed) return false;
     return true;
   });
+
+  // Métricas visibles (según torneo seleccionado y ocultando dismissed)
+  const visibleForStats = registrations.filter(r => {
+    const meta = registrationsMeta.find(m => m.id === r.id);
+    if (meta?.dismissed) return false;
+    if (selectedTournament === 'all') return true;
+    const tName = r.tournament?.name;
+    const tCode = r.tournament?.code;
+    const tId   = r.tournamentId?.toString();
+    return tName === selectedTournament || tCode === selectedTournament || tId === selectedTournament;
+  });
+  const total = visibleForStats.length;
+  const pendingCount  = visibleForStats.filter(r => r.status === 'pending').length;
+  const approvedCount = visibleForStats.filter(r => r.status === 'approved').length;
+  const rejectedCount = visibleForStats.filter(r => r.status === 'rejected').length;
+
   return (
     <div className="admin-dashboard">
       <div className="page-header">
@@ -169,28 +193,68 @@ const RegistrationsPage: React.FC = () => {
         </select>
       </div>
 
+      {/* Tarjetas de métricas */}
+      <div className="registrations-stats">
+        <div className="stat-card">
+          <h4>Total</h4><div className="stat-number">{total}</div>
+        </div>
+        <div className="stat-card pending">
+          <h4>Pendientes</h4><div className="stat-number">{pendingCount}</div>
+        </div>
+        <div className="stat-card approved">
+          <h4>Aprobados</h4><div className="stat-number">{approvedCount}</div>
+        </div>
+        <div className="stat-card rejected">
+          <h4>Rechazados</h4><div className="stat-number">{rejectedCount}</div>
+        </div>
+      </div>
+
       {isLoading ? (
         <p>Cargando...</p>
       ) : filteredRegistrations.length === 0 ? (
-        <div>No hay registros.</div>
+        <div className="no-registrations">No hay registros.</div>
       ) : (
-        <ul className="registrations-list">
+        <div className="registrations-grid">
           {filteredRegistrations.map((r) => (
-            <li key={r.id}>
-              <div>
-                <strong>{r.teamName}</strong>
-                {' — '}
-                {r.tournament?.name || r.tournament?.code || r.tournamentId}
-              </div>
-              <div>
+            <div key={r.id} className="registration-card">
+              <div className="registration-header">
+                <div className="team-info">
+                  {r.teamLogo ? (
+                    <img className="team-logo-small" src={r.teamLogo} alt={r.teamName} />
+                  ) : (
+                    <img className="team-logo-small" src="/images/default-team.png" alt={r.teamName} />
+                  )}
+                  <div>
+                    <strong>{r.teamName}</strong>
+                    <div style={{ fontSize: '0.9rem', color: '#666' }}>
+                      {r.tournament?.name || r.tournament?.code || r.tournamentId}
+                    </div>
+                  </div>
+                </div>
                 <span className={`status ${r.status}`}>{r.status}</span>
-                <button onClick={() => handleDeleteRegistration(r)}>
+              </div>
+
+              <div>
+                <div>Contacto: {r.contactPerson} — {r.contactNumber}</div>
+                <div>Fecha registro: {r.registrationDate}</div>
+                <div>Jugadores: {r.players?.length ?? 0}</div>
+                {r.notes && <div>Notas: {r.notes}</div>}
+              </div>
+
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn btn-primary" onClick={() => updateRegistrationStatus(r.id, 'approved')}>
+                  Aprobar
+                </button>
+                <button className="btn btn-secondary" onClick={() => updateRegistrationStatus(r.id, 'rejected')}>
+                  Rechazar
+                </button>
+                <button className="btn btn-danger" onClick={() => handleDeleteRegistration(r)}>
                   Eliminar
                 </button>
               </div>
-            </li>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );
