@@ -41,60 +41,66 @@ const RegistrationsPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   // NUEVO: mantener metadata (notificaciones) separada
-  const [registrationsMeta, setRegistrationsMeta] = useState<any[]>([]);
+  // Tipado explícito de la metadata de notificaciones
+  interface RegistrationMeta {
+    id: number;
+    dismissed?: boolean;
+    dismissedAt?: string;
+  }
 
-  // Cargar registros y metadatos desde localStorage al montar
-  useEffect(() => {
-    const stored = localStorage.getItem('team_registrations');
-    setRegistrations(stored ? JSON.parse(stored) : []);
+  const [registrationsMeta, setRegistrationsMeta] = useState<RegistrationMeta[]>([]);
+  const [showDismissed, setShowDismissed] = useState<boolean>(false);
 
-    const metaRaw = localStorage.getItem('team_registrations_meta');
-    setRegistrationsMeta(metaRaw ? JSON.parse(metaRaw) : []);
-
-    setIsLoading(false);
-  }, []);
-
-  // Sincronizar ante cambios en storage y al volver a la pestaña
-  useEffect(() => {
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === 'team_registrations') {
-        setRegistrations(e.newValue ? JSON.parse(e.newValue) : []);
-      }
-      if (e.key === 'team_registrations_meta') {
-        setRegistrationsMeta(e.newValue ? JSON.parse(e.newValue) : []);
-      }
-    };
-    window.addEventListener('storage', onStorage);
-
-    const onVisibility = () => {
-      if (document.visibilityState === 'visible') {
-        const stored = localStorage.getItem('team_registrations');
-        setRegistrations(stored ? JSON.parse(stored) : []);
-
-        const metaRaw = localStorage.getItem('team_registrations_meta');
-        setRegistrationsMeta(metaRaw ? JSON.parse(metaRaw) : []);
-      }
-    };
-    document.addEventListener('visibilitychange', onVisibility);
-
-    return () => {
-      window.removeEventListener('storage', onStorage);
-      document.removeEventListener('visibilitychange', onVisibility);
-    };
-  }, []);
-
-  // Marcar notificación como dismiss sin borrar el registro aprobado
+  // Marcar notificación como oculta sin borrar el registro aprobado
   const dismissNotification = (registrationId: number) => {
     const nextMeta = [...registrationsMeta];
     const idx = nextMeta.findIndex(m => m.id === registrationId);
-    if (idx >= 0) {
-      nextMeta[idx] = { ...nextMeta[idx], dismissed: true };
-    } else {
-      nextMeta.push({ id: registrationId, dismissed: true });
-    }
+    const entry = { id: registrationId, dismissed: true, dismissedAt: new Date().toISOString() };
+    if (idx >= 0) nextMeta[idx] = { ...nextMeta[idx], ...entry };
+    else nextMeta.push(entry);
     setRegistrationsMeta(nextMeta);
     localStorage.setItem('team_registrations_meta', JSON.stringify(nextMeta));
   };
+
+  // Restaurar notificación (quitar dismissed)
+  const undismissNotification = (registrationId: number) => {
+    const nextMeta = [...registrationsMeta];
+    const idx = nextMeta.findIndex(m => m.id === registrationId);
+    if (idx >= 0) {
+      nextMeta[idx] = { ...nextMeta[idx], dismissed: false, dismissedAt: undefined };
+      setRegistrationsMeta(nextMeta);
+      localStorage.setItem('team_registrations_meta', JSON.stringify(nextMeta));
+    }
+  };
+
+  // Aprobar en lote los registros visibles según filtros
+  const approveVisibleRegistrations = () => {
+    const toApproveIds = new Set(filteredRegistrations.filter(r => r.status !== 'approved').map(r => r.id));
+    if (toApproveIds.size === 0) return;
+
+    const next = registrations.map(r => (toApproveIds.has(r.id) ? { ...r, status: 'approved' } : r));
+    setRegistrations(next);
+    localStorage.setItem('team_registrations', JSON.stringify(next));
+    toast.success(`Aprobados ${toApproveIds.size} registros visibles`);
+  };
+
+  // Filtrar y (opcionalmente) mostrar las notificaciones ocultas
+  const filteredRegistrations = registrations.filter(r => {
+    if (selectedTournament !== 'all') {
+      const tName = r.tournament?.name;
+      const tCode = r.tournament?.code;
+      const tId   = r.tournamentId?.toString();
+      const matches =
+        tName === selectedTournament ||
+        tCode === selectedTournament ||
+        tId === selectedTournament;
+      if (!matches) return false;
+    }
+    if (selectedStatus !== 'all' && r.status !== selectedStatus) return false;
+    const meta = registrationsMeta.find(m => m.id === r.id);
+    if (!showDismissed && meta?.dismissed) return false;
+    return true;
+  });
 
   // Eliminar registro: si está aprobado, solo ocultar la notificación
   const handleDeleteRegistration = (reg: TeamRegistration) => {
@@ -159,9 +165,9 @@ const RegistrationsPage: React.FC = () => {
       </div>
 
       <div className="registrations-container">
-        {/* Filtros con el layout original */}
         <div className="filters-section">
           <div className="filters-grid">
+            {/* Torneo */}
             <div className="filter-group">
               <label>Torneo</label>
               <select
@@ -188,6 +194,7 @@ const RegistrationsPage: React.FC = () => {
               </select>
             </div>
 
+            {/* Estado */}
             <div className="filter-group">
               <label>Estado</label>
               <select
@@ -200,10 +207,30 @@ const RegistrationsPage: React.FC = () => {
                 <option value="rejected">Rechazado</option>
               </select>
             </div>
+
+            {/* Mostrar ocultas */}
+            <div className="filter-group">
+              <label>Notificaciones</label>
+              <label style={{ fontWeight: 400 }}>
+                <input
+                  type="checkbox"
+                  checked={showDismissed}
+                  onChange={(e) => setShowDismissed(e.target.checked)}
+                /> Mostrar ocultas
+              </label>
+            </div>
+
+            {/* Acción en lote */}
+            <div className="filter-group">
+              <label>Acciones</label>
+              <button className="btn-success" onClick={approveVisibleRegistrations}>
+                Aprobar visibles
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Tarjetas de métricas (Total, Pendientes, Aprobados, Rechazados) */}
+        {/* Métricas con tus clases originales */}
         <div className="registrations-stats">
           <div className="stat-card">
             <h4>Total</h4><div className="stat-number">{total}</div>
@@ -219,7 +246,7 @@ const RegistrationsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Listado y detalle con el layot original */}
+        {/* Listado y detalle con el layout original */}
         {isLoading ? (
           <p>Cargando...</p>
         ) : filteredRegistrations.length === 0 ? (
@@ -227,51 +254,62 @@ const RegistrationsPage: React.FC = () => {
         ) : (
           <>
             <div className="registrations-grid">
-              {filteredRegistrations.map((r) => (
-                <div key={r.id} className="registration-card">
-                  <div className="registration-header">
-                    <div className="team-info">
-                      <img
-                        className="team-logo-small"
-                        src={r.teamLogo || '/images/default-team.png'}
-                        alt={r.teamName}
-                      />
-                      <div>
-                        <strong>{r.teamName}</strong>
-                        <div style={{ fontSize: '0.9rem', color: '#666' }}>
-                          {r.tournament?.name || r.tournament?.code || r.tournamentId}
+              {filteredRegistrations.map((r) => {
+                const meta = registrationsMeta.find(m => m.id === r.id);
+                return (
+                  <div key={r.id} className="registration-card">
+                    <div className="registration-header">
+                      <div className="team-info">
+                        <img
+                          className="team-logo-small"
+                          src={r.teamLogo || '/images/default-team.png'}
+                          alt={r.teamName}
+                        />
+                        <div>
+                          <strong>{r.teamName}</strong>
+                          <div style={{ fontSize: '0.9rem', color: '#666' }}>
+                            {r.tournament?.name || r.tournament?.code || r.tournamentId}
+                          </div>
                         </div>
                       </div>
+                      <span className={`status-badge ${r.status}`}>{r.status}</span>
                     </div>
-                    <span className={`status-badge ${r.status}`}>{r.status}</span>
-                  </div>
 
-                  <div className="registration-details">
-                    <p>Contacto: {r.contactPerson} — {r.contactNumber}</p>
-                    <p>Fecha registro: {r.registrationDate}</p>
-                    <p>Jugadores: {r.players?.length ?? 0}</p>
-                    {r.notes && <p>Notas: {r.notes}</p>}
-                  </div>
+                    <div className="registration-details">
+                      <p>Contacto: {r.contactPerson} — {r.contactNumber}</p>
+                      <p>Fecha registro: {r.registrationDate}</p>
+                      <p>Jugadores: {r.players?.length ?? 0}</p>
+                      {r.notes && <p>Notas: {r.notes}</p>}
+                    </div>
 
-                  <div className="action-buttons">
-                    <button className="btn-success" onClick={() => updateRegistrationStatus(r.id, 'approved')}>
-                      Aprobar
-                    </button>
-                    <button className="btn-danger" onClick={() => updateRegistrationStatus(r.id, 'rejected')}>
-                      Rechazar
-                    </button>
-                    <button className="btn btn-danger" onClick={() => handleDeleteRegistration(r)}>
-                      Eliminar
-                    </button>
-                    <button className="btn btn-secondary" onClick={() => setSelectedRegistration(r)}>
-                      Ver detalle
-                    </button>
+                    <div className="action-buttons">
+                      <button className="btn-success" onClick={() => updateRegistrationStatus(r.id, 'approved')}>
+                        Aprobar
+                      </button>
+                      <button className="btn-danger" onClick={() => updateRegistrationStatus(r.id, 'rejected')}>
+                        Rechazar
+                      </button>
+
+                      {/* Eliminar vs Restaurar notificación */}
+                      {meta?.dismissed ? (
+                        <button className="btn btn-secondary" onClick={() => undismissNotification(r.id)}>
+                          Restaurar notificación
+                        </button>
+                      ) : (
+                        <button className="btn btn-danger" onClick={() => handleDeleteRegistration(r)}>
+                          Eliminar
+                        </button>
+                      )}
+
+                      <button className="btn btn-secondary" onClick={() => setSelectedRegistration(r)}>
+                        Ver detalle
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
-            {/* Panel de detalle (se muestra cuando seleccionas un registro) */}
             {selectedRegistration ? (
               <div className="registration-detail">
                 <div className="detail-header">
