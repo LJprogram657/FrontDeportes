@@ -32,6 +32,7 @@ interface TeamRegistration {
   tournamentId?: number;
 }
 
+// RegistrationsPage component (cliente)
 const RegistrationsPage: React.FC = () => {
   const [registrations, setRegistrations] = useState<TeamRegistration[]>([]);
   const [selectedTournament, setSelectedTournament] = useState<string>('all');
@@ -83,7 +84,7 @@ const RegistrationsPage: React.FC = () => {
   }, []);
 
   // Marcar notificación como dismiss sin borrar el registro aprobado
-  const dismissNotification = (registrationId: string) => {
+  const dismissNotification = (registrationId: number) => {
     const nextMeta = [...registrationsMeta];
     const idx = nextMeta.findIndex(m => m.id === registrationId);
     if (idx >= 0) {
@@ -112,7 +113,16 @@ const RegistrationsPage: React.FC = () => {
 
   // Filtrar y ocultar notificaciones "dismissed"
   const filteredRegistrations = registrations.filter(r => {
-    if (selectedTournament !== 'all' && r.tournament !== selectedTournament) return false;
+    if (selectedTournament !== 'all') {
+      const tName = r.tournament?.name;
+      const tCode = r.tournament?.code;
+      const tId   = r.tournamentId?.toString();
+      const matches =
+        tName === selectedTournament ||
+        tCode === selectedTournament ||
+        tId === selectedTournament;
+      if (!matches) return false;
+    }
     if (selectedStatus !== 'all' && r.status !== selectedStatus) return false;
     const meta = registrationsMeta.find(m => m.id === r.id);
     if (meta?.dismissed) return false;
@@ -120,3 +130,6 @@ const RegistrationsPage: React.FC = () => {
   });
   // ... existing code ...
 }
+
+// Exportar por defecto para cumplir con el contrato de Next.js Page
+export default RegistrationsPage;
