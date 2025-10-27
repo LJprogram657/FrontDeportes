@@ -44,7 +44,8 @@ export async function POST(req: Request) {
     { status: 201 }
   );
 }
-export async function GET(request: Request) {
+// Evita comportamiento incorrecto del GET que creaba equipos
+export async function GET() {
   const body = await request.json();
   const tournamentId = Number(body.tournament);
   if (!tournamentId) return NextResponse.json({ error: 'Torneo no encontrado' }, { status: 404 });
@@ -86,4 +87,5 @@ export async function GET(request: Request) {
     { message: 'Equipo registrado exitosamente. Pendiente de aprobación.', team },
     { status: 201 }
   );
+  return NextResponse.json({ error: 'Método no permitido' }, { status: 405 });
 }
