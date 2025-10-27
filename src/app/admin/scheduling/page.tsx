@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import '../../styles/admin-dashboard.css';
 import '../../styles/scheduling.css';
 
@@ -42,12 +42,6 @@ interface Venue {
   images: string[];
   sports: string[];
 }
-
-// DATOS LIMPIOS - SIN INFORMACIÓN DE PRUEBA
-const mockTournaments: Tournament[] = [];
-
-// Equipos reales registrados (se cargarán del localStorage)
-const mockTeams: Team[] = [];
 
 // Canchas básicas reales (puedes personalizar estas según tu ubicación)
 const mockVenues: Venue[] = [
@@ -177,14 +171,12 @@ interface SchedulingPanelProps {
   onBack: () => void;
 }
 
-// Dentro de: const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack }) => {
 const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack }) => {
   const [matches, setMatches] = useState<Match[]>([]);
   const [availableTeams, setAvailableTeams] = useState<Team[]>([]);
   const [venues] = useState<Venue[]>(mockVenues);
   const [selectedPhase, setSelectedPhase] = useState<string>(tournament.phases[0]);
   const [draggedTeam, setDraggedTeam] = useState<Team | null>(null);
-  const dragCounter = useRef(0);
 
   // Filtrar canchas por deporte del torneo
   const filteredVenues = venues.filter(v => v.sports.includes(tournament.sport));
@@ -195,25 +187,25 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
       try {
         const registrations = JSON.parse(localStorage.getItem('team_registrations') || '[]');
         const tournamentTeams = registrations
-            .filter((reg: any) => {
-                const tid = reg?.tournament?.id ?? reg?.tournamentId;
-                return tid === tournament.id && reg.status === 'approved';
-            })
-            .map((reg: any) => ({
-                id: `team-${reg.id}`,
-                name: reg.teamName,
-                logo: reg.teamLogo || '/images/default-team.png',
-            }));
+          .filter((reg: any) => {
+            const tid = reg?.tournament?.id ?? reg?.tournamentId;
+            return tid === tournament.id && reg.status === 'approved';
+          })
+          .map((reg: any) => ({
+            id: `team-${reg.id}`,
+            name: reg.teamName,
+            logo: reg.teamLogo || '/images/default-team.png',
+          }));
         setAvailableTeams(tournamentTeams);
         if (tournamentTeams.length === 0) {
-            console.log('No hay equipos registrados para este torneo');
+          console.log('No hay equipos registrados para este torneo');
         }
-    } catch (error) {
+      } catch (error) {
         console.error('Error cargando equipos registrados:', error);
         setAvailableTeams([]);
-    }
-  };
-  loadRegisteredTeams();
+      }
+    };
+    loadRegisteredTeams();
   }, [tournament.id]);
 
   // Generar partidos automáticamente basado en el formato del torneo
@@ -256,7 +248,7 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
     generateMatches();
   }, [availableTeams, tournament.format, tournament.phases]);
 
-  // FIX: asegurar orden estable de hooks en todos los renders
+  // Asegurar orden estable de hooks en todos los renders
   useEffect(() => {
     setMatches([]);
   }, [selectedPhase]);
@@ -359,11 +351,6 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
       match.id === matchId ? { ...match, homeScore, awayScore, status: 'finished' } : match
     ));
   };
-
-  useEffect(() => {
-    // Limpiar partidos al cambiar de fase
-    setMatches([]);
-  }, [selectedPhase]);
 
   return (
     <div className="scheduling-panel">
@@ -493,8 +480,8 @@ const MatchCard: React.FC<MatchCardProps> = ({
   onUpdateDateTime,
   onUpdateResult
 }) => {
-  const [homeScore, setHomeScore] = useState(match.homeScore || '');
-  const [awayScore, setAwayScore] = useState(match.awayScore || '');
+  const [homeScore, setHomeScore] = useState<number | ''>(match.homeScore ?? '');
+  const [awayScore, setAwayScore] = useState<number | ''>(match.awayScore ?? '');
   const [showPreview, setShowPreview] = useState(false);
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
 
@@ -514,8 +501,10 @@ const MatchCard: React.FC<MatchCardProps> = ({
   const isComplete = match.homeTeam && match.awayTeam && match.venue && match.date && match.time;
 
   const handleResultSubmit = () => {
-    if (typeof homeScore === 'number' && typeof awayScore === 'number') {
-      onUpdateResult(match.id, homeScore, awayScore);
+    const validHome = typeof homeScore === 'number' && Number.isFinite(homeScore);
+    const validAway = typeof awayScore === 'number' && Number.isFinite(awayScore);
+    if (validHome && validAway) {
+      onUpdateResult(match.id, homeScore as number, awayScore as number);
     }
   };
 
@@ -604,13 +593,21 @@ const MatchCard: React.FC<MatchCardProps> = ({
             type="number" 
             placeholder={`Res. ${match.homeTeam?.name || 'Local'}`}
             value={homeScore}
-            onChange={(e) => setHomeScore(parseInt(e.target.value, 10))}
+            onChange={(e) => {
+              const val = e.target.value;
+              const num = parseInt(val, 10);
+              setHomeScore(Number.isFinite(num) ? num : '');
+            }}
           />
           <input 
             type="number" 
             placeholder={`Res. ${match.awayTeam?.name || 'Visitante'}`}
             value={awayScore}
-            onChange={(e) => setAwayScore(parseInt(e.target.value, 10))}
+            onChange={(e) => {
+              const val = e.target.value;
+              const num = parseInt(val, 10);
+              setAwayScore(Number.isFinite(num) ? num : '');
+            }}
           />
           <button onClick={handleResultSubmit}>Guardar</button>
         </div>
