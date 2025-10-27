@@ -1,4 +1,3 @@
-// Módulo (imports en la cabecera)
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -75,7 +74,7 @@ const SchedulingPage: React.FC = () => {
         const adminTournaments = JSON.parse(localStorage.getItem('admin_created_tournaments') || '[]');
         
         // Convertir al formato esperado
-        const formattedTournaments = adminTournaments.map((t: any) => ({
+        const formattedTournaments: Tournament[] = adminTournaments.map((t: any) => ({
           id: t.id,
           name: t.name,
           logo: t.logo || '/images/default-tournament.png',
@@ -166,13 +165,67 @@ const TournamentSelector: React.FC<TournamentSelectorProps> = ({ tournaments, on
   );
 };
 
+// Tabla de equipos (fuera de JSX del return)
+interface TeamsTableProps {
+  teams: Team[];
+  onDragStart: (team: Team) => void;
+}
+
+const TeamsTable: React.FC<TeamsTableProps> = ({ teams, onDragStart }) => {
+  return (
+    <div style={{ overflowX: 'auto', marginBottom: '1rem' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <thead>
+          <tr style={{ background: '#f5f6f8' }}>
+            <th style={{ textAlign: 'left', padding: '0.75rem' }}>Logo</th>
+            <th style={{ textAlign: 'left', padding: '0.75rem' }}>Equipo</th>
+            <th style={{ textAlign: 'left', padding: '0.75rem' }}>Acción</th>
+          </tr>
+        </thead>
+        <tbody>
+          {teams.length === 0 ? (
+            <tr>
+              <td colSpan={3} style={{ padding: '1rem', textAlign: 'center', color: '#6c757d' }}>
+                No hay equipos registrados para este torneo todavía.
+              </td>
+            </tr>
+          ) : (
+            teams.map(team => (
+              <tr 
+                key={team.id}
+                draggable
+                onDragStart={() => onDragStart(team)}
+                style={{ borderTop: '1px solid #e9ecef', cursor: 'grab' }}
+                title="Arrastra esta fila hacia un partido"
+              >
+                <td style={{ padding: '0.75rem' }}>
+                  <img 
+                    src={team.logo} 
+                    alt={team.name} 
+                    style={{ width: 28, height: 28, borderRadius: 4, objectFit: 'cover' }} 
+                  />
+                </td>
+                <td style={{ padding: '0.75rem', fontWeight: 600 }}>
+                  {team.name}
+                </td>
+                <td style={{ padding: '0.75rem', fontSize: 12, color: '#6c757d' }}>
+                  Arrastra a un partido
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
 // Panel principal de programación para un torneo seleccionado
 interface SchedulingPanelProps {
   tournament: Tournament;
   onBack: () => void;
 }
 
-// Dentro: const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack }) => {
 const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack }) => {
   const [matches, setMatches] = useState<Match[]>([]);
   const [availableTeams, setAvailableTeams] = useState<Team[]>([]);
@@ -418,60 +471,8 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
           <h4>Equipos Disponibles</h4>
 
           {/* Mini tabla dinámica con filas arrastrables */}
-          // Nuevo componente dentro del mismo archivo
-          interface TeamsTableProps {
-            teams: Team[];
-            onDragStart: (team: Team) => void;
-          }
-          
-          const TeamsTable: React.FC<TeamsTableProps> = ({ teams, onDragStart }) => {
-            return (
-              <div style={{ overflowX: 'auto', marginBottom: '1rem' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ background: '#f5f6f8' }}>
-                      <th style={{ textAlign: 'left', padding: '0.75rem' }}>Logo</th>
-                      <th style={{ textAlign: 'left', padding: '0.75rem' }}>Equipo</th>
-                      <th style={{ textAlign: 'left', padding: '0.75rem' }}>Acción</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {teams.length === 0 ? (
-                      <tr>
-                        <td colSpan={3} style={{ padding: '1rem', textAlign: 'center', color: '#6c757d' }}>
-                          No hay equipos registrados para este torneo todavía.
-                        </td>
-                      </tr>
-                    ) : (
-                      teams.map(team => (
-                        <tr 
-                          key={team.id}
-                          draggable
-                          onDragStart={() => onDragStart(team)}
-                          style={{ borderTop: '1px solid #e9ecef', cursor: 'grab' }}
-                          title="Arrastra esta fila hacia un partido"
-                        >
-                          <td style={{ padding: '0.75rem' }}>
-                            <img 
-                              src={team.logo} 
-                              alt={team.name} 
-                              style={{ width: 28, height: 28, borderRadius: 4, objectFit: 'cover' }} 
-                            />
-                          </td>
-                          <td style={{ padding: '0.75rem', fontWeight: 600 }}>
-                            {team.name}
-                          </td>
-                          <td style={{ padding: '0.75rem', fontSize: 12, color: '#6c757d' }}>
-                            Arrastra a un partido
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            );
-          };
+          <TeamsTable teams={availableTeams} onDragStart={handleDragStart} />
+
           <div className="scheduling-instructions">
             <h5>📋 Instrucciones:</h5>
             <ul>
@@ -528,7 +529,7 @@ interface MatchCardProps {
   onUpdateResult: (matchId: string, homeScore: number, awayScore: number) => void;
 }
 
-const VenuePreview: React.FC<{ venue: Venue }> = ({ venue }) => {
+const VenuePreview: React.FC<{ venue: Venue | null }> = ({ venue }) => {
   if (!venue) return null;
 
   return (
@@ -554,10 +555,10 @@ const MatchCard: React.FC<MatchCardProps> = ({
   onUpdateDateTime,
   onUpdateResult
 }) => {
-  const [homeScore, setHomeScore] = useState<number | ''>(match.homeScore ?? '');
-  const [awayScore, setAwayScore] = useState<number | ''>(match.awayScore ?? '');
-  const [showPreview, setShowPreview] = useState(false);
+  const [showPreview, setShowPreview] = useState<boolean>(false);
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
+  const [homeScore, setHomeScore] = useState<number | ''>(typeof match.homeScore === 'number' ? match.homeScore : '');
+  const [awayScore, setAwayScore] = useState<number | ''>(typeof match.awayScore === 'number' ? match.awayScore : '');
 
   const handleVenueHover = (venueId: string) => {
     const venue = venues.find(v => v.id === venueId);
@@ -575,10 +576,10 @@ const MatchCard: React.FC<MatchCardProps> = ({
   const isComplete = match.homeTeam && match.awayTeam && match.venue && match.date && match.time;
 
   const handleResultSubmit = () => {
-    const validHome = typeof homeScore === 'number' && Number.isFinite(homeScore);
-    const validAway = typeof awayScore === 'number' && Number.isFinite(awayScore);
-    if (validHome && validAway) {
-      onUpdateResult(match.id, homeScore as number, awayScore as number);
+    const hs = typeof homeScore === 'number' ? homeScore : NaN;
+    const as = typeof awayScore === 'number' ? awayScore : NaN;
+    if (Number.isFinite(hs) && Number.isFinite(as)) {
+      onUpdateResult(match.id, hs, as);
     }
   };
 
