@@ -177,6 +177,7 @@ interface SchedulingPanelProps {
   onBack: () => void;
 }
 
+// Dentro de: const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack }) => {
 const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack }) => {
   const [matches, setMatches] = useState<Match[]>([]);
   const [availableTeams, setAvailableTeams] = useState<Team[]>([]);
@@ -185,7 +186,7 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
   const [draggedTeam, setDraggedTeam] = useState<Team | null>(null);
   const dragCounter = useRef(0);
 
-  // Filtrar canchas por deporte del torneo (evita error de variable no definida)
+  // Filtrar canchas por deporte del torneo
   const filteredVenues = venues.filter(v => v.sports.includes(tournament.sport));
 
   // Cargar equipos registrados reales
@@ -254,6 +255,11 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
 
     generateMatches();
   }, [availableTeams, tournament.format, tournament.phases]);
+
+  // LIMPIEZA DE PARTIDOS: mover este hook arriba, antes de cualquier return condicional
+  useEffect(() => {
+    setMatches([]);
+  }, [selectedPhase]);
 
   // Si no hay equipos registrados
   if (availableTeams.length === 0) {
