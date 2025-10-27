@@ -13,7 +13,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // Permitir crear SOLO el primer usuario (admin). Si existe alguno, bloquear registro.
+    // Permitir crear SOLO el primer usuario (admin). S existe alguno, bloquear registro.
     const totalUsers = await prisma.user.count();
     if (totalUsers > 0) {
       return NextResponse.json(
