@@ -158,104 +158,182 @@ const RegistrationsPage: React.FC = () => {
         <h2>Gestión de registro</h2>
       </div>
 
-      <div className="filters">
-        <select
-          value={selectedTournament}
-          onChange={(e) => setSelectedTournament(e.target.value)}
-        >
-          <option value="all">Todos los torneos</option>
-          {Array.from(
-            new Set(
-              registrations
-                .map(
-                  (r) =>
-                    r.tournament?.name ||
-                    r.tournament?.code ||
-                    r.tournamentId?.toString()
-                )
-                .filter(Boolean) as string[]
-            )
-          ).map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
-          ))}
-        </select>
+      <div className="registrations-container">
+        {/* Filtros con el layout original */}
+        <div className="filters-section">
+          <div className="filters-grid">
+            <div className="filter-group">
+              <label>Torneo</label>
+              <select
+                value={selectedTournament}
+                onChange={(e) => setSelectedTournament(e.target.value)}
+              >
+                <option value="all">Todos los torneos</option>
+                {Array.from(
+                  new Set(
+                    registrations
+                      .map(
+                        (r) =>
+                          r.tournament?.name ||
+                          r.tournament?.code ||
+                          r.tournamentId?.toString()
+                      )
+                      .filter(Boolean) as string[]
+                  )
+                ).map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-        <select
-          value={selectedStatus}
-          onChange={(e) => setSelectedStatus(e.target.value)}
-        >
-          <option value="all">Todos</option>
-          <option value="pending">Pendiente</option>
-          <option value="approved">Aprobado</option>
-          <option value="rejected">Rechazado</option>
-        </select>
-      </div>
+            <div className="filter-group">
+              <label>Estado</label>
+              <select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+              >
+                <option value="all">Todos</option>
+                <option value="pending">Pendiente</option>
+                <option value="approved">Aprobado</option>
+                <option value="rejected">Rechazado</option>
+              </select>
+            </div>
+          </div>
+        </div>
 
-      {/* Tarjetas de métricas */}
-      <div className="registrations-stats">
-        <div className="stat-card">
-          <h4>Total</h4><div className="stat-number">{total}</div>
+        {/* Tarjetas de métricas (Total, Pendientes, Aprobados, Rechazados) */}
+        <div className="registrations-stats">
+          <div className="stat-card">
+            <h4>Total</h4><div className="stat-number">{total}</div>
+          </div>
+          <div className="stat-card pending">
+            <h4>Pendientes</h4><div className="stat-number">{pendingCount}</div>
+          </div>
+          <div className="stat-card approved">
+            <h4>Aprobados</h4><div className="stat-number">{approvedCount}</div>
+          </div>
+          <div className="stat-card rejected">
+            <h4>Rechazados</h4><div className="stat-number">{rejectedCount}</div>
+          </div>
         </div>
-        <div className="stat-card pending">
-          <h4>Pendientes</h4><div className="stat-number">{pendingCount}</div>
-        </div>
-        <div className="stat-card approved">
-          <h4>Aprobados</h4><div className="stat-number">{approvedCount}</div>
-        </div>
-        <div className="stat-card rejected">
-          <h4>Rechazados</h4><div className="stat-number">{rejectedCount}</div>
-        </div>
-      </div>
 
-      {isLoading ? (
-        <p>Cargando...</p>
-      ) : filteredRegistrations.length === 0 ? (
-        <div className="no-registrations">No hay registros.</div>
-      ) : (
-        <div className="registrations-grid">
-          {filteredRegistrations.map((r) => (
-            <div key={r.id} className="registration-card">
-              <div className="registration-header">
-                <div className="team-info">
-                  {r.teamLogo ? (
-                    <img className="team-logo-small" src={r.teamLogo} alt={r.teamName} />
-                  ) : (
-                    <img className="team-logo-small" src="/images/default-team.png" alt={r.teamName} />
-                  )}
-                  <div>
-                    <strong>{r.teamName}</strong>
-                    <div style={{ fontSize: '0.9rem', color: '#666' }}>
-                      {r.tournament?.name || r.tournament?.code || r.tournamentId}
+        {/* Listado y detalle con el layout original */}
+        {isLoading ? (
+          <p>Cargando...</p>
+        ) : filteredRegistrations.length === 0 ? (
+          <div className="no-registrations">No hay registros.</div>
+        ) : (
+          <>
+            <div className="registrations-grid">
+              {filteredRegistrations.map((r) => (
+                <div key={r.id} className="registration-card">
+                  <div className="registration-header">
+                    <div className="team-info">
+                      <img
+                        className="team-logo-small"
+                        src={r.teamLogo || '/images/default-team.png'}
+                        alt={r.teamName}
+                      />
+                      <div>
+                        <strong>{r.teamName}</strong>
+                        <div style={{ fontSize: '0.9rem', color: '#666' }}>
+                          {r.tournament?.name || r.tournament?.code || r.tournamentId}
+                        </div>
+                      </div>
+                    </div>
+                    <span className={`status-badge ${r.status}`}>{r.status}</span>
+                  </div>
+
+                  <div className="registration-details">
+                    <p>Contacto: {r.contactPerson} — {r.contactNumber}</p>
+                    <p>Fecha registro: {r.registrationDate}</p>
+                    <p>Jugadores: {r.players?.length ?? 0}</p>
+                    {r.notes && <p>Notas: {r.notes}</p>}
+                  </div>
+
+                  <div className="action-buttons">
+                    <button className="btn-success" onClick={() => updateRegistrationStatus(r.id, 'approved')}>
+                      Aprobar
+                    </button>
+                    <button className="btn-danger" onClick={() => updateRegistrationStatus(r.id, 'rejected')}>
+                      Rechazar
+                    </button>
+                    <button className="btn btn-danger" onClick={() => handleDeleteRegistration(r)}>
+                      Eliminar
+                    </button>
+                    <button className="btn btn-secondary" onClick={() => setSelectedRegistration(r)}>
+                      Ver detalle
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Panel de detalle (se muestra cuando seleccionas un registro) */}
+            {selectedRegistration ? (
+              <div className="registration-detail">
+                <div className="detail-header">
+                  <h4>Detalle de registro: {selectedRegistration.teamName}</h4>
+                  <button className="btn btn-secondary" onClick={() => setSelectedRegistration(null)}>
+                    Cerrar
+                  </button>
+                </div>
+                <div className="detail-content">
+                  <div className="team-section">
+                    <div className="team-header">
+                      <img
+                        className="team-logo-large"
+                        src={selectedRegistration.teamLogo || '/images/default-team.png'}
+                        alt={selectedRegistration.teamName}
+                      />
+                      <div>
+                        <strong>{selectedRegistration.teamName}</strong>
+                        <div style={{ color: '#666' }}>
+                          {selectedRegistration.tournament?.name || selectedRegistration.tournament?.code || selectedRegistration.tournamentId}
+                        </div>
+                        <div>Estado: <span className={`status-badge ${selectedRegistration.status}`}>{selectedRegistration.status}</span></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="players-section">
+                    <h5>Jugadores</h5>
+                    <div className="players-grid">
+                      {(selectedRegistration.players || []).map((p) => (
+                        <div key={p.id} className="player-card">
+                          <img className="player-photo" src={p.photo || '/images/default-team.png'} alt={p.name} />
+                          <div>
+                            <div><strong>{p.name} {p.lastName}</strong></div>
+                            <div>Cédula: {p.cedula}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="actions-section">
+                    <div className="action-buttons">
+                      <button className="btn-success" onClick={() => updateRegistrationStatus(selectedRegistration.id, 'approved')}>
+                        Aprobar
+                      </button>
+                      <button className="btn-danger" onClick={() => updateRegistrationStatus(selectedRegistration.id, 'rejected')}>
+                        Rechazar
+                      </button>
+                      <button className="btn btn-danger" onClick={() => handleDeleteRegistration(selectedRegistration)}>
+                        Eliminar
+                      </button>
                     </div>
                   </div>
                 </div>
-                <span className={`status ${r.status}`}>{r.status}</span>
               </div>
-
-              <div>
-                <div>Contacto: {r.contactPerson} — {r.contactNumber}</div>
-                <div>Fecha registro: {r.registrationDate}</div>
-                <div>Jugadores: {r.players?.length ?? 0}</div>
-                {r.notes && <div>Notas: {r.notes}</div>}
-              </div>
-
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-primary" onClick={() => updateRegistrationStatus(r.id, 'approved')}>
-                  Aprobar
-                </button>
-                <button className="btn btn-secondary" onClick={() => updateRegistrationStatus(r.id, 'rejected')}>
-                  Rechazar
-                </button>
-                <button className="btn btn-danger" onClick={() => handleDeleteRegistration(r)}>
-                  Eliminar
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ) : (
+              <div className="no-registrations">Selecciona un registro para ver el detalle.</div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
