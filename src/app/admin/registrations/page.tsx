@@ -128,7 +128,72 @@ const RegistrationsPage: React.FC = () => {
     if (meta?.dismissed) return false;
     return true;
   });
-  // ... existing code ...
+  return (
+    <div className="admin-dashboard">
+      <div className="page-header">
+        <h2>Gestión de registro</h2>
+      </div>
+
+      <div className="filters">
+        <select
+          value={selectedTournament}
+          onChange={(e) => setSelectedTournament(e.target.value)}
+        >
+          <option value="all">Todos los torneos</option>
+          {Array.from(
+            new Set(
+              registrations
+                .map(
+                  (r) =>
+                    r.tournament?.name ||
+                    r.tournament?.code ||
+                    r.tournamentId?.toString()
+                )
+                .filter(Boolean) as string[]
+            )
+          ).map((t) => (
+            <option key={t} value={t}>
+              {t}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={selectedStatus}
+          onChange={(e) => setSelectedStatus(e.target.value)}
+        >
+          <option value="all">Todos</option>
+          <option value="pending">Pendiente</option>
+          <option value="approved">Aprobado</option>
+          <option value="rejected">Rechazado</option>
+        </select>
+      </div>
+
+      {isLoading ? (
+        <p>Cargando...</p>
+      ) : filteredRegistrations.length === 0 ? (
+        <div>No hay registros.</div>
+      ) : (
+        <ul className="registrations-list">
+          {filteredRegistrations.map((r) => (
+            <li key={r.id}>
+              <div>
+                <strong>{r.teamName}</strong>
+                {' — '}
+                {r.tournament?.name || r.tournament?.code || r.tournamentId}
+              </div>
+              <div>
+                <span className={`status ${r.status}`}>{r.status}</span>
+                <button onClick={() => handleDeleteRegistration(r)}>
+                  Eliminar
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
 }
 
 // Exportar por defecto para cumplir con el contrato de Next.js Page
