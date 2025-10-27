@@ -32,7 +32,7 @@ export async function POST(req: Request) {
 
     const hashed = await hashPassword(password);
     const user = await prisma.user.create({
-      // El PRIMER usuario se crea como ADMIN y activo
+      // El PRIMER usuario se crea como ADMIN y activ
       data: { email, password: hashed, firstName: first_name, lastName: last_name, isAdmin: true, isActive: true },
     });
 
