@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import '..//..//styles/admin-dashboard.css';
+// ..//..//styles/admin-dashboard.css';
 
 interface Player {
   id: number;
