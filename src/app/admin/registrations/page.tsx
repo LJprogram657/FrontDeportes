@@ -34,6 +34,12 @@ interface TeamRegistration {
 
 const RegistrationsPage: React.FC = () => {
   const [registrations, setRegistrations] = useState<TeamRegistration[]>([]);
+  const [selectedTournament, setSelectedTournament] = useState<string>('all');
+  const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [selectedRegistration, setSelectedRegistration] = useState<TeamRegistration | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // NUEVO: mantener metadata (notificaciones) separada
   const [registrationsMeta, setRegistrationsMeta] = useState<any[]>([]);
   const [selectedTournament, setSelectedTournament] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
@@ -60,6 +66,7 @@ const RegistrationsPage: React.FC = () => {
     loadRegistrations();
   }, []);
 
+  // Sincronizar cambios entre pestañas/ventanas del navegador
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
       if (e.key === 'team_registrations' || e.key === 'team_registrations_meta') {
@@ -106,23 +113,25 @@ const RegistrationsPage: React.FC = () => {
 
   const handleDeleteRegistration = (registrationId: number) => {
     const reg = registrations.find(r => r.id === registrationId);
-    // Si está aprobado, no borres el registro; solo elimina la notificación (metadata)
+
+    // Si está aprobado, solo eliminar notificación (no borrar el registro)
     if (reg?.status === 'approved') {
       const confirmDismiss = window.confirm('¿Eliminar la notificación de este equipo aprobado? El registro se mantendrá para programación.');
       if (!confirmDismiss) return;
       dismissNotification(registrationId);
       return;
     }
-  
+
+    // Comportamiento original: borrar registro completo
     const confirmDelete = window.confirm('¿Eliminar esta solicitud de equipo? Esta acción no se puede deshacer.');
     if (!confirmDelete) return;
-  
+
     try {
       const current = JSON.parse(localStorage.getItem('team_registrations') || '[]');
       const updated = Array.isArray(current) ? current.filter((reg: any) => reg.id !== registrationId) : [];
       localStorage.setItem('team_registrations', JSON.stringify(updated));
       setRegistrations(prev => prev.filter(reg => reg.id !== registrationId));
-  
+
       // Sincronizar metadata si existe
       try {
         const meta = JSON.parse(localStorage.getItem('team_registrations_meta') || '[]');
@@ -132,7 +141,7 @@ const RegistrationsPage: React.FC = () => {
       } catch (e) {
         console.warn('No se pudo actualizar team_registrations_meta:', e);
       }
-  
+
       if (selectedRegistration?.id === registrationId) {
         setSelectedRegistration(null);
       }
@@ -197,9 +206,10 @@ const RegistrationsPage: React.FC = () => {
       const statusMatch = selectedStatus === 'all' || reg.status === selectedStatus;
       return tournamentMatch && statusMatch;
     })
+    // NUEVO: ocultar las notificaciones “dismissed”
     .filter(reg => {
       const meta = registrationsMeta.find((m: any) => m.id === reg.id);
-      return !meta?.dismissed; // Oculta notificaciones eliminadas
+      return !meta?.dismissed;
     });
 
   if (isLoading) {
@@ -463,3 +473,19 @@ const RegistrationsPage: React.FC = () => {
 };
 
 export default RegistrationsPage;
+
+// NUEVO: eliminar solo la notificación (no el registro)
+const dismissNotification = (registrationId: number) => {
+  try {
+    const meta = JSON.parse(localStorage.getItem('team_registrations_meta') || '[]');
+    const updatedMeta = Array.isArray(meta)
+      ? meta.map((m: any) => (m.id === registrationId ? { ...m, dismissed: true } : m))
+      : [];
+    localStorage.setItem('team_registrations_meta', JSON.stringify(updatedMeta));
+    setRegistrationsMeta(updatedMeta);
+    toast.success('Notificación eliminada (registro conservado)');
+  } catch (e) {
+    console.warn('No se pudo eliminar la notificación:', e);
+    toast.error('Error al eliminar la notificación');
+  }
+};
