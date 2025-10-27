@@ -34,6 +34,7 @@ interface TeamRegistration {
 
 const RegistrationsPage: React.FC = () => {
   const [registrations, setRegistrations] = useState<TeamRegistration[]>([]);
+  const [registrationsMeta, setRegistrationsMeta] = useState<any[]>([]);
   const [selectedTournament, setSelectedTournament] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedRegistration, setSelectedRegistration] = useState<TeamRegistration | null>(null);
@@ -45,10 +46,13 @@ const RegistrationsPage: React.FC = () => {
       try {
         setIsLoading(true);
         const teamRegistrations = JSON.parse(localStorage.getItem('team_registrations') || '[]');
+        const metaList = JSON.parse(localStorage.getItem('team_registrations_meta') || '[]');
         setRegistrations(Array.isArray(teamRegistrations) ? teamRegistrations : []);
+        setRegistrationsMeta(Array.isArray(metaList) ? metaList : []);
       } catch (error) {
         console.error('Error cargando registros:', error);
         setRegistrations([]);
+        setRegistrationsMeta([]);
       } finally {
         setIsLoading(false);
       }
@@ -56,13 +60,14 @@ const RegistrationsPage: React.FC = () => {
     loadRegistrations();
   }, []);
 
-  // Sincronizar cambios entre pestañas/ventanas del navegador
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
       if (e.key === 'team_registrations' || e.key === 'team_registrations_meta') {
         try {
           const list = JSON.parse(localStorage.getItem('team_registrations') || '[]');
+          const metaList = JSON.parse(localStorage.getItem('team_registrations_meta') || '[]');
           setRegistrations(Array.isArray(list) ? list : []);
+          setRegistrationsMeta(Array.isArray(metaList) ? metaList : []);
         } catch (err) {
           console.warn('No se pudo recargar registros desde localStorage:', err);
         }
@@ -100,24 +105,34 @@ const RegistrationsPage: React.FC = () => {
   };
 
   const handleDeleteRegistration = (registrationId: number) => {
+    const reg = registrations.find(r => r.id === registrationId);
+    // Si está aprobado, no borres el registro; solo elimina la notificación (metadata)
+    if (reg?.status === 'approved') {
+      const confirmDismiss = window.confirm('¿Eliminar la notificación de este equipo aprobado? El registro se mantendrá para programación.');
+      if (!confirmDismiss) return;
+      dismissNotification(registrationId);
+      return;
+    }
+  
     const confirmDelete = window.confirm('¿Eliminar esta solicitud de equipo? Esta acción no se puede deshacer.');
     if (!confirmDelete) return;
-
+  
     try {
       const current = JSON.parse(localStorage.getItem('team_registrations') || '[]');
       const updated = Array.isArray(current) ? current.filter((reg: any) => reg.id !== registrationId) : [];
       localStorage.setItem('team_registrations', JSON.stringify(updated));
       setRegistrations(prev => prev.filter(reg => reg.id !== registrationId));
-
+  
       // Sincronizar metadata si existe
       try {
         const meta = JSON.parse(localStorage.getItem('team_registrations_meta') || '[]');
         const updatedMeta = Array.isArray(meta) ? meta.filter((m: any) => m.id !== registrationId) : [];
         localStorage.setItem('team_registrations_meta', JSON.stringify(updatedMeta));
+        setRegistrationsMeta(updatedMeta);
       } catch (e) {
         console.warn('No se pudo actualizar team_registrations_meta:', e);
       }
-
+  
       if (selectedRegistration?.id === registrationId) {
         setSelectedRegistration(null);
       }
@@ -175,12 +190,17 @@ const RegistrationsPage: React.FC = () => {
     return Array.from(map.values());
   };
 
-  const filteredRegistrations = registrations.filter(reg => {
-    const tid = reg.tournament?.id ?? reg.tournamentId;
-    const tournamentMatch = selectedTournament === 'all' || String(tid) === selectedTournament;
-    const statusMatch = selectedStatus === 'all' || reg.status === selectedStatus;
-    return tournamentMatch && statusMatch;
-  });
+  const filteredRegistrations = registrations
+    .filter(reg => {
+      const tid = reg.tournament?.id ?? reg.tournamentId;
+      const tournamentMatch = selectedTournament === 'all' || String(tid) === selectedTournament;
+      const statusMatch = selectedStatus === 'all' || reg.status === selectedStatus;
+      return tournamentMatch && statusMatch;
+    })
+    .filter(reg => {
+      const meta = registrationsMeta.find((m: any) => m.id === reg.id);
+      return !meta?.dismissed; // Oculta notificaciones eliminadas
+    });
 
   if (isLoading) {
     return (
