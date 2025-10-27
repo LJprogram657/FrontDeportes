@@ -219,7 +219,7 @@ const RegistrationsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Listado y detalle con el layout original */}
+        {/* Listado y detalle con el layot original */}
         {isLoading ? (
           <p>Cargando...</p>
         ) : filteredRegistrations.length === 0 ? (
