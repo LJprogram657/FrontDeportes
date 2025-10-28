@@ -86,21 +86,6 @@ const RegistrationsPage: React.FC = () => {
     }
   };
 
-  // Aprobar en lote los registros visibles según filtros
-  const approveVisibleRegistrations = () => {
-    const toApproveIds = new Set(
-      filteredRegistrations.filter((r) => r.status !== 'approved').map((r) => r.id)
-    );
-    if (toApproveIds.size === 0) return;
-
-    const next: TeamRegistration[] = registrations.map((r) =>
-      toApproveIds.has(r.id) ? { ...r, status: 'approved' as const } : r
-    );
-    setRegistrations(next);
-    localStorage.setItem('team_registrations', JSON.stringify(next));
-    toast.success(`Aprobados ${toApproveIds.size} registros visibles`);
-  };
-
   // Filtrar y (opcionalmente) mostrar las notificaciones ocultas
   const filteredRegistrations = registrations.filter((r) => {
     if (selectedTournament !== 'all') {
@@ -115,6 +100,21 @@ const RegistrationsPage: React.FC = () => {
     if (!showDismissed && meta?.dismissed) return false;
     return true;
   });
+
+  // Aprobar en lote los registros visibles según filtros
+  const approveVisibleRegistrations = () => {
+    const toApproveIds = new Set(
+      filteredRegistrations.filter((r) => r.status !== 'approved').map((r) => r.id)
+    );
+    if (toApproveIds.size === 0) return;
+
+    const next: TeamRegistration[] = registrations.map((r) =>
+      toApproveIds.has(r.id) ? { ...r, status: 'approved' as const } : r
+    );
+    setRegistrations(next);
+    localStorage.setItem('team_registrations', JSON.stringify(next));
+    toast.success(`Aprobados ${toApproveIds.size} registros visibles`);
+  };
 
   // Eliminar registro: si está aprobado, solo ocultar la notificación
   const handleDeleteRegistration = (reg: TeamRegistration) => {
@@ -157,8 +157,10 @@ const RegistrationsPage: React.FC = () => {
 
   return (
     <div className="admin-dashboard">
-      <div className="page-header">
-        <h2>Gestión de registro</h2>
+      {/* Encabezado con las clases del CSS de admin */}
+      <div className="content-header">
+        <h2 className="content-title">Gestión de registro</h2>
+        <p className="content-subtitle">Administra inscripciones por torneo y estado</p>
       </div>
 
       <div className="registrations-container">
@@ -217,7 +219,7 @@ const RegistrationsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Métricas con tus clases originales */}
+        {/* Métricas */}
         <div className="registrations-stats">
           <div className="stat-card">
             <h4>Total</h4>
@@ -237,17 +239,13 @@ const RegistrationsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Listado y detalle con el layout original */}
+        {/* Listado y detalle */}
         {isLoading ? (
           <p>Cargando...</p>
         ) : filteredRegistrations.length === 0 ? (
           <div className="no-registrations">No hay registros.</div>
         ) : (
           <>
-            <div className="content-header">
-              <h2 className="content-title">Gestión de registro — mini update</h2>
-              <p className="content-subtitle">Administra inscripciones por torneo y estado</p>
-            </div>
             <div className="registrations-grid">
               {filteredRegistrations.map((r) => {
                 const meta = registrationsMeta.find((m) => m.id === r.id);
@@ -380,9 +378,7 @@ const RegistrationsPage: React.FC = () => {
                   </div>
                 </div>
               </div>
-            ) : (
-              <div className="no-registrations">Selecciona un registro para ver el detalle.</div>
-            )}
+            ) : null}
           </>
         )}
       </div>
