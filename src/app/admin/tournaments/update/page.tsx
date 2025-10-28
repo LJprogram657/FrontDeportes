@@ -29,6 +29,7 @@ const UpdateTournamentPage: React.FC = () => {
   const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [scheduledMatches, setScheduledMatches] = useState<Record<string, Match[]>>({});
 
   // DATOS LIMPIOS - SIN TORNEOS MOCK
   const mockTournaments: Tournament[] = [];
@@ -54,8 +55,48 @@ const UpdateTournamentPage: React.FC = () => {
     setIsLoading(false);
   }, []);
 
+  const loadScheduledMatches = (tournamentId: number) => {
+    try {
+      const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+      const phases = data?.[tournamentId] || {};
+      setScheduledMatches(phases);
+    } catch {
+      setScheduledMatches({});
+    }
+  };
+
   const handleTournamentSelect = (tournament: Tournament) => {
     setSelectedTournament({ ...tournament });
+    loadScheduledMatches(tournament.id);
+  };
+
+  const saveResult = (
+    phase: string,
+    matchId: string,
+    homeScore: number,
+    awayScore: number,
+    goals?: string,
+    fouls?: string
+  ) => {
+    try {
+      const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+      const phaseMatches: Match[] = data?.[selectedTournament!.id]?.[phase] || [];
+      const updatedPhase = phaseMatches.map(m =>
+        m.id === matchId ? { ...m, homeScore, awayScore, status: 'finished', goals, fouls } : m
+      );
+      const updatedData = {
+        ...data,
+        [selectedTournament!.id]: {
+          ...(data[selectedTournament!.id] || {}),
+          [phase]: updatedPhase
+        }
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedData));
+      setScheduledMatches(prev => ({ ...prev, [phase]: updatedPhase }));
+      toast.success('Resultado actualizado');
+    } catch {
+      toast.error('No se pudo guardar el resultado');
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -321,3 +362,22 @@ const UpdateTournamentPage: React.FC = () => {
 };
 
 export default UpdateTournamentPage;
+
+
+type TeamRef = { id: string; name: string; logo: string };
+interface Match {
+  id: string;
+  phase: string;
+  homeTeam: TeamRef | null;
+  awayTeam: TeamRef | null;
+  date?: string;
+  time?: string;
+  venue?: string;
+  homeScore?: number;
+  awayScore?: number;
+  status: 'scheduled' | 'finished';
+  goals?: string; // texto libre: uno por línea "minuto - jugador"
+  fouls?: string; // texto libre: uno por línea "minuto - falta - jugador"
+}
+
+const STORAGE_KEY = 'scheduled_matches';

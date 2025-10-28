@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import '../../styles/admin-dashboard.css';
 import '../../styles/scheduling.css';
+import { toast } from 'sonner';
 
 // Interfaces
 interface Tournament {
@@ -236,143 +237,104 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
   // Filtrar canchas por deporte del torneo
   const filteredVenues = venues.filter(v => v.sports.includes(tournament.sport));
 
-  // Cargar equipos registrados reales (deduplicando por id y nombre)
-  const loadRegisteredTeams = useCallback(() => {
-    try {
-      const registrations = JSON.parse(localStorage.getItem('team_registrations') || '[]');
+  const STORAGE_KEY = 'scheduled_matches';
 
-      const mapped: Team[] = registrations
-        .filter((reg: any) => {
-          const tid = reg?.tournament?.id ?? reg?.tournamentId;
-          return tid === tournament.id && reg.status === 'approved';
-        })
-        .map((reg: any) => ({
-          id: `team-${reg.id}`,
-          name: reg.teamName,
-          logo: reg.teamLogo || '/images/default-team.png',
-        }));
-
-      // Deduplicar por id y por nombre normalizado
-      const seenIds = new Set<string>();
-      const seenNames = new Set<string>();
-      const unique: Team[] = [];
-
-      for (const team of mapped) {
-        const normName = (team.name || '').trim().toLowerCase();
-        if (seenIds.has(team.id) || seenNames.has(normName)) continue;
-        seenIds.add(team.id);
-        seenNames.add(normName);
-        unique.push(team);
+  const loadSavedMatches = (tournamentId: number, phase: string): Match[] => {
+      try {
+          const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+          const list = data?.[tournamentId]?.[phase] || [];
+          return Array.isArray(list) ? list : [];
+      } catch {
+          return [];
       }
+  };
 
-      setAvailableTeams(unique);
-    } catch (error) {
-      console.error('Error cargando equipos registrados:', error);
-      setAvailableTeams([]);
-    }
-  }, [tournament.id]);
+  const saveMatches = (tournamentId: number, phase: string, matchesToSave: Match[]) => {
+      try {
+          const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+          const updated = {
+              ...data,
+              [tournamentId]: {
+                  ...(data[tournamentId] || {}),
+                  [phase]: matchesToSave
+              }
+          };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+          toast.success('Programación guardada');
+      } catch {
+          toast.error('No se pudo guardar la programación');
+      }
+  };
 
-  // Cargar al montar/actualizar torneo
+  // Cargar equipos registrados reales (deduplicando por id y nombre)
   useEffect(() => {
-    loadRegisteredTeams();
+      loadRegisteredTeams();
   }, [loadRegisteredTeams]);
 
   // Refrescar lista cuando cambia localStorage (otra pestaña) o al volver a la pestaña
   useEffect(() => {
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === 'team_registrations') loadRegisteredTeams();
-    };
-    const onVisibility = () => {
-      if (!document.hidden) loadRegisteredTeams();
-    };
-    window.addEventListener('storage', onStorage);
-    document.addEventListener('visibilitychange', onVisibility);
-    return () => {
-      window.removeEventListener('storage', onStorage);
-      document.removeEventListener('visibilitychange', onVisibility);
-    };
+      const onStorage = (e: StorageEvent) => {
+          if (e.key === 'team_registrations') loadRegisteredTeams();
+      };
+      const onVisibility = () => {
+          if (!document.hidden) loadRegisteredTeams();
+      };
+      window.addEventListener('storage', onStorage);
+      document.addEventListener('visibilitychange', onVisibility);
+      return () => {
+          window.removeEventListener('storage', onStorage);
+          document.removeEventListener('visibilitychange', onVisibility);
+      };
   }, [loadRegisteredTeams]);
 
-  // Generar partidos automáticamente basado en el formato del torneo
+  // Cargar partidos guardados al cambiar de torneo/fase
   useEffect(() => {
-    if (availableTeams.length < 2) return;
-
-    const generateMatches = () => {
-      const newMatches: Match[] = [];
-      
-      if (tournament.format === 'todos_contra_todos') {
-        // Generar partidos de todos contra todos
-        for (let i = 0; i < availableTeams.length; i++) {
-          for (let j = i + 1; j < availableTeams.length; j++) {
-            newMatches.push({
-              id: `match-${i}-${j}`,
-              phase: 'Todos contra Todos',
-              homeTeam: null,
-              awayTeam: null,
-              status: 'scheduled'
-            });
-          }
-        }
-      } else {
-        // Para otros formatos, generar partidos básicos
-        const numMatches = Math.floor(availableTeams.length / 2) * 2;
-        for (let i = 0; i < numMatches; i += 2) {
-          newMatches.push({
-            id: `match-${i}`,
-            phase: tournament.phases[0],
-            homeTeam: null,
-            awayTeam: null,
-            status: 'scheduled'
-          });
-        }
-      }
-      
-      setMatches(newMatches);
-    };
-
-    generateMatches();
-  }, [availableTeams, tournament.format, tournament.phases]);
+      const saved = loadSavedMatches(tournament.id, selectedPhase);
+      setMatches(saved);
+  }, [tournament.id, selectedPhase]);
 
   // Asegurar orden estable de hooks en todos los renders
   useEffect(() => {
-    setMatches([]);
+      // al cambiar de fase, si no hay guardados, mostrar vacío
+      const saved = loadSavedMatches(tournament.id, selectedPhase);
+      setMatches(saved);
   }, [selectedPhase]);
 
   // Si no hay equipos registrados
   if (availableTeams.length === 0) {
-    return (
-      <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-          <h3>Programación: {tournament.name}</h3>
-          <button className="btn-secondary" onClick={onBack}>
-            ← Volver a torneos
-          </button>
+      return (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+            <h3>Programación: {tournament.name}</h3>
+            <button className="btn-secondary" onClick={onBack}>
+              ← Volver a torneos
+            </button>
+          </div>
+          
+          <div style={{ 
+            textAlign: 'center', 
+            padding: '3rem', 
+            backgroundColor: '#f8f9fa', 
+            borderRadius: '8px' 
+          }}>
+            <h4>👥 No hay equipos registrados</h4>
+            <p>Este torneo no tiene equipos registrados aún.</p>
+            <p>Ve a la sección "Gestión de Registro" para registrar equipos primero.</p>
+          </div>
         </div>
-        
-        <div style={{ 
-          textAlign: 'center', 
-          padding: '3rem', 
-          backgroundColor: '#f8f9fa', 
-          borderRadius: '8px' 
-        }}>
-          <h4>👥 No hay equipos registrados</h4>
-          <p>Este torneo no tiene equipos registrados aún.</p>
-          <p>Ve a la sección "Gestión de Registro" para registrar equipos primero.</p>
-        </div>
-      </div>
-    );
+      );
   }
 
   // Añadir un nuevo partido manualmente
   const addMatch = () => {
-    const newMatch: Match = {
-      id: `match-${selectedPhase}-${matches.length + 1}`,
-      phase: selectedPhase,
-      homeTeam: null,
-      awayTeam: null,
-      status: 'scheduled',
-    };
-    setMatches(prev => [...prev, newMatch]);
+      const newMatch: Match = {
+          id: `match-${selectedPhase}-${matches.length + 1}`,
+          phase: selectedPhase,
+          homeTeam: null,
+          awayTeam: null,
+          status: 'scheduled',
+      };
+      setMatches(prev => [...prev, newMatch]);
   };
 
   // Manejar drag and drop
