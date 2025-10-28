@@ -542,12 +542,18 @@
   }
 }
 /* Estilos para Gestión de Registro */
+/* Ajuste de encabezado solo para este módulo */
+.registrations-header {
+  margin-top: -10px; /* subir un poco el título */
+}
+
+/* Hacer que la tarjeta cubra todo el ancho del área blanca */
 .registrations-container {
-  background: #fff;
-  border-radius: 15px;
-  padding: 25px;
-  border: 1px solid #e9ecef;
-  box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+  width: 100%;
+  max-width: 100%;
+  margin: 0;           /* sin centrado forzado */
+  min-height: 640px;   /* más presencia visual */
+  box-sizing: border-box;
 }
 
 .filters-section { margin-bottom: 20px; }

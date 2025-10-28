@@ -33,7 +33,7 @@ interface TeamRegistration {
 }
 
 // RegistrationsPage component (cliente)
-const RegistrationsPage: React.FC = () => {
+function RegistrationsPage() {
   const [registrations, setRegistrations] = useState<TeamRegistration[]>([]);
   const [selectedTournament, setSelectedTournament] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
@@ -156,9 +156,8 @@ const RegistrationsPage: React.FC = () => {
   const rejectedCount = visibleForStats.filter((r) => r.status === 'rejected').length;
 
   return (
-    <div className="admin-dashboard">
-      {/* Encabezado con las clases del CSS de admin */}
-      <div className="content-header">
+    <>
+      <div className="content-header registrations-header">
         <h2 className="content-title">Gestión de registro</h2>
         <p className="content-subtitle">Administra inscripciones por torneo y estado</p>
       </div>
@@ -184,7 +183,6 @@ const RegistrationsPage: React.FC = () => {
                 ))}
               </select>
             </div>
-
             {/* Estado */}
             <div className="filter-group">
               <label>Estado</label>
@@ -195,7 +193,6 @@ const RegistrationsPage: React.FC = () => {
                 <option value="rejected">Rechazado</option>
               </select>
             </div>
-
             {/* Mostrar ocultas */}
             <div className="filter-group">
               <label>Notificaciones</label>
@@ -204,11 +201,9 @@ const RegistrationsPage: React.FC = () => {
                   type="checkbox"
                   checked={showDismissed}
                   onChange={(e) => setShowDismissed(e.target.checked)}
-                />{' '}
-                Mostrar ocultas
+                /> Mostrar ocultas
               </label>
             </div>
-
             {/* Acción en lote */}
             <div className="filter-group">
               <label>Acciones</label>
@@ -269,9 +264,7 @@ const RegistrationsPage: React.FC = () => {
                     </div>
 
                     <div className="registration-details">
-                      <p>
-                        Contacto: {r.contactPerson} — {r.contactNumber}
-                      </p>
+                      <p>Contacto: {r.contactPerson} — {r.contactNumber}</p>
                       <p>Fecha registro: {r.registrationDate}</p>
                       <p>Jugadores: {r.players?.length ?? 0}</p>
                       {r.notes && <p>Notas: {r.notes}</p>}
@@ -285,7 +278,6 @@ const RegistrationsPage: React.FC = () => {
                         Rechazar
                       </button>
 
-                      {/* Eliminar vs Restaurar notificación */}
                       {meta?.dismissed ? (
                         <button className="btn btn-secondary" onClick={() => undismissNotification(r.id)}>
                           Restaurar notificación
@@ -329,8 +321,7 @@ const RegistrationsPage: React.FC = () => {
                             selectedRegistration.tournamentId}
                         </div>
                         <div>
-                          Estado:{' '}
-                          <span className={`status-badge ${selectedRegistration.status}`}>
+                          Estado: <span className={`status-badge ${selectedRegistration.status}`}>
                             {selectedRegistration.status}
                           </span>
                         </div>
@@ -345,11 +336,7 @@ const RegistrationsPage: React.FC = () => {
                         <div key={p.id} className="player-card">
                           <img className="player-photo" src={p.photo || '/images/default-team.png'} alt={p.name} />
                           <div>
-                            <div>
-                              <strong>
-                                {p.name} {p.lastName}
-                              </strong>
-                            </div>
+                            <div><strong>{p.name} {p.lastName}</strong></div>
                             <div>Cédula: {p.cedula}</div>
                           </div>
                         </div>
@@ -359,16 +346,10 @@ const RegistrationsPage: React.FC = () => {
 
                   <div className="actions-section">
                     <div className="action-buttons">
-                      <button
-                        className="btn-success"
-                        onClick={() => updateRegistrationStatus(selectedRegistration.id, 'approved')}
-                      >
+                      <button className="btn-success" onClick={() => updateRegistrationStatus(selectedRegistration.id, 'approved')}>
                         Aprobar
                       </button>
-                      <button
-                        className="btn-danger"
-                        onClick={() => updateRegistrationStatus(selectedRegistration.id, 'rejected')}
-                      >
+                      <button className="btn-danger" onClick={() => updateRegistrationStatus(selectedRegistration.id, 'rejected')}>
                         Rechazar
                       </button>
                       <button className="btn btn-danger" onClick={() => handleDeleteRegistration(selectedRegistration)}>
@@ -382,9 +363,9 @@ const RegistrationsPage: React.FC = () => {
           </>
         )}
       </div>
-    </div>
+    </>
   );
-};
+}
 
 // Exportar por defecto para cumplir con el contrato de Next.js Page
 export default RegistrationsPage;
