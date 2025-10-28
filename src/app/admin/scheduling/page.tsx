@@ -539,154 +539,154 @@ const VenuePreview: React.FC<{ venue: Venue | null }> = ({ venue }) => {
 };
 
 const MatchCard: React.FC<MatchCardProps> = ({ 
-  match, 
-  venues, 
-  onDrop, 
-  onDragOver, 
-  onRemoveTeam, 
-  onUpdateVenue, 
-  onUpdateDateTime,
-  onUpdateResult
+    match, 
+    venues, 
+    onDrop, 
+    onDragOver, 
+    onRemoveTeam, 
+    onUpdateVenue, 
+    onUpdateDateTime,
+    onUpdateResult
 }) => {
-  const [showPreview, setShowPreview] = useState<boolean>(false);
-  const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
-  const [homeScore, setHomeScore] = useState<number | ''>(typeof match.homeScore === 'number' ? match.homeScore : '');
-  const [awayScore, setAwayScore] = useState<number | ''>(typeof match.awayScore === 'number' ? match.awayScore : '');
+    const [showPreview, setShowPreview] = useState<boolean>(false);
+    const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
+    const [homeScore, setHomeScore] = useState<number | ''>(typeof match.homeScore === 'number' ? match.homeScore : '');
+    const [awayScore, setAwayScore] = useState<number | ''>(typeof match.awayScore === 'number' ? match.awayScore : '');
 
-  const handleVenueHover = (venueId: string) => {
-    const venue = venues.find(v => v.id === venueId);
-    if (venue) {
-      setSelectedVenue(venue);
-      setShowPreview(true);
-    }
-  };
+    const handleVenueHover = (venueId: string) => {
+        const venue = venues.find(v => v.id === venueId);
+        if (venue) {
+            setSelectedVenue(venue);
+            setShowPreview(true);
+        }
+    };
 
-  const handleVenueLeave = () => {
-    setShowPreview(false);
-    setSelectedVenue(null);
-  };
+    const handleVenueLeave = () => {
+        setShowPreview(false);
+        setSelectedVenue(null);
+    };
 
-  const isComplete = match.homeTeam && match.awayTeam && match.venue && match.date && match.time;
+    const isComplete = match.homeTeam && match.awayTeam && match.venue && match.date && match.time;
 
-  const handleResultSubmit = () => {
-    const hs = typeof homeScore === 'number' ? homeScore : NaN;
-    const as = typeof awayScore === 'number' ? awayScore : NaN;
-    if (Number.isFinite(hs) && Number.isFinite(as)) {
-      onUpdateResult(match.id, hs, as);
-    }
-  };
+    const handleResultSubmit = () => {
+        const hs = typeof homeScore === 'number' ? homeScore : NaN;
+        const as = typeof awayScore === 'number' ? awayScore : NaN;
+        if (Number.isFinite(hs) && Number.isFinite(as)) {
+            onUpdateResult(match.id, hs, as);
+        }
+    };
 
-  return (
-    <div 
-        className={`match-card ${isComplete ? 'complete' : 'incomplete'} ${match.status}`}
-        onMouseLeave={handleVenueLeave}
-    >
-        <div className="match-header">
-            <span>{match.group || `Ronda ${match.round || ''}`}</span>
-            <span className={`status-indicator ${isComplete ? 'complete' : 'incomplete'}`}>
-                {isComplete ? (match.status === 'finished' ? '✔ Finalizado' : '✔ Programado') : '✖ Pendiente'}
-            </span>
-        </div>
-        <div className="match-teams">
-            <div 
-                className="team-slot home"
-                onDrop={(e) => onDrop(e, match.id, 'home')}
-                onDragOver={onDragOver}
-            >
-                {match.homeTeam ? (
-                    <div className="assigned-team">
-                        <img src={match.homeTeam.logo} alt={match.homeTeam.name} />
-                        <span>{match.homeTeam.name}</span>
-                        <button onClick={() => onRemoveTeam(match.id, 'home')}>×</button>
-                    </div>
-                ) : (
-                    <span className="placeholder">Local</span>
-                )}
+    return (
+        <div 
+            className={`match-card ${isComplete ? 'complete' : 'incomplete'} ${match.status}`}
+            onMouseLeave={handleVenueLeave}
+        >
+            <div className="match-header">
+                <span>{match.group || `Ronda ${match.round || ''}`}</span>
+                <span className={`status-indicator ${isComplete ? 'complete' : 'incomplete'}`}>
+                    {isComplete ? (match.status === 'finished' ? '✔ Finalizado' : '✔ Programado') : '✖ Pendiente'}
+                </span>
             </div>
-            
-            <span className="vs-separator">VS</span
-        
-            <div 
-                className="team-slot away"
-                onDrop={(e) => onDrop(e, match.id, 'away')}
-                onDragOver={onDragOver}
-            >
-                {match.awayTeam ? (
-                    <div className="assigned-team">
-                        <img src={match.awayTeam.logo} alt={match.awayTeam.name} />
-                        <span>{match.awayTeam.name}</span>
-                        <button onClick={() => onRemoveTeam(match.id, 'away')}>×</button>
-                    </div>
-                ) : (
-                    <span className="placeholder">Visitante</span>
-                )}
+            <div className="match-teams">
+                <div 
+                    className="team-slot home"
+                    onDrop={(e) => onDrop(e, match.id, 'home')}
+                    onDragOver={onDragOver}
+                >
+                    {match.homeTeam ? (
+                        <div className="assigned-team">
+                            <img src={match.homeTeam.logo} alt={match.homeTeam.name} />
+                            <span>{match.homeTeam.name}</span>
+                            <button onClick={() => onRemoveTeam(match.id, 'home')}>×</button>
+                        </div>
+                    ) : (
+                        <span className="placeholder">Local</span>
+                    )}
+                </div>
+                
+                <span className="vs-separator">VS</span>
+                
+                <div 
+                    className="team-slot away"
+                    onDrop={(e) => onDrop(e, match.id, 'away')}
+                    onDragOver={onDragOver}
+                >
+                    {match.awayTeam ? (
+                        <div className="assigned-team">
+                            <img src={match.awayTeam.logo} alt={match.awayTeam.name} />
+                            <span>{match.awayTeam.name}</span>
+                            <button onClick={() => onRemoveTeam(match.id, 'away')}>×</button>
+                        </div>
+                    ) : (
+                        <span className="placeholder">Visitante</span>
+                    )}
+                </div>
             </div>
-        </div>
-        <div className="match-details">
-            <select 
-                value={match.venue || ''} 
-                onChange={(e) => onUpdateVenue(match.id, e.target.value)}
-                onMouseEnter={() => handleVenueHover(match.venue || '')}
-                className="venue-select"
-                disabled={match.status === 'finished'}
-            >
-                <option value="" disabled>Seleccionar cancha</option>
-                {venues.map(v => (
-                    <option 
-                        key={v.id} 
-                        value={v.id}
-                        onMouseEnter={() => handleVenueHover(v.id)}
-                    >
-                        {v.name}
-                    </option>
-                ))}
-            </select>
-            <input 
-                type="date" 
-                value={match.date || ''} 
-                onChange={(e) => onUpdateDateTime(match.id, e.target.value, match.time || '')} 
-                disabled={match.status === 'finished'}
-            />
-            <input 
-                type="time" 
-                value={match.time || ''} 
-                onChange={(e) => onUpdateDateTime(match.id, match.date || '', e.target.value)} 
-                disabled={match.status === 'finished'}
-            />
-        </div>
-        {showPreview && selectedVenue && <VenuePreview venue={selectedVenue} />}
-        {isComplete && match.status === 'scheduled' && (
-            <div className="match-result-form">
+            <div className="match-details">
+                <select 
+                    value={match.venue || ''} 
+                    onChange={(e) => onUpdateVenue(match.id, e.target.value)}
+                    onMouseEnter={() => handleVenueHover(match.venue || '')}
+                    className="venue-select"
+                    disabled={match.status === 'finished'}
+                >
+                    <option value="" disabled>Seleccionar cancha</option>
+                    {venues.map(v => (
+                        <option 
+                            key={v.id} 
+                            value={v.id}
+                            onMouseEnter={() => handleVenueHover(v.id)}
+                        >
+                            {v.name}
+                        </option>
+                    ))}
+                </select>
                 <input 
-                    type="number" 
-                    placeholder={`Res. ${match.homeTeam?.name || 'Local'}`}
-                    value={homeScore}
-                    onChange={(e) => {
-                        const val = e.target.value;
-                        const num = parseInt(val, 10);
-                        setHomeScore(Number.isFinite(num) ? num : '');
-                    }}
+                    type="date" 
+                    value={match.date || ''} 
+                    onChange={(e) => onUpdateDateTime(match.id, e.target.value, match.time || '')} 
+                    disabled={match.status === 'finished'}
                 />
                 <input 
-                    type="number" 
-                    placeholder={`Res. ${match.awayTeam?.name || 'Visitante'}`}
-                    value={awayScore}
-                    onChange={(e) => {
-                        const val = e.target.value;
-                        const num = parseInt(val, 10);
-                        setAwayScore(Number.isFinite(num) ? num : '');
-                    }}
+                    type="time" 
+                    value={match.time || ''} 
+                    onChange={(e) => onUpdateDateTime(match.id, match.date || '', e.target.value)} 
+                    disabled={match.status === 'finished'}
                 />
-                <button onClick={handleResultSubmit}>Guardar</button>
             </div>
-        )}
-        {match.status === 'finished' && (
-            <div className="match-result-display">
-                <span>{match.homeScore} - {match.awayScore}</span>
-            </div>
-        )}
-    </div>
-  );
+            {showPreview && selectedVenue && <VenuePreview venue={selectedVenue} />}
+            {isComplete && match.status === 'scheduled' && (
+                <div className="match-result-form">
+                    <input 
+                        type="number" 
+                        placeholder={`Res. ${match.homeTeam?.name || 'Local'}`}
+                        value={homeScore}
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            const num = parseInt(val, 10);
+                            setHomeScore(Number.isFinite(num) ? num : '');
+                        }}
+                    />
+                    <input 
+                        type="number" 
+                        placeholder={`Res. ${match.awayTeam?.name || 'Visitante'}`}
+                        value={awayScore}
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            const num = parseInt(val, 10);
+                            setAwayScore(Number.isFinite(num) ? num : '');
+                        }}
+                    />
+                    <button onClick={handleResultSubmit}>Guardar</button>
+                </div>
+            )}
+            {match.status === 'finished' && (
+                <div className="match-result-display">
+                    <span>{match.homeScore} - {match.awayScore}</span>
+                </div>
+            )}
+        </div>
+    );
 };
 
 export default SchedulingPage;
