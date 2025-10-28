@@ -267,9 +267,40 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
   };
 
   // Cargar equipos registrados reales (deduplicando por id y nombre)
-  useEffect(() => {
-      loadRegisteredTeams();
-  }, [loadRegisteredTeams]);
+  const loadRegisteredTeams = useCallback(() => {
+      try {
+          const registrations = JSON.parse(localStorage.getItem('team_registrations') || '[]');
+  
+          const mapped: Team[] = registrations
+              .filter((reg: any) => {
+                  const tid = reg?.tournament?.id ?? reg?.tournamentId;
+                  return tid === tournament.id && reg.status === 'approved';
+              })
+              .map((reg: any) => ({
+                  id: `team-${reg.id}`,
+                  name: reg.teamName,
+                  logo: reg.teamLogo || '/images/default-team.png',
+              }));
+  
+          // Deduplicar por id y por nombre normalizado
+          const seenIds = new Set<string>();
+          const seenNames = new Set<string>();
+          const unique: Team[] = [];
+  
+          for (const team of mapped) {
+              const normName = (team.name || '').trim().toLowerCase();
+              if (seenIds.has(team.id) || seenNames.has(normName)) continue;
+              seenIds.add(team.id);
+              seenNames.add(normName);
+              unique.push(team);
+          }
+  
+          setAvailableTeams(unique);
+      } catch (error) {
+          console.error('Error cargando equipos registrados:', error);
+          setAvailableTeams([]);
+      }
+  }, [tournament.id]);
 
   // Refrescar lista cuando cambia localStorage (otra pestaña) o al volver a la pestaña
   useEffect(() => {
@@ -573,7 +604,7 @@ const MatchCard: React.FC<MatchCardProps> = ({
           )}
         </div>
         
-        <span className="vs-separator">VS</span>
+        <span className="vs-separator">VS</span
 
         <div 
           className="team-slot away"
