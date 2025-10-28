@@ -578,113 +578,113 @@ const MatchCard: React.FC<MatchCardProps> = ({
 
   return (
     <div 
-      className={`match-card ${isComplete ? 'complete' : 'incomplete'} ${match.status}`}
-      onMouseLeave={handleVenueLeave}
+        className={`match-card ${isComplete ? 'complete' : 'incomplete'} ${match.status}`}
+        onMouseLeave={handleVenueLeave}
     >
-      <div className="match-header">
-        <span>{match.group || `Ronda ${match.round || ''}`}</span>
-        <span className={`status-indicator ${isComplete ? 'complete' : 'incomplete'}`}>
-          {isComplete ? (match.status === 'finished' ? '✔ Finalizado' : '✔ Programado') : '✖ Pendiente'}
-        </span>
-      </div>
-      <div className="match-teams">
-        <div 
-          className="team-slot home"
-          onDrop={(e) => onDrop(e, match.id, 'home')}
-          onDragOver={onDragOver}
-        >
-          {match.homeTeam ? (
-            <div className="assigned-team">
-              <img src={match.homeTeam.logo} alt={match.homeTeam.name} />
-              <span>{match.homeTeam.name}</span>
-              <button onClick={() => onRemoveTeam(match.id, 'home')}>×</button>
-            </div>
-          ) : (
-            <span className="placeholder">Local</span>
-          )}
+        <div className="match-header">
+            <span>{match.group || `Ronda ${match.round || ''}`}</span>
+            <span className={`status-indicator ${isComplete ? 'complete' : 'incomplete'}`}>
+                {isComplete ? (match.status === 'finished' ? '✔ Finalizado' : '✔ Programado') : '✖ Pendiente'}
+            </span>
         </div>
-        
-        <span className="vs-separator">VS</span
-
-        <div 
-          className="team-slot away"
-          onDrop={(e) => onDrop(e, match.id, 'away')}
-          onDragOver={onDragOver}
-        >
-          {match.awayTeam ? (
-            <div className="assigned-team">
-              <img src={match.awayTeam.logo} alt={match.awayTeam.name} />
-              <span>{match.awayTeam.name}</span>
-              <button onClick={() => onRemoveTeam(match.id, 'away')}>×</button>
-            </div>
-          ) : (
-            <span className="placeholder">Visitante</span>
-          )}
-        </div>
-      </div>
-      <div className="match-details">
-        <select 
-          value={match.venue || ''} 
-          onChange={(e) => onUpdateVenue(match.id, e.target.value)}
-          onMouseEnter={() => handleVenueHover(match.venue || '')}
-          className="venue-select"
-          disabled={match.status === 'finished'}
-        >
-          <option value="" disabled>Seleccionar cancha</option>
-          {venues.map(v => (
-            <option 
-              key={v.id} 
-              value={v.id}
-              onMouseEnter={() => handleVenueHover(v.id)}
+        <div className="match-teams">
+            <div 
+                className="team-slot home"
+                onDrop={(e) => onDrop(e, match.id, 'home')}
+                onDragOver={onDragOver}
             >
-              {v.name}
-            </option>
-          ))}
-        </select>
-        <input 
-          type="date" 
-          value={match.date || ''} 
-          onChange={(e) => onUpdateDateTime(match.id, e.target.value, match.time || '')} 
-          disabled={match.status === 'finished'}
-        />
-        <input 
-          type="time" 
-          value={match.time || ''} 
-          onChange={(e) => onUpdateDateTime(match.id, match.date || '', e.target.value)} 
-          disabled={match.status === 'finished'}
-        />
-      </div>
-      {showPreview && selectedVenue && <VenuePreview venue={selectedVenue} />}
-      {isComplete && match.status === 'scheduled' && (
-        <div className="match-result-form">
-          <input 
-            type="number" 
-            placeholder={`Res. ${match.homeTeam?.name || 'Local'}`}
-            value={homeScore}
-            onChange={(e) => {
-              const val = e.target.value;
-              const num = parseInt(val, 10);
-              setHomeScore(Number.isFinite(num) ? num : '');
-            }}
-          />
-          <input 
-            type="number" 
-            placeholder={`Res. ${match.awayTeam?.name || 'Visitante'}`}
-            value={awayScore}
-            onChange={(e) => {
-              const val = e.target.value;
-              const num = parseInt(val, 10);
-              setAwayScore(Number.isFinite(num) ? num : '');
-            }}
-          />
-          <button onClick={handleResultSubmit}>Guardar</button>
+                {match.homeTeam ? (
+                    <div className="assigned-team">
+                        <img src={match.homeTeam.logo} alt={match.homeTeam.name} />
+                        <span>{match.homeTeam.name}</span>
+                        <button onClick={() => onRemoveTeam(match.id, 'home')}>×</button>
+                    </div>
+                ) : (
+                    <span className="placeholder">Local</span>
+                )}
+            </div>
+            
+            <span className="vs-separator">VS</span
+        
+            <div 
+                className="team-slot away"
+                onDrop={(e) => onDrop(e, match.id, 'away')}
+                onDragOver={onDragOver}
+            >
+                {match.awayTeam ? (
+                    <div className="assigned-team">
+                        <img src={match.awayTeam.logo} alt={match.awayTeam.name} />
+                        <span>{match.awayTeam.name}</span>
+                        <button onClick={() => onRemoveTeam(match.id, 'away')}>×</button>
+                    </div>
+                ) : (
+                    <span className="placeholder">Visitante</span>
+                )}
+            </div>
         </div>
-      )}
-      {match.status === 'finished' && (
-        <div className="match-result-display">
-          <span>{match.homeScore} - {match.awayScore}</span>
+        <div className="match-details">
+            <select 
+                value={match.venue || ''} 
+                onChange={(e) => onUpdateVenue(match.id, e.target.value)}
+                onMouseEnter={() => handleVenueHover(match.venue || '')}
+                className="venue-select"
+                disabled={match.status === 'finished'}
+            >
+                <option value="" disabled>Seleccionar cancha</option>
+                {venues.map(v => (
+                    <option 
+                        key={v.id} 
+                        value={v.id}
+                        onMouseEnter={() => handleVenueHover(v.id)}
+                    >
+                        {v.name}
+                    </option>
+                ))}
+            </select>
+            <input 
+                type="date" 
+                value={match.date || ''} 
+                onChange={(e) => onUpdateDateTime(match.id, e.target.value, match.time || '')} 
+                disabled={match.status === 'finished'}
+            />
+            <input 
+                type="time" 
+                value={match.time || ''} 
+                onChange={(e) => onUpdateDateTime(match.id, match.date || '', e.target.value)} 
+                disabled={match.status === 'finished'}
+            />
         </div>
-      )}
+        {showPreview && selectedVenue && <VenuePreview venue={selectedVenue} />}
+        {isComplete && match.status === 'scheduled' && (
+            <div className="match-result-form">
+                <input 
+                    type="number" 
+                    placeholder={`Res. ${match.homeTeam?.name || 'Local'}`}
+                    value={homeScore}
+                    onChange={(e) => {
+                        const val = e.target.value;
+                        const num = parseInt(val, 10);
+                        setHomeScore(Number.isFinite(num) ? num : '');
+                    }}
+                />
+                <input 
+                    type="number" 
+                    placeholder={`Res. ${match.awayTeam?.name || 'Visitante'}`}
+                    value={awayScore}
+                    onChange={(e) => {
+                        const val = e.target.value;
+                        const num = parseInt(val, 10);
+                        setAwayScore(Number.isFinite(num) ? num : '');
+                    }}
+                />
+                <button onClick={handleResultSubmit}>Guardar</button>
+            </div>
+        )}
+        {match.status === 'finished' && (
+            <div className="match-result-display">
+                <span>{match.homeScore} - {match.awayScore}</span>
+            </div>
+        )}
     </div>
   );
 };
