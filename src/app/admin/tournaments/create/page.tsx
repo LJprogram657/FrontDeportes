@@ -42,6 +42,13 @@ const CreateTournamentPage: React.FC = () => {
   const [customModality, setCustomModality] = useState<'futsal' | 'futbol7'>('futsal');
   const [createdTournaments, setCreatedTournaments] = useState<CreatedTournament[]>([]);
   const [availableLogos, setAvailableLogos] = useState<string[]>([]);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedTournamentForEdit, setSelectedTournamentForEdit] = useState<CreatedTournament | null>(null);
+  const [editForm, setEditForm] = useState<{
+    status: 'active' | 'upcoming';
+    registrationDeadline: string;
+    startDate: string;
+  }>({ status: 'upcoming', registrationDeadline: '', startDate: '' });
 
   const router = useRouter();
 
@@ -153,8 +160,17 @@ const CreateTournamentPage: React.FC = () => {
     });
   };
 
+  // Reemplazar este método: anteriormente hacía router.push
   const editTournament = (tournamentId: number) => {
-    router.push(`/admin/scheduling?id=${tournamentId}`);
+    const t = createdTournaments.find(tt => tt.id === tournamentId);
+    if (!t) { toast.error('Torneo no encontrado'); return; }
+    setSelectedTournamentForEdit(t);
+    setEditForm({
+      status: t.status === 'active' ? 'active' : 'upcoming',
+      registrationDeadline: t.registrationDeadline || '',
+      startDate: t.startDate || '',
+    });
+    setIsEditModalOpen(true);
   };
 
   const deleteTournament = (tournamentId: number, tournamentName: string) => {
@@ -174,6 +190,41 @@ const CreateTournamentPage: React.FC = () => {
         console.error('Error eliminando torneo:', error);
         toast.error('Error al eliminar el torneo');
       }
+    }
+  };
+
+  const handleEditChange = (field: keyof typeof editForm, value: any) => {
+    setEditForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const closeEditModal = () => {
+    setIsEditModalOpen(false);
+    setSelectedTournamentForEdit(null);
+  };
+
+  const saveTournamentConfig = () => {
+    if (!selectedTournamentForEdit) return;
+    try {
+      const key = 'admin_created_tournaments';
+      const current = JSON.parse(localStorage.getItem(key) || '[]');
+      const updated = current.map((t: CreatedTournament) => {
+        if (t.id === selectedTournamentForEdit.id) {
+          return {
+            ...t,
+            status: editForm.status,
+            registrationDeadline: editForm.registrationDeadline,
+            startDate: editForm.startDate,
+          };
+        }
+        return t;
+      });
+      localStorage.setItem(key, JSON.stringify(updated));
+      setCreatedTournaments(updated);
+      toast.success('Torneo actualizado');
+      closeEditModal();
+    } catch (e) {
+      console.error(e);
+      toast.error('Error al actualizar el torneo');
     }
   };
 
@@ -400,8 +451,91 @@ const CreateTournamentPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Modal de edición */}
+      {isEditModalOpen && selectedTournamentForEdit && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}
+        >
+          <div
+            style={{
+              background: '#fff',
+              borderRadius: '12px',
+              padding: '24px',
+              width: '100%',
+              maxWidth: '520px',
+              boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
+            }}
+          >
+            <h3 style={{ marginBottom: '16px' }}>
+              Editar torneo: {selectedTournamentForEdit.name}
+            </h3>
+
+            <div style={{ display: 'grid', gap: '12px' }}>
+              <div>
+                <label style={{ fontWeight: 'bold' }}>Estado</label>
+                <select
+                  value={editForm.status}
+                  onChange={e => handleEditChange('status', e.target.value as 'active' | 'upcoming')}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ccc' }}
+                >
+                  <option value="upcoming">Próximo</option>
+                  <option value="active">Activo</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontWeight: 'bold' }}>Fecha límite de inscripción</label>
+                <input
+                  type="date"
+                  value={editForm.registrationDeadline}
+                  onChange={e => handleEditChange('registrationDeadline', e.target.value)}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ccc' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontWeight: 'bold' }}>Fecha de inicio del torneo</label>
+                <input
+                  type="date"
+                  value={editForm.startDate}
+                  onChange={e => handleEditChange('startDate', e.target.value)}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ccc' }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+              <button
+                className="btn-secondary"
+                onClick={closeEditModal}
+                style={{ flex: 1 }}
+              >
+                Cancelar
+              </button>
+              <button
+                className="btn-primary"
+                onClick={saveTournamentConfig}
+                style={{ flex: 1 }}
+              >
+                Guardar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
+
+
 };
 
 export default CreateTournamentPage;
