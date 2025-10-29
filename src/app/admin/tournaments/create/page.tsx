@@ -154,7 +154,7 @@ const CreateTournamentPage: React.FC = () => {
   };
 
   const editTournament = (tournamentId: number) => {
-    router.push(`/admin/tournaments/update?id=${tournamentId}`);
+    router.push(`/admin/scheduling?id=${tournamentId}`);
   };
 
   const deleteTournament = (tournamentId: number, tournamentName: string) => {

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import '../../styles/admin-dashboard.css';
 import '../../styles/scheduling.css';
 import { toast } from 'sonner';
+import { useSearchParams } from 'next/navigation';
 
 // Interfaces
 interface Tournament {
