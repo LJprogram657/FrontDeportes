@@ -21,6 +21,7 @@ interface Team {
   name: string;
   logo: string;
   dbId: number;
+  source?: 'server' | 'local';
 }
 
 interface Match {
@@ -251,8 +252,9 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
         dbId: t.id,
         name: t.name,
         logo: t.logo || '/images/default-team.png',
+        source: 'server',
       }));
-  
+
       // Fallback/merge: también cargar aprobados desde localStorage
       try {
         const ls = JSON.parse(localStorage.getItem('team_registrations') || '[]');
@@ -265,6 +267,7 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
           dbId: r.id,
           name: r.teamName,
           logo: r.teamLogo || '/images/default-team.png',
+          source: 'local',
         }));
         // Fusionar evitando duplicados
         const byKey = new Map<string, Team>();
@@ -275,7 +278,7 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
       } catch (e) {
         // Ignorar errores de parseo de localStorage
       }
-  
+
       setAvailableTeams(unique);
     } catch (error) {
       console.error('Error cargando equipos:', error);
@@ -291,6 +294,7 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
           dbId: r.id,
           name: r.teamName,
           logo: r.teamLogo || '/images/default-team.png',
+          source: 'local',
         }));
         setAvailableTeams(localTeams);
       } catch (e) {
@@ -403,6 +407,22 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
       toast.error('Completa equipos, cancha, fecha y hora antes de guardar');
       return;
     }
+
+    // Resolver IDs reales en BD (evitar IDs locales inexistentes)
+    const resolveDbId = (team: Team | null) => {
+      if (!team) return null;
+      if (team.source === 'server' && Number.isFinite(team.dbId)) return team.dbId;
+      const candidate = availableTeams.find(t => t.source === 'server' && t.name === team.name);
+      return candidate?.dbId ?? null;
+    };
+    const homeDbId = resolveDbId(match!.homeTeam);
+    const awayDbId = resolveDbId(match!.awayTeam);
+
+    if (!homeDbId || !awayDbId) {
+      toast.error('Los equipos deben estar aprobados y existentes en la base de datos antes de guardar el partido.');
+      return;
+    }
+
     try {
       const res = await fetch(`/api/tournaments/${tournament.id}/matches`, {
         method: 'POST',
@@ -414,8 +434,8 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
           time: match!.time,
           round: match!.round ?? null,
           group: match!.group ?? null,
-          homeTeamId: match!.homeTeam?.dbId ?? null,
-          awayTeamId: match!.awayTeam?.dbId ?? null,
+          homeTeamId: homeDbId,
+          awayTeamId: awayDbId,
         }),
       });
       if (!res.ok) throw new Error('Error al guardar partido');
