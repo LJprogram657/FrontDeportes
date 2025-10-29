@@ -369,3 +369,18 @@ function RegistrationsPage() {
 
 // Exportar por defecto para cumplir con el contrato de Next.js Page
 export default RegistrationsPage;
+
+
+async function approveTeam(teamId: number) {
+  try {
+    const res = await fetch(`/api/tournaments/teams/${teamId}/approve`, { method: 'POST' });
+    if (!res.ok) throw new Error('No autorizado o error al aprobar');
+    const updated = await res.json();
+    // Actualiza tu estado/localStorage si lo mantienes para UI
+    // y refresca listados desde la API para mantener consistencia
+    toast.success('Equipo aprobado en la base de datos');
+  } catch (e) {
+    console.error(e);
+    toast.error('No se pudo aprobar el equipo');
+  }
+}
