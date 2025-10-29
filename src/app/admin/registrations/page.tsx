@@ -30,6 +30,7 @@ interface TeamRegistration {
   notes?: string;
   // Fallback opcional si algunos registros guardaron solo el id
   tournamentId?: number;
+  dbId?: number; // ← ID real en BD cuando se sincroniza
 }
 
 // RegistrationsPage component (cliente)
@@ -102,18 +103,13 @@ function RegistrationsPage() {
   });
 
   // Aprobar en lote los registros visibles según filtros
-  const approveVisibleRegistrations = () => {
-    const toApproveIds = new Set(
-      filteredRegistrations.filter((r) => r.status !== 'approved').map((r) => r.id)
-    );
-    if (toApproveIds.size === 0) return;
-
-    const next: TeamRegistration[] = registrations.map((r) =>
-      toApproveIds.has(r.id) ? { ...r, status: 'approved' as const } : r
-    );
-    setRegistrations(next);
-    localStorage.setItem('team_registrations', JSON.stringify(next));
-    toast.success(`Aprobados ${toApproveIds.size} registros visibles`);
+  const approveVisibleRegistrations = async () => {
+    const pending = filteredRegistrations.filter((r) => r.status !== 'approved');
+    if (pending.length === 0) return;
+    for (const r of pending) {
+      await updateRegistrationStatus(r.id, 'approved');
+    }
+    toast.success(`Aprobados y sincronizados ${pending.length} registros`);
   };
 
   // Eliminar registro: si está aprobado, solo ocultar la notificación
@@ -132,11 +128,89 @@ function RegistrationsPage() {
   };
 
   // Actualizar estado del registro (approve/reject)
-  const updateRegistrationStatus = (regId: number, status: 'approved' | 'rejected' | 'pending') => {
-    const next: TeamRegistration[] = registrations.map((r) => (r.id === regId ? { ...r, status } : r));
+  const updateRegistrationStatus = async (regId: number, status: 'approved' | 'rejected' | 'pending') => {
+    const reg = registrations.find(r => r.id === regId);
+    if (!reg) return;
+
+    // Si no es aprobación, sigue como antes
+    if (status !== 'approved') {
+      const next: TeamRegistration[] = registrations.map((r) => (r.id === regId ? { ...r, status } : r));
+      setRegistrations(next);
+      localStorage.setItem('team_registrations', JSON.stringify(next));
+      toast.success(`Estado actualizado a: ${status}`);
+      return;
+    }
+
+    // 1) Asegurar que el equipo exista en BD para este torneo
+    const tournamentId = reg.tournament?.id ?? reg.tournamentId;
+    if (!tournamentId) {
+      toast.error('No se pudo determinar el torneo del registro');
+      return;
+    }
+
+    // Intentar localizar equipo por nombre en BD
+    let teamDbId: number | null = null;
+    try {
+      const lookup = await fetch(`/api/tournaments/admin/teams?tournament=${tournamentId}`, { cache: 'no-store' });
+      if (lookup.ok) {
+        const existingTeams = await lookup.json();
+        const found = (Array.isArray(existingTeams) ? existingTeams : []).find((t: any) => t.name === reg.teamName);
+        if (found) teamDbId = Number(found.id);
+      }
+    } catch {
+      // Ignorar fallos de lookup
+    }
+
+    // Si no existe en BD, crearlo
+    if (!teamDbId) {
+      try {
+        const create = await fetch(`/api/tournaments/teams`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tournament: Number(tournamentId),
+            name: reg.teamName,
+            logo: reg.teamLogo ?? null,
+            contact_person: reg.contactPerson,
+            contact_number: reg.contactNumber,
+            players: (Array.isArray(reg.players) ? reg.players : []).map((p) => ({
+              name: p.name,
+              lastName: p.lastName,
+              cedula: p.cedula,
+              photo: p.photo ?? null,
+            })),
+          }),
+        });
+        if (!create.ok) {
+          const msg = await create.json().catch(() => ({}));
+          throw new Error(msg?.error || 'Error al registrar equipo en BD');
+        }
+        const payload = await create.json();
+        teamDbId = Number(payload?.team?.id);
+      } catch (e) {
+        console.error(e);
+        toast.error('No se pudo crear el equipo en la base de datos');
+        return;
+      }
+    }
+
+    // 2) Aprobar en BD
+    try {
+      const approve = await fetch(`/api/tournaments/teams/${teamDbId}/approve`, { method: 'POST' });
+      if (!approve.ok) throw new Error('Error al aprobar equipo en BD');
+    } catch (e) {
+      console.error(e);
+      toast.error('No se pudo aprobar el equipo en la base de datos');
+      return;
+    }
+
+    // 3) Actualizar localStorage con estado y dbId real
+    const next: TeamRegistration[] = registrations.map((r) =>
+      r.id === regId ? { ...r, status: 'approved', dbId: teamDbId! } : r
+    );
     setRegistrations(next);
     localStorage.setItem('team_registrations', JSON.stringify(next));
-    toast.success(`Estado actualizado a: ${status}`);
+    toast.success('Equipo aprobado y sincronizado en la base de datos');
   };
 
   // Métricas visibles (según torneo seleccionado y ocultando dismissed)

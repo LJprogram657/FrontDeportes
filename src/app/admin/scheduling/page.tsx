@@ -264,7 +264,7 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
         );
         const localTeams: Team[] = approved.map((r: any) => ({
           id: `local-team-${r.id}`,
-          dbId: r.id,
+          dbId: (typeof r.dbId === 'number' ? r.dbId : r.id), // ← usa dbId si existe
           name: r.teamName,
           logo: r.teamLogo || '/images/default-team.png',
           source: 'local',
