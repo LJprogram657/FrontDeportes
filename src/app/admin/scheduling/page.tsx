@@ -230,6 +230,7 @@ interface SchedulingPanelProps {
   onBack: () => void;
 }
 
+// Dentro del componente SchedulingPanel
 const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack }) => {
   const [matches, setMatches] = useState<Match[]>([]);
   const [availableTeams, setAvailableTeams] = useState<Team[]>([]);
@@ -241,23 +242,61 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
   const filteredVenues = venues.filter(v => v.sports.includes(tournament.sport));
 
   // Cargar equipos registrados reales (API)
-  const loadRegisteredTeams = useCallback(() => {
-    (async () => {
+  const loadRegisteredTeams = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/tournaments/${tournament.id}/teams`, { cache: 'no-store' });
+      const serverTeams = await res.json();
+      let unique: Team[] = serverTeams.map((t: any) => ({
+        id: `team-${t.id}`,
+        dbId: t.id,
+        name: t.name,
+        logo: t.logo || '/images/default-team.png',
+      }));
+  
+      // Fallback/merge: también cargar aprobados desde localStorage
       try {
-        const res = await fetch(`/api/tournaments/${tournament.id}/teams`, { cache: 'no-store' });
-        const teams = await res.json();
-        const unique: Team[] = teams.map((t: any) => ({
-          id: `team-${t.id}`,
-          dbId: t.id,
-          name: t.name,
-          logo: t.logo || '/images/default-team.png',
+        const ls = JSON.parse(localStorage.getItem('team_registrations') || '[]');
+        const approved = ls.filter((r: any) =>
+          r.status === 'approved' &&
+          ((r.tournamentId ?? r.tournament?.id) === tournament.id)
+        );
+        const localTeams: Team[] = approved.map((r: any) => ({
+          id: `local-team-${r.id}`,
+          dbId: r.id,
+          name: r.teamName,
+          logo: r.teamLogo || '/images/default-team.png',
         }));
-        setAvailableTeams(unique);
-      } catch (error) {
-        console.error('Error cargando equipos:', error);
+        // Fusionar evitando duplicados
+        const byKey = new Map<string, Team>();
+        [...unique, ...localTeams].forEach(t => {
+          byKey.set(`${t.dbId}-${t.name}`, t);
+        });
+        unique = Array.from(byKey.values());
+      } catch (e) {
+        // Ignorar errores de parseo de localStorage
+      }
+  
+      setAvailableTeams(unique);
+    } catch (error) {
+      console.error('Error cargando equipos:', error);
+      // Fallback final: solo localStorage
+      try {
+        const ls = JSON.parse(localStorage.getItem('team_registrations') || '[]');
+        const approved = ls.filter((r: any) =>
+          r.status === 'approved' &&
+          ((r.tournamentId ?? r.tournament?.id) === tournament.id)
+        );
+        const localTeams: Team[] = approved.map((r: any) => ({
+          id: `local-team-${r.id}`,
+          dbId: r.id,
+          name: r.teamName,
+          logo: r.teamLogo || '/images/default-team.png',
+        }));
+        setAvailableTeams(localTeams);
+      } catch (e) {
         setAvailableTeams([]);
       }
-    })();
+    }
   }, [tournament.id]);
 
   // Cargar al montar/actualizar torneo
