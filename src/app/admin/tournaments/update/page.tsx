@@ -1,8 +1,27 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import '../../../styles/tournament-form.css'; // <--- AÑADE ESTA LÍNEA
+import '../../../styles/tournament-form.css';
+
+type TeamRef = { id: string; name: string; logo: string };
+
+interface Match {
+  id: string;
+  phase: string;
+  homeTeam: TeamRef | null;
+  awayTeam: TeamRef | null;
+  date?: string;
+  time?: string;
+  venue?: string;
+  round?: number;
+  group?: string;
+  homeScore?: number;
+  awayScore?: number;
+  status: 'scheduled' | 'finished';
+  goals?: string;
+  fouls?: string;
+}
 
 interface Tournament {
   id: number;
@@ -24,14 +43,10 @@ interface Tournament {
   modality?: 'futsal' | 'futbol7';
 }
 
-const UpdateTournamentPage: React.FC = () => {
+function UpdateTournamentPage() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isUpdating, setIsUpdating] = useState(false);
-
-  // DATOS LIMPIOS - SIN TORNEOS MOCK
-  const mockTournaments: Tournament[] = [];
 
   useEffect(() => {
     const key = 'admin_created_tournaments';
@@ -45,279 +60,389 @@ const UpdateTournamentPage: React.FC = () => {
       return {
         ...t,
         phases: defaultPhases,
-        origin: 'created'
+        origin: 'created',
       };
     });
-    
-    // Solo mostrar torneos creados, sin datos mock
+
     setTournaments(withPhases);
     setIsLoading(false);
   }, []);
 
-  const handleTournamentSelect = (tournament: Tournament) => {
-    setSelectedTournament({ ...tournament });
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    if (!selectedTournament) return;
-    const { name, value } = e.target;
-    setSelectedTournament(prev => ({
-      ...prev!,
-      [name]: name === 'maxTeams' ? parseInt(value) || 0 : value
-    }));
-  };
-
-  const togglePhase = (phase: 'round_robin' | 'group_stage' | 'quarterfinals' | 'semifinals' | 'final') => {
-    if (!selectedTournament) return;
-    const phases = new Set(selectedTournament.phases || []);
-    phases.has(phase) ? phases.delete(phase) : phases.add(phase);
-    setSelectedTournament(prev => (prev ? { ...prev, phases: Array.from(phases) } : prev));
-  };
-
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedTournament) return;
-  
-    setIsUpdating(true);
-    try {
-      const updatedList = tournaments.map(t => 
-        t.id === selectedTournament.id ? selectedTournament : t
-      );
-      setTournaments(updatedList);
-  
-      const key = 'admin_created_tournaments';
-      const createdOnly = updatedList.filter(t => t.origin === 'created');
-      localStorage.setItem(key, JSON.stringify(createdOnly));
-  
-      toast.success('Torneo actualizado exitosamente!');
-      setSelectedTournament(null);
-    } catch (error) {
-      console.error('Error actualizando torneo:', error);
-      toast.error('Error al actualizar el torneo. Inténtalo de nuevo.');
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
-    const getStatusBadge = (status: string) => {
-      const badgeClasses = {
-        active: 'status-badge active',
-        upcoming: 'status-badge upcoming',
-        completed: 'status-badge completed'
-      };
-      
-      const statusText = {
-        active: 'Activo',
-        upcoming: 'Próximo',
-        completed: 'Finalizado'
-      };
-  
-      return (
-        <span className={badgeClasses[status as keyof typeof badgeClasses]}>
-          {statusText[status as keyof typeof statusText]}
-        </span>
-      );
+  const getStatusBadge = (status: string) => {
+    const badgeClasses = {
+      active: 'status-badge active',
+      upcoming: 'status-badge upcoming',
+      completed: 'status-badge completed',
     };
-  
-    if (isLoading) {
-      return (
-        <div className="loading-container">
-          <div className="loading-spinner"></div>
-          <p>Cargando torneos...</p>
-        </div>
-      );
-    }
-  
+
+    const statusText = {
+      active: 'Activo',
+      upcoming: 'Próximo',
+      completed: 'Finalizado',
+    };
+
     return (
-      <div>
-        <div className="content-header">
-          <h2 className="content-title">📝 Actualización de Información</h2>
-          <p className="content-subtitle">Modifica la información de torneos existentes</p>
-        </div>
-  
-        <div className="update-container">
-          {!selectedTournament ? (
-            <div className="tournaments-list">
-              <h3>Selecciona un torneo para actualizar:</h3>
-              {tournaments.map(tournament => (
-                <div key={tournament.id} className="tournament-card">
-                  <div className="tournament-header">
-                    <h4>{tournament.name}</h4>
-                    {getStatusBadge(tournament.status)}
-                  </div>
-                  <div className="tournament-info">
-                    <p><strong>Modalidad:</strong> {tournament.modality ? (tournament.modality === 'futsal' ? 'Fútbol de Salón' : 'Fútbol 7') : '-'}</p>
-                    <p><strong>Género:</strong> {tournament.category}</p>
-                    <p><strong>Fecha:</strong> {tournament.startDate} - {tournament.endDate}</p>
-                  </div>
-                  <button 
-                    className="btn-primary"
-                    onClick={() => handleTournamentSelect(tournament)}
-                  >
-                    Editar
-                  </button>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="tournament-form-container">
-              <div className="form-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-                  <h3 style={{ marginBottom: 0, marginRight: '1rem' }}>
-                    Actualizando: {selectedTournament.name}
-                  </h3>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <span className="badge">{selectedTournament.modality === 'futsal' ? 'Fútbol de Salón' : 'Fútbol 7'}</span>
-                    <span className="badge">{selectedTournament.category === 'masculino' ? 'Masculino' : 'Femenino'}</span>
-                  </div>
-                </div>
-                <button className="btn-secondary" onClick={() => setSelectedTournament(null)}>
-                  ← Volver a la lista
-                </button>
-              </div>
-  
-              <form onSubmit={handleUpdate} className="tournament-form">
-                <div className="form-grid">
-                  <div className="form-group">
-                    <label htmlFor="name">Nombre del Torneo *</label>
-                    <input
-                      type="text"
-                      id="name"
-                      name="name"
-                      value={selectedTournament.name}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-  
-                  <div className="form-group">
-                    <label htmlFor="status">Estado del Torneo *</label>
-                    <select
-                      id="status"
-                      name="status"
-                      value={selectedTournament.status}
-                      onChange={handleInputChange}
-                      required
-                    >
-                      <option value="upcoming">Próximo</option>
-                      <option value="active">Activo</option>
-                      <option value="completed">Finalizado</option>
-                    </select>
-                  </div>
-  
-                  <div className="form-group">
-                    <label htmlFor="startDate">Fecha de Inicio</label>
-                    <input
-                      type="date"
-                      id="startDate"
-                      name="startDate"
-                      value={selectedTournament.startDate}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-  
-                  <div className="form-group">
-                    <label htmlFor="endDate">Fecha de Finalización</label>
-                    <input
-                      type="date"
-                      id="endDate"
-                      name="endDate"
-                      value={selectedTournament.endDate}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-  
-                  <div className="form-group">
-                    <label htmlFor="registrationDeadline">Fecha Límite de Registro *</label>
-                    <input
-                      type="date"
-                      id="registrationDeadline"
-                      name="registrationDeadline"
-                      value={selectedTournament.registrationDeadline}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
+      <span className={badgeClasses[status as keyof typeof badgeClasses]}>
+        {statusText[status as keyof typeof statusText]}
+      </span>
+    );
+  };
 
-                  <div className="form-group">
-                    <label htmlFor="maxTeams">Número Máximo de Equipos *</label>
-                    <select
-                      id="maxTeams"
-                      name="maxTeams"
-                      value={selectedTournament.maxTeams}
-                      onChange={handleInputChange}
-                      required
-                    >
-                      <option value={8}>8 equipos</option>
-                      <option value={16}>16 equipos</option>
-                      <option value={32}>32 equipos</option>
-                      <option value={64}>64 equipos</option>
-                    </select>
-                  </div>
-  
-                  <div className="form-group full-width">
-                    <label htmlFor="description">Descripción del Torneo</label>
-                    <textarea
-                      id="description"
-                      name="description"
-                      value={selectedTournament.description}
-                      onChange={handleInputChange}
-                      rows={4}
-                    />
-                  </div>
+  // Estado de partidos por fase
+  const [scheduledMatches, setScheduledMatches] = useState<Record<string, Match[]>>({});
+  // Estado de edición por partido (inputs controlados)
+  const [editState, setEditState] = useState<Record<string, { homeScore: number; awayScore: number; goals?: string; fouls?: string }>>({});
 
-                  <div className="form-group full-width" style={{ marginTop: '2rem', textAlign: 'center' }}>
-                    <label style={{ marginBottom: '1rem', display: 'block', fontWeight: 'bold' }}>Fases del Torneo</label>
-                    <div className="phases-chips-container" style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                      {(['round_robin', 'group_stage', 'quarterfinals', 'semifinals', 'final'] as const).map(phase => {
-                        const phaseLabels: Record<string, string> = {
-                          round_robin: 'Todos vs Todos',
-                          group_stage: 'Fase de Grupos',
-                          quarterfinals: 'Cuartos',
-                          semifinals: 'Semifinal',
-                          final: 'Final'
-                        };
-                        return (
-                          <label 
-                            key={phase} 
-                            className={`phase-chip ${selectedTournament.phases?.includes(phase) ? 'selected' : ''}`}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={selectedTournament.phases?.includes(phase) || false}
-                              onChange={() => togglePhase(phase)}
-                              style={{ display: 'none' }}
-                            />
-                            {phaseLabels[phase]}
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-  
-                <div className="form-actions">
-                  <button 
-                    type="button" 
-                    className="btn-secondary"
-                    onClick={() => setSelectedTournament(null)}
-                  >
-                    Cancelar
-                  </button>
-                  <button 
-                    type="submit" 
-                    className="btn-primary"
-                    disabled={isUpdating}
-                  >
-                    {isUpdating ? 'Actualizando...' : 'Actualizar Torneo'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
-        </div>
+  useEffect(() => {
+    if (!selectedTournament) {
+      setScheduledMatches({});
+      setEditState({});
+      return;
+    }
+
+    (async () => {
+      try {
+        const res = await fetch(`/api/tournaments/${selectedTournament.id}/matches`, { cache: 'no-store' });
+        if (!res.ok) throw new Error('No se pudieron cargar los partidos');
+        const list = await res.json();
+
+        const byPhase: Record<string, Match[]> = {};
+        const nextEdit: Record<string, { homeScore: number; awayScore: number; goals?: string; fouls?: string }> = {};
+
+        for (const m of list) {
+          const phaseKey = m.phase || 'Sin Fase';
+          byPhase[phaseKey] = byPhase[phaseKey] || [];
+          const matchItem: Match = {
+            id: String(m.id),
+            phase: m.phase,
+            homeTeam: m.homeTeam ? { id: String(m.homeTeam.id), name: m.homeTeam.name, logo: m.homeTeam.logo } : null,
+            awayTeam: m.awayTeam ? { id: String(m.awayTeam.id), name: m.awayTeam.name, logo: m.awayTeam.logo } : null,
+            date: m.date ? new Date(m.date).toISOString().slice(0, 10) : undefined,
+            time: m.time ?? undefined,
+            venue: m.venue ?? undefined,
+            round: m.round ?? undefined,
+            group: m.group ?? undefined,
+            homeScore: typeof m.homeScore === 'number' ? m.homeScore : undefined,
+            awayScore: typeof m.awayScore === 'number' ? m.awayScore : undefined,
+            status: m.status,
+            goals: m.goals ?? undefined,
+            fouls: m.fouls ?? undefined,
+          };
+          byPhase[phaseKey].push(matchItem);
+
+          nextEdit[String(m.id)] = {
+            homeScore: typeof m.homeScore === 'number' ? m.homeScore : 0,
+            awayScore: typeof m.awayScore === 'number' ? m.awayScore : 0,
+            goals: m.goals ?? '',
+            fouls: m.fouls ?? '',
+          };
+        }
+
+        setScheduledMatches(byPhase);
+        setEditState(nextEdit);
+      } catch (e) {
+        console.error(e);
+        setScheduledMatches({});
+        setEditState({});
+      }
+    })();
+  }, [selectedTournament]);
+
+  const saveResult = async (phase: string, matchId: string) => {
+    const edit = editState[matchId] || { homeScore: 0, awayScore: 0, goals: '', fouls: '' };
+
+    try {
+      const res = await fetch(`/api/matches/${matchId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          homeScore: Number(edit.homeScore),
+          awayScore: Number(edit.awayScore),
+          status: 'finished',
+          goals: edit.goals,
+          fouls: edit.fouls,
+        }),
+      });
+      if (!res.ok) throw new Error('Error al actualizar resultado');
+
+      setScheduledMatches(prev => {
+        const phaseMatches = prev[phase] || [];
+        const newPhase: Match[] = phaseMatches.map(m =>
+          m.id === matchId
+            ? {
+                ...m,
+                homeScore: Number(edit.homeScore),
+                awayScore: Number(edit.awayScore),
+                status: 'finished',
+                goals: edit.goals,
+                fouls: edit.fouls,
+              }
+            : m
+        );
+        return { ...prev, [phase]: newPhase };
+      });
+
+      toast.success('Resultado actualizado');
+    } catch {
+      toast.error('No se pudo guardar el resultado');
+    }
+  };
+
+  const deleteMatch = async (phase: string, matchId: string) => {
+    try {
+      const res = await fetch(`/api/matches/${matchId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Error al eliminar partido');
+
+      setScheduledMatches(prev => {
+        const phaseMatches = (prev[phase] || []).filter(m => m.id !== matchId);
+        return { ...prev, [phase]: phaseMatches };
+      });
+      setEditState(prev => {
+        const { [matchId]: _, ...rest } = prev;
+        return rest;
+      });
+
+      toast.success('Partido eliminado');
+    } catch {
+      toast.error('No se pudo eliminar el partido');
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="loading-container">
+        <div className="loading-spinner"></div>
+        <p>Cargando torneos...</p>
       </div>
     );
-};
+  }
+
+  return (
+    <div>
+      <div className="content-header">
+        <h2 className="content-title">📝 Actualización de Información</h2>
+        <p className="content-subtitle">Actualiza resultados de partidos creados por torneo</p>
+      </div>
+
+      <div className="update-container">
+        {!selectedTournament ? (
+          <div className="tournaments-list">
+            <h3>Selecciona un torneo para actualizar:</h3>
+            {tournaments.map(tournament => (
+              <div key={tournament.id} className="tournament-card">
+                <div className="tournament-header">
+                  <h4>{tournament.name}</h4>
+                  {getStatusBadge(tournament.status)}
+                </div>
+                <div className="tournament-info">
+                  <p>
+                    <strong>Modalidad:</strong>{' '}
+                    {tournament.modality ? (tournament.modality === 'futsal' ? 'Fútbol de Salón' : 'Fútbol 7') : '-'}
+                  </p>
+                  <p>
+                    <strong>Género:</strong> {tournament.category}
+                  </p>
+                  <p>
+                    <strong>Fecha:</strong> {tournament.startDate} - {tournament.endDate}
+                  </p>
+                </div>
+                <button className="btn-primary" onClick={() => setSelectedTournament({ ...tournament })}>
+                  Editar
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="tournament-form-container">
+            <div
+              className="form-header"
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                <h3 style={{ marginBottom: 0, marginRight: '1rem' }}>
+                  Resultados: {selectedTournament.name}
+                </h3>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <span className="badge">
+                    {selectedTournament.modality === 'futsal' ? 'Fútbol de Salón' : selectedTournament.modality === 'futbol7' ? 'Fútbol 7' : '-'}
+                  </span>
+                  <span className="badge">{selectedTournament.category === 'masculino' ? 'Masculino' : 'Femenino'}</span>
+                </div>
+              </div>
+              <button className="btn-secondary" onClick={() => setSelectedTournament(null)}>
+                ← Volver a la lista
+              </button>
+            </div>
+
+            {Object.keys(scheduledMatches).length === 0 ? (
+              <div
+                style={{
+                  textAlign: 'center',
+                  padding: '2rem',
+                  backgroundColor: '#f8f9fa',
+                  borderRadius: '8px',
+                  marginTop: '1rem',
+                }}
+              >
+                <p>No hay partidos programados para este torneo.</p>
+                <p>Primero programa partidos en “Programación de Partidos”.</p>
+              </div>
+            ) : (
+              <div className="matches-by-phase">
+                {Object.entries(scheduledMatches).map(([phase, phaseMatches]) => (
+                  <div key={phase} style={{ marginBottom: '2rem' }}>
+                    <h4 style={{ marginBottom: '1rem' }}>Fase: {phase}</h4>
+
+                    {phaseMatches.length === 0 ? (
+                      <div
+                        className="no-matches"
+                        style={{
+                          textAlign: 'center',
+                          padding: '1rem',
+                          backgroundColor: '#f8f9fa',
+                          borderRadius: '8px',
+                        }}
+                      >
+                        <p>No hay partidos en esta fase.</p>
+                      </div>
+                    ) : (
+                      <div className="matches-grid">
+                        {phaseMatches.map(m => (
+                          <div key={m.id} className={`match-card ${m.status}`} style={{ marginBottom: '1rem' }}>
+                            <div className="match-header" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span>{m.group || (m.round ? `Ronda ${m.round}` : '')}</span>
+                              <span className={`status-indicator ${m.status === 'finished' ? 'complete' : 'incomplete'}`}>
+                                {m.status === 'finished' ? '✔ Finalizado' : '✔ Programado'}
+                              </span>
+                            </div>
+
+                            <div className="match-teams" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                              <div className="team-slot home">
+                                <span>{m.homeTeam?.name || 'Local'}</span>
+                              </div>
+                              <span className="vs-separator">VS</span>
+                              <div className="team-slot away">
+                                <span>{m.awayTeam?.name || 'Visitante'}</span>
+                              </div>
+                            </div>
+
+                            <div
+                              className="match-details"
+                              style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginTop: '0.75rem' }}
+                            >
+                              <span>Cancha: {m.venue || '-'}</span>
+                              <span>Fecha: {m.date || '-'}</span>
+                              <span>Hora: {m.time || '-'}</span>
+                            </div>
+
+                            <button className="btn-secondary" onClick={() => deleteMatch(phase, m.id)}>
+                              Eliminar
+                            </button>
+
+                            {m.status !== 'finished' ? (
+                              <div className="match-edit" style={{ marginTop: '0.75rem' }}>
+                                <div className="form-grid">
+                                  <div className="form-group">
+                                    <label>Goles Local</label>
+                                    <input
+                                      type="number"
+                                      value={editState[m.id]?.homeScore ?? 0}
+                                      onChange={e =>
+                                        setEditState(prev => ({
+                                          ...prev,
+                                          [m.id]: {
+                                            ...(prev[m.id] || { homeScore: 0, awayScore: 0 }),
+                                            homeScore: Number(e.target.value),
+                                          },
+                                        }))
+                                      }
+                                    />
+                                  </div>
+                                  <div className="form-group">
+                                    <label>Goles Visitante</label>
+                                    <input
+                                      type="number"
+                                      value={editState[m.id]?.awayScore ?? 0}
+                                      onChange={e =>
+                                        setEditState(prev => ({
+                                          ...prev,
+                                          [m.id]: {
+                                            ...(prev[m.id] || { homeScore: 0, awayScore: 0 }),
+                                            awayScore: Number(e.target.value),
+                                          },
+                                        }))
+                                      }
+                                    />
+                                  </div>
+                                  <div className="form-group full-width">
+                                    <label>Goles (detalle)</label>
+                                    <textarea
+                                      rows={2}
+                                      value={editState[m.id]?.goals ?? ''}
+                                      onChange={e =>
+                                        setEditState(prev => ({
+                                          ...prev,
+                                          [m.id]: {
+                                            ...(prev[m.id] || { homeScore: 0, awayScore: 0 }),
+                                            goals: e.target.value,
+                                          },
+                                        }))
+                                      }
+                                    />
+                                  </div>
+                                  <div className="form-group full-width">
+                                    <label>Faltas (detalle)</label>
+                                    <textarea
+                                      rows={2}
+                                      value={editState[m.id]?.fouls ?? ''}
+                                      onChange={e =>
+                                        setEditState(prev => ({
+                                          ...prev,
+                                          [m.id]: {
+                                            ...(prev[m.id] || { homeScore: 0, awayScore: 0 }),
+                                            fouls: e.target.value,
+                                          },
+                                        }))
+                                      }
+                                    />
+                                  </div>
+                                  <div style={{ gridColumn: '1 / -1', textAlign: 'right' }}>
+                                    <button className="btn-primary" onClick={() => saveResult(phase, m.id)}>
+                                      Guardar Resultado
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="match-result-display" style={{ marginTop: '0.75rem' }}>
+                                <strong>Resultado:</strong> {m.homeScore} - {m.awayScore}
+                                {!!m.goals && (
+                                  <div>
+                                    <strong>Goles:</strong>
+                                    <pre style={{ whiteSpace: 'pre-wrap' }}>{m.goals}</pre>
+                                  </div>
+                                )}
+                                {!!m.fouls && (
+                                  <div>
+                                    <strong>Faltas:</strong>
+                                    <pre style={{ whiteSpace: 'pre-wrap' }}>{m.fouls}</pre>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default UpdateTournamentPage;

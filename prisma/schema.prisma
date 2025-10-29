@@ -30,6 +30,11 @@ enum TeamStatus {
   rejected
 }
 
+enum MatchStatus {
+  scheduled
+  finished
+}
+
 model User {
   id         Int      @id @default(autoincrement())
   email      String   @unique
@@ -61,6 +66,7 @@ model Tournament {
   updatedAt            DateTime          @updatedAt
 
   teams Team[]
+  matches Match[]
 }
 
 model Team {
@@ -76,6 +82,8 @@ model Team {
 
   tournament Tournament @relation(fields: [tournamentId], references: [id])
   players    Player[]
+  homeMatches Match[] @relation("homeTeam")
+  awayMatches Match[] @relation("awayTeam")
 
   @@index([tournamentId])
 }
@@ -92,4 +100,32 @@ model Player {
   team Team @relation(fields: [teamId], references: [id])
 
   @@unique([cedula, teamId]) // igual que unique_together en Django
+}
+
+model Match {
+  id            Int         @id @default(autoincrement())
+  tournamentId  Int
+  phase         String
+  venue         String?
+  date          DateTime?
+  time          String?
+  round         Int?
+  group         String?
+  homeTeamId    Int?
+  awayTeamId    Int?
+  homeScore     Int?
+  awayScore     Int?
+  goals         String?
+  fouls         String?
+  status        MatchStatus @default(scheduled)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id])
+  homeTeam   Team?      @relation("homeTeam", fields: [homeTeamId], references: [id])
+  awayTeam   Team?      @relation("awayTeam", fields: [awayTeamId], references: [id])
+
+  @@index([tournamentId])
+  @@index([homeTeamId])
+  @@index([awayTeamId])
 }
