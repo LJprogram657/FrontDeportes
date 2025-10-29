@@ -237,135 +237,143 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
   // Filtrar canchas por deporte del torneo
   const filteredVenues = venues.filter(v => v.sports.includes(tournament.sport));
 
-  const STORAGE_KEY = 'scheduled_matches';
-
-  const loadSavedMatches = (tournamentId: number, phase: string): Match[] => {
-      try {
-          const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-          const list = data?.[tournamentId]?.[phase] || [];
-          return Array.isArray(list) ? list : [];
-      } catch {
-          return [];
-      }
-  };
-
-  const saveMatches = (tournamentId: number, phase: string, matchesToSave: Match[]) => {
-      try {
-          const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-          const updated = {
-              ...data,
-              [tournamentId]: {
-                  ...(data[tournamentId] || {}),
-                  [phase]: matchesToSave
-              }
-          };
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-          toast.success('Programación guardada');
-      } catch {
-          toast.error('No se pudo guardar la programación');
-      }
-  };
-
   // Cargar equipos registrados reales (deduplicando por id y nombre)
   const loadRegisteredTeams = useCallback(() => {
-      try {
-          const registrations = JSON.parse(localStorage.getItem('team_registrations') || '[]');
-  
-          const mapped: Team[] = registrations
-              .filter((reg: any) => {
-                  const tid = reg?.tournament?.id ?? reg?.tournamentId;
-                  return tid === tournament.id && reg.status === 'approved';
-              })
-              .map((reg: any) => ({
-                  id: `team-${reg.id}`,
-                  name: reg.teamName,
-                  logo: reg.teamLogo || '/images/default-team.png',
-              }));
-  
-          // Deduplicar por id y por nombre normalizado
-          const seenIds = new Set<string>();
-          const seenNames = new Set<string>();
-          const unique: Team[] = [];
-  
-          for (const team of mapped) {
-              const normName = (team.name || '').trim().toLowerCase();
-              if (seenIds.has(team.id) || seenNames.has(normName)) continue;
-              seenIds.add(team.id);
-              seenNames.add(normName);
-              unique.push(team);
-          }
-  
-          setAvailableTeams(unique);
-      } catch (error) {
-          console.error('Error cargando equipos registrados:', error);
-          setAvailableTeams([]);
+    try {
+      const registrations = JSON.parse(localStorage.getItem('team_registrations') || '[]');
+
+      const mapped: Team[] = registrations
+        .filter((reg: any) => {
+          const tid = reg?.tournament?.id ?? reg?.tournamentId;
+          return tid === tournament.id && reg.status === 'approved';
+        })
+        .map((reg: any) => ({
+          id: `team-${reg.id}`,
+          name: reg.teamName,
+          logo: reg.teamLogo || '/images/default-team.png',
+        }));
+
+      // Deduplicar por id y por nombre normalizado
+      const seenIds = new Set<string>();
+      const seenNames = new Set<string>();
+      const unique: Team[] = [];
+
+      for (const team of mapped) {
+        const normName = (team.name || '').trim().toLowerCase();
+        if (seenIds.has(team.id) || seenNames.has(normName)) continue;
+        seenIds.add(team.id);
+        seenNames.add(normName);
+        unique.push(team);
       }
+
+      setAvailableTeams(unique);
+    } catch (error) {
+      console.error('Error cargando equipos registrados:', error);
+      setAvailableTeams([]);
+    }
   }, [tournament.id]);
+
+  // Cargar al montar/actualizar torneo
+  useEffect(() => {
+    loadRegisteredTeams();
+  }, [loadRegisteredTeams]);
 
   // Refrescar lista cuando cambia localStorage (otra pestaña) o al volver a la pestaña
   useEffect(() => {
-      const onStorage = (e: StorageEvent) => {
-          if (e.key === 'team_registrations') loadRegisteredTeams();
-      };
-      const onVisibility = () => {
-          if (!document.hidden) loadRegisteredTeams();
-      };
-      window.addEventListener('storage', onStorage);
-      document.addEventListener('visibilitychange', onVisibility);
-      return () => {
-          window.removeEventListener('storage', onStorage);
-          document.removeEventListener('visibilitychange', onVisibility);
-      };
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'team_registrations') loadRegisteredTeams();
+    };
+    const onVisibility = () => {
+      if (!document.hidden) loadRegisteredTeams();
+    };
+    window.addEventListener('storage', onStorage);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, [loadRegisteredTeams]);
 
-  // Cargar partidos guardados al cambiar de torneo/fase
+  // Generar partidos automáticamente basado en el formato del torneo
   useEffect(() => {
-      const saved = loadSavedMatches(tournament.id, selectedPhase);
-      setMatches(saved);
-  }, [tournament.id, selectedPhase]);
+    if (availableTeams.length < 2) return;
+
+    const generateMatches = () => {
+      const newMatches: Match[] = [];
+      
+      if (tournament.format === 'todos_contra_todos') {
+        // Generar partidos de todos contra todos
+        for (let i = 0; i < availableTeams.length; i++) {
+          for (let j = i + 1; j < availableTeams.length; j++) {
+            newMatches.push({
+              id: `match-${i}-${j}`,
+              phase: 'Todos contra Todos',
+              homeTeam: null,
+              awayTeam: null,
+              status: 'scheduled'
+            });
+          }
+        }
+      } else {
+        // Para otros formatos, generar partidos básicos
+        const numMatches = Math.floor(availableTeams.length / 2) * 2;
+        for (let i = 0; i < numMatches; i += 2) {
+          newMatches.push({
+            id: `match-${i}`,
+            phase: tournament.phases[0],
+            homeTeam: null,
+            awayTeam: null,
+            status: 'scheduled'
+          });
+        }
+      }
+      
+      setMatches(newMatches);
+    };
+
+    generateMatches();
+  }, [availableTeams, tournament.format, tournament.phases]);
 
   // Asegurar orden estable de hooks en todos los renders
   useEffect(() => {
-      // al cambiar de fase, si no hay guardados, mostrar vacío
-      const saved = loadSavedMatches(tournament.id, selectedPhase);
-      setMatches(saved);
+    setMatches([]);
   }, [selectedPhase]);
 
   // Si no hay equipos registrados
   if (availableTeams.length === 0) {
-      return (
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-            <h3>Programación: {tournament.name}</h3>
-            <button className="btn-secondary" onClick={onBack}>
-              ← Volver a torneos
-            </button>
-          </div>
-          
-          <div style={{ 
-            textAlign: 'center', 
-            padding: '3rem', 
-            backgroundColor: '#f8f9fa', 
-            borderRadius: '8px' 
-          }}>
-            <h4>👥 No hay equipos registrados</h4>
-            <p>Este torneo no tiene equipos registrados aún.</p>
-            <p>Ve a la sección "Gestión de Registro" para registrar equipos primero.</p>
-          </div>
+    return (
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+          <h3>Programación: {tournament.name}</h3>
+          <button className="btn-secondary" onClick={onBack}>
+            ← Volver a torneos
+          </button>
         </div>
-      );
+        
+        <div style={{ 
+          textAlign: 'center', 
+          padding: '3rem', 
+          backgroundColor: '#f8f9fa', 
+          borderRadius: '8px' 
+        }}>
+          <h4>👥 No hay equipos registrados</h4>
+          <p>Este torneo no tiene equipos registrados aún.</p>
+          <p>Ve a la sección "Gestión de Registro" para registrar equipos primero.</p>
+        </div>
+      </div>
+    );
   }
 
   // Añadir un nuevo partido manualmente
   const addMatch = () => {
-      const newMatch: Match = {
-          id: `match-${selectedPhase}-${matches.length + 1}`,
-          phase: selectedPhase,
-          homeTeam: null,
-          awayTeam: null,
-          status: 'scheduled',
-      };
-      setMatches(prev => [...prev, newMatch]);
+    const newMatch: Match = {
+      id: `match-${selectedPhase}-${matches.length + 1}`,
+      phase: selectedPhase,
+      homeTeam: null,
+      awayTeam: null,
+      status: 'scheduled',
+    };
+    setMatches(prev => [...prev, newMatch]);
   };
 
   // Manejar drag and drop
@@ -539,154 +547,154 @@ const VenuePreview: React.FC<{ venue: Venue | null }> = ({ venue }) => {
 };
 
 const MatchCard: React.FC<MatchCardProps> = ({ 
-    match, 
-    venues, 
-    onDrop, 
-    onDragOver, 
-    onRemoveTeam, 
-    onUpdateVenue, 
-    onUpdateDateTime,
-    onUpdateResult
+  match, 
+  venues, 
+  onDrop, 
+  onDragOver, 
+  onRemoveTeam, 
+  onUpdateVenue, 
+  onUpdateDateTime,
+  onUpdateResult
 }) => {
-    const [showPreview, setShowPreview] = useState<boolean>(false);
-    const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
-    const [homeScore, setHomeScore] = useState<number | ''>(typeof match.homeScore === 'number' ? match.homeScore : '');
-    const [awayScore, setAwayScore] = useState<number | ''>(typeof match.awayScore === 'number' ? match.awayScore : '');
+  const [showPreview, setShowPreview] = useState<boolean>(false);
+  const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
+  const [homeScore, setHomeScore] = useState<number | ''>(typeof match.homeScore === 'number' ? match.homeScore : '');
+  const [awayScore, setAwayScore] = useState<number | ''>(typeof match.awayScore === 'number' ? match.awayScore : '');
 
-    const handleVenueHover = (venueId: string) => {
-        const venue = venues.find(v => v.id === venueId);
-        if (venue) {
-            setSelectedVenue(venue);
-            setShowPreview(true);
-        }
-    };
+  const handleVenueHover = (venueId: string) => {
+    const venue = venues.find(v => v.id === venueId);
+    if (venue) {
+      setSelectedVenue(venue);
+      setShowPreview(true);
+    }
+  };
 
-    const handleVenueLeave = () => {
-        setShowPreview(false);
-        setSelectedVenue(null);
-    };
+  const handleVenueLeave = () => {
+    setShowPreview(false);
+    setSelectedVenue(null);
+  };
 
-    const isComplete = match.homeTeam && match.awayTeam && match.venue && match.date && match.time;
+  const isComplete = match.homeTeam && match.awayTeam && match.venue && match.date && match.time;
 
-    const handleResultSubmit = () => {
-        const hs = typeof homeScore === 'number' ? homeScore : NaN;
-        const as = typeof awayScore === 'number' ? awayScore : NaN;
-        if (Number.isFinite(hs) && Number.isFinite(as)) {
-            onUpdateResult(match.id, hs, as);
-        }
-    };
+  const handleResultSubmit = () => {
+    const hs = typeof homeScore === 'number' ? homeScore : NaN;
+    const as = typeof awayScore === 'number' ? awayScore : NaN;
+    if (Number.isFinite(hs) && Number.isFinite(as)) {
+      onUpdateResult(match.id, hs, as);
+    }
+  };
 
-    return (
+  return (
+    <div 
+      className={`match-card ${isComplete ? 'complete' : 'incomplete'} ${match.status}`}
+      onMouseLeave={handleVenueLeave}
+    >
+      <div className="match-header">
+        <span>{match.group || `Ronda ${match.round || ''}`}</span>
+        <span className={`status-indicator ${isComplete ? 'complete' : 'incomplete'}`}>
+          {isComplete ? (match.status === 'finished' ? '✔ Finalizado' : '✔ Programado') : '✖ Pendiente'}
+        </span>
+      </div>
+      <div className="match-teams">
         <div 
-            className={`match-card ${isComplete ? 'complete' : 'incomplete'} ${match.status}`}
-            onMouseLeave={handleVenueLeave}
+          className="team-slot home"
+          onDrop={(e) => onDrop(e, match.id, 'home')}
+          onDragOver={onDragOver}
         >
-            <div className="match-header">
-                <span>{match.group || `Ronda ${match.round || ''}`}</span>
-                <span className={`status-indicator ${isComplete ? 'complete' : 'incomplete'}`}>
-                    {isComplete ? (match.status === 'finished' ? '✔ Finalizado' : '✔ Programado') : '✖ Pendiente'}
-                </span>
+          {match.homeTeam ? (
+            <div className="assigned-team">
+              <img src={match.homeTeam.logo} alt={match.homeTeam.name} />
+              <span>{match.homeTeam.name}</span>
+              <button onClick={() => onRemoveTeam(match.id, 'home')}>×</button>
             </div>
-            <div className="match-teams">
-                <div 
-                    className="team-slot home"
-                    onDrop={(e) => onDrop(e, match.id, 'home')}
-                    onDragOver={onDragOver}
-                >
-                    {match.homeTeam ? (
-                        <div className="assigned-team">
-                            <img src={match.homeTeam.logo} alt={match.homeTeam.name} />
-                            <span>{match.homeTeam.name}</span>
-                            <button onClick={() => onRemoveTeam(match.id, 'home')}>×</button>
-                        </div>
-                    ) : (
-                        <span className="placeholder">Local</span>
-                    )}
-                </div>
-                
-                <span className="vs-separator">VS</span>
-                
-                <div 
-                    className="team-slot away"
-                    onDrop={(e) => onDrop(e, match.id, 'away')}
-                    onDragOver={onDragOver}
-                >
-                    {match.awayTeam ? (
-                        <div className="assigned-team">
-                            <img src={match.awayTeam.logo} alt={match.awayTeam.name} />
-                            <span>{match.awayTeam.name}</span>
-                            <button onClick={() => onRemoveTeam(match.id, 'away')}>×</button>
-                        </div>
-                    ) : (
-                        <span className="placeholder">Visitante</span>
-                    )}
-                </div>
-            </div>
-            <div className="match-details">
-                <select 
-                    value={match.venue || ''} 
-                    onChange={(e) => onUpdateVenue(match.id, e.target.value)}
-                    onMouseEnter={() => handleVenueHover(match.venue || '')}
-                    className="venue-select"
-                    disabled={match.status === 'finished'}
-                >
-                    <option value="" disabled>Seleccionar cancha</option>
-                    {venues.map(v => (
-                        <option 
-                            key={v.id} 
-                            value={v.id}
-                            onMouseEnter={() => handleVenueHover(v.id)}
-                        >
-                            {v.name}
-                        </option>
-                    ))}
-                </select>
-                <input 
-                    type="date" 
-                    value={match.date || ''} 
-                    onChange={(e) => onUpdateDateTime(match.id, e.target.value, match.time || '')} 
-                    disabled={match.status === 'finished'}
-                />
-                <input 
-                    type="time" 
-                    value={match.time || ''} 
-                    onChange={(e) => onUpdateDateTime(match.id, match.date || '', e.target.value)} 
-                    disabled={match.status === 'finished'}
-                />
-            </div>
-            {showPreview && selectedVenue && <VenuePreview venue={selectedVenue} />}
-            {isComplete && match.status === 'scheduled' && (
-                <div className="match-result-form">
-                    <input 
-                        type="number" 
-                        placeholder={`Res. ${match.homeTeam?.name || 'Local'}`}
-                        value={homeScore}
-                        onChange={(e) => {
-                            const val = e.target.value;
-                            const num = parseInt(val, 10);
-                            setHomeScore(Number.isFinite(num) ? num : '');
-                        }}
-                    />
-                    <input 
-                        type="number" 
-                        placeholder={`Res. ${match.awayTeam?.name || 'Visitante'}`}
-                        value={awayScore}
-                        onChange={(e) => {
-                            const val = e.target.value;
-                            const num = parseInt(val, 10);
-                            setAwayScore(Number.isFinite(num) ? num : '');
-                        }}
-                    />
-                    <button onClick={handleResultSubmit}>Guardar</button>
-                </div>
-            )}
-            {match.status === 'finished' && (
-                <div className="match-result-display">
-                    <span>{match.homeScore} - {match.awayScore}</span>
-                </div>
-            )}
+          ) : (
+            <span className="placeholder">Local</span>
+          )}
         </div>
-    );
+        
+        <span className="vs-separator">VS</span>
+
+        <div 
+          className="team-slot away"
+          onDrop={(e) => onDrop(e, match.id, 'away')}
+          onDragOver={onDragOver}
+        >
+          {match.awayTeam ? (
+            <div className="assigned-team">
+              <img src={match.awayTeam.logo} alt={match.awayTeam.name} />
+              <span>{match.awayTeam.name}</span>
+              <button onClick={() => onRemoveTeam(match.id, 'away')}>×</button>
+            </div>
+          ) : (
+            <span className="placeholder">Visitante</span>
+          )}
+        </div>
+      </div>
+      <div className="match-details">
+        <select 
+          value={match.venue || ''} 
+          onChange={(e) => onUpdateVenue(match.id, e.target.value)}
+          onMouseEnter={() => handleVenueHover(match.venue || '')}
+          className="venue-select"
+          disabled={match.status === 'finished'}
+        >
+          <option value="" disabled>Seleccionar cancha</option>
+          {venues.map(v => (
+            <option 
+              key={v.id} 
+              value={v.id}
+              onMouseEnter={() => handleVenueHover(v.id)}
+            >
+              {v.name}
+            </option>
+          ))}
+        </select>
+        <input 
+          type="date" 
+          value={match.date || ''} 
+          onChange={(e) => onUpdateDateTime(match.id, e.target.value, match.time || '')} 
+          disabled={match.status === 'finished'}
+        />
+        <input 
+          type="time" 
+          value={match.time || ''} 
+          onChange={(e) => onUpdateDateTime(match.id, match.date || '', e.target.value)} 
+          disabled={match.status === 'finished'}
+        />
+      </div>
+      {showPreview && selectedVenue && <VenuePreview venue={selectedVenue} />}
+      {isComplete && match.status === 'scheduled' && (
+        <div className="match-result-form">
+          <input 
+            type="number" 
+            placeholder={`Res. ${match.homeTeam?.name || 'Local'}`}
+            value={homeScore}
+            onChange={(e) => {
+              const val = e.target.value;
+              const num = parseInt(val, 10);
+              setHomeScore(Number.isFinite(num) ? num : '');
+            }}
+          />
+          <input 
+            type="number" 
+            placeholder={`Res. ${match.awayTeam?.name || 'Visitante'}`}
+            value={awayScore}
+            onChange={(e) => {
+              const val = e.target.value;
+              const num = parseInt(val, 10);
+              setAwayScore(Number.isFinite(num) ? num : '');
+            }}
+          />
+          <button onClick={handleResultSubmit}>Guardar</button>
+        </div>
+      )}
+      {match.status === 'finished' && (
+        <div className="match-result-display">
+          <span>{match.homeScore} - {match.awayScore}</span>
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default SchedulingPage;

@@ -29,7 +29,6 @@ const UpdateTournamentPage: React.FC = () => {
   const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [scheduledMatches, setScheduledMatches] = useState<Record<string, Match[]>>({});
 
   // DATOS LIMPIOS - SIN TORNEOS MOCK
   const mockTournaments: Tournament[] = [];
@@ -55,60 +54,8 @@ const UpdateTournamentPage: React.FC = () => {
     setIsLoading(false);
   }, []);
 
-  const loadScheduledMatches = (tournamentId: number) => {
-    try {
-      const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-      const phases = data?.[tournamentId] || {};
-      setScheduledMatches(phases);
-    } catch {
-      setScheduledMatches({});
-    }
-  };
-
   const handleTournamentSelect = (tournament: Tournament) => {
     setSelectedTournament({ ...tournament });
-    loadScheduledMatches(tournament.id);
-  };
-
-  const saveResult = (
-    phase: string,
-    matchId: string,
-    homeScore: number,
-    awayScore: number,
-    goals?: string,
-    fouls?: string
-  ) => {
-    try {
-      const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-      const phaseMatches: Match[] = data?.[selectedTournament!.id]?.[phase] || [];
-
-      const updatedPhase: Match[] = phaseMatches.map((m): Match =>
-        m.id === matchId
-          ? {
-              ...m,
-              homeScore,
-              awayScore,
-              status: 'finished' as const,
-              goals,
-              fouls,
-            }
-          : m
-      );
-
-      const updatedData = {
-        ...data,
-        [selectedTournament!.id]: {
-          ...(data[selectedTournament!.id] || {}),
-          [phase]: updatedPhase,
-        },
-      };
-
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedData));
-      setScheduledMatches((prev) => ({ ...prev, [phase]: updatedPhase }));
-      toast.success('Resultado actualizado');
-    } catch {
-      toast.error('No se pudo guardar el resultado');
-    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -172,224 +119,205 @@ const UpdateTournamentPage: React.FC = () => {
       );
     };
   
-  if (isLoading) {
+    if (isLoading) {
+      return (
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <p>Cargando torneos...</p>
+        </div>
+      );
+    }
+  
     return (
-      <div className="loading-container">
-        <div className="loading-spinner"></div>
-        <p>Cargando torneos...</p>
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      <div className="content-header">
-        <h2 className="content-title">📝 Actualización de Información</h2>
-        <p className="content-subtitle">Modifica la información de torneos existentes</p>
-      </div>
+      <div>
+        <div className="content-header">
+          <h2 className="content-title">📝 Actualización de Información</h2>
+          <p className="content-subtitle">Modifica la información de torneos existentes</p>
+        </div>
   
-      <div className="update-container">
-        {!selectedTournament ? (
-          <div className="tournaments-list">
-            <h3>Selecciona un torneo para actualizar:</h3>
-            {tournaments.map(tournament => (
-              <div key={tournament.id} className="tournament-card">
-                <div className="tournament-header">
-                  <h4>{tournament.name}</h4>
-                  {getStatusBadge(tournament.status)}
+        <div className="update-container">
+          {!selectedTournament ? (
+            <div className="tournaments-list">
+              <h3>Selecciona un torneo para actualizar:</h3>
+              {tournaments.map(tournament => (
+                <div key={tournament.id} className="tournament-card">
+                  <div className="tournament-header">
+                    <h4>{tournament.name}</h4>
+                    {getStatusBadge(tournament.status)}
+                  </div>
+                  <div className="tournament-info">
+                    <p><strong>Modalidad:</strong> {tournament.modality ? (tournament.modality === 'futsal' ? 'Fútbol de Salón' : 'Fútbol 7') : '-'}</p>
+                    <p><strong>Género:</strong> {tournament.category}</p>
+                    <p><strong>Fecha:</strong> {tournament.startDate} - {tournament.endDate}</p>
+                  </div>
+                  <button 
+                    className="btn-primary"
+                    onClick={() => handleTournamentSelect(tournament)}
+                  >
+                    Editar
+                  </button>
                 </div>
-                <div className="tournament-info">
-                  <p><strong>Modalidad:</strong> {tournament.modality ? (tournament.modality === 'futsal' ? 'Fútbol de Salón' : 'Fútbol 7') : '-'}</p>
-                  <p><strong>Género:</strong> {tournament.category}</p>
-                  <p><strong>Fecha:</strong> {tournament.startDate} - {tournament.endDate}</p>
-                </div>
-                <button 
-                  className="btn-primary"
-                  onClick={() => handleTournamentSelect(tournament)}
-                >
-                  Editar
-                </button>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="tournament-form-container">
-            <div className="form-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-                <h3 style={{ marginBottom: 0, marginRight: '1rem' }}>
-                  Actualizando: {selectedTournament.name}
-                </h3>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <span className="badge">{selectedTournament.modality === 'futsal' ? 'Fútbol de Salón' : 'Fútbol 7'}</span>
-                  <span className="badge">{selectedTournament.category === 'masculino' ? 'Masculino' : 'Femenino'}</span>
-                </div>
-              </div>
-              <button className="btn-secondary" onClick={() => setSelectedTournament(null)}>
-                ← Volver a la lista
-              </button>
+              ))}
             </div>
-  
-            <form onSubmit={handleUpdate} className="tournament-form">
-              <div className="form-grid">
-                <div className="form-group">
-                  <label htmlFor="name">Nombre del Torneo *</label>
-                  <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    value={selectedTournament.name}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-  
-                <div className="form-group">
-                  <label htmlFor="status">Estado del Torneo *</label>
-                  <select
-                    id="status"
-                    name="status"
-                    value={selectedTournament.status}
-                    onChange={handleInputChange}
-                    required
-                  >
-                    <option value="upcoming">Próximo</option>
-                    <option value="active">Activo</option>
-                    <option value="completed">Finalizado</option>
-                  </select>
-                </div>
-  
-                <div className="form-group">
-                  <label htmlFor="startDate">Fecha de Inicio</label>
-                  <input
-                    type="date"
-                    id="startDate"
-                    name="startDate"
-                    value={selectedTournament.startDate}
-                    onChange={handleInputChange}
-                  />
-                </div>
-  
-                <div className="form-group">
-                  <label htmlFor="endDate">Fecha de Finalización</label>
-                  <input
-                    type="date"
-                    id="endDate"
-                    name="endDate"
-                    value={selectedTournament.endDate}
-                    onChange={handleInputChange}
-                  />
-                </div>
-  
-                <div className="form-group">
-                  <label htmlFor="registrationDeadline">Fecha Límite de Registro *</label>
-                  <input
-                    type="date"
-                    id="registrationDeadline"
-                    name="registrationDeadline"
-                    value={selectedTournament.registrationDeadline}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-  
-                <div className="form-group">
-                  <label htmlFor="maxTeams">Número Máximo de Equipos *</label>
-                  <select
-                    id="maxTeams"
-                    name="maxTeams"
-                    value={selectedTournament.maxTeams}
-                    onChange={handleInputChange}
-                    required
-                  >
-                    <option value={8}>8 equipos</option>
-                    <option value={16}>16 equipos</option>
-                    <option value={32}>32 equipos</option>
-                    <option value={64}>64 equipos</option>
-                  </select>
-                </div>
-  
-                <div className="form-group full-width">
-                  <label htmlFor="description">Descripción del Torneo</label>
-                  <textarea
-                    id="description"
-                    name="description"
-                    value={selectedTournament.description}
-                    onChange={handleInputChange}
-                    rows={4}
-                  />
-                </div>
-  
-                <div className="form-group full-width" style={{ marginTop: '2rem', textAlign: 'center' }}>
-                  <label style={{ marginBottom: '1rem', display: 'block', fontWeight: 'bold' }}>Fases del Torneo</label>
-                  <div className="phases-chips-container" style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                    {(['round_robin', 'group_stage', 'quarterfinals', 'semifinals', 'final'] as const).map(phase => {
-                      const phaseLabels: Record<string, string> = {
-                        round_robin: 'Todos vs Todos',
-                        group_stage: 'Fase de Grupos',
-                        quarterfinals: 'Cuartos',
-                        semifinals: 'Semifinal',
-                        final: 'Final'
-                      };
-                      return (
-                        <label 
-                          key={phase} 
-                          className={`phase-chip ${selectedTournament.phases?.includes(phase) ? 'selected' : ''}`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selectedTournament.phases?.includes(phase) || false}
-                            onChange={() => togglePhase(phase)}
-                            style={{ display: 'none' }}
-                          />
-                          {phaseLabels[phase]}
-                        </label>
-                      );
-                    })}
+          ) : (
+            <div className="tournament-form-container">
+              <div className="form-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                  <h3 style={{ marginBottom: 0, marginRight: '1rem' }}>
+                    Actualizando: {selectedTournament.name}
+                  </h3>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <span className="badge">{selectedTournament.modality === 'futsal' ? 'Fútbol de Salón' : 'Fútbol 7'}</span>
+                    <span className="badge">{selectedTournament.category === 'masculino' ? 'Masculino' : 'Femenino'}</span>
                   </div>
                 </div>
+                <button className="btn-secondary" onClick={() => setSelectedTournament(null)}>
+                  ← Volver a la lista
+                </button>
               </div>
   
-              <div className="form-actions">
-                <button 
-                  type="button" 
-                  className="btn-secondary"
-                  onClick={() => setSelectedTournament(null)}
-                >
-                  Cancelar
-                </button>
-                <button 
-                  type="submit" 
-                  className="btn-primary"
-                  disabled={isUpdating}
-                >
-                  {isUpdating ? 'Actualizando...' : 'Actualizar Torneo'}
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
+              <form onSubmit={handleUpdate} className="tournament-form">
+                <div className="form-grid">
+                  <div className="form-group">
+                    <label htmlFor="name">Nombre del Torneo *</label>
+                    <input
+                      type="text"
+                      id="name"
+                      name="name"
+                      value={selectedTournament.name}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </div>
+  
+                  <div className="form-group">
+                    <label htmlFor="status">Estado del Torneo *</label>
+                    <select
+                      id="status"
+                      name="status"
+                      value={selectedTournament.status}
+                      onChange={handleInputChange}
+                      required
+                    >
+                      <option value="upcoming">Próximo</option>
+                      <option value="active">Activo</option>
+                      <option value="completed">Finalizado</option>
+                    </select>
+                  </div>
+  
+                  <div className="form-group">
+                    <label htmlFor="startDate">Fecha de Inicio</label>
+                    <input
+                      type="date"
+                      id="startDate"
+                      name="startDate"
+                      value={selectedTournament.startDate}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+  
+                  <div className="form-group">
+                    <label htmlFor="endDate">Fecha de Finalización</label>
+                    <input
+                      type="date"
+                      id="endDate"
+                      name="endDate"
+                      value={selectedTournament.endDate}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+  
+                  <div className="form-group">
+                    <label htmlFor="registrationDeadline">Fecha Límite de Registro *</label>
+                    <input
+                      type="date"
+                      id="registrationDeadline"
+                      name="registrationDeadline"
+                      value={selectedTournament.registrationDeadline}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="maxTeams">Número Máximo de Equipos *</label>
+                    <select
+                      id="maxTeams"
+                      name="maxTeams"
+                      value={selectedTournament.maxTeams}
+                      onChange={handleInputChange}
+                      required
+                    >
+                      <option value={8}>8 equipos</option>
+                      <option value={16}>16 equipos</option>
+                      <option value={32}>32 equipos</option>
+                      <option value={64}>64 equipos</option>
+                    </select>
+                  </div>
+  
+                  <div className="form-group full-width">
+                    <label htmlFor="description">Descripción del Torneo</label>
+                    <textarea
+                      id="description"
+                      name="description"
+                      value={selectedTournament.description}
+                      onChange={handleInputChange}
+                      rows={4}
+                    />
+                  </div>
+
+                  <div className="form-group full-width" style={{ marginTop: '2rem', textAlign: 'center' }}>
+                    <label style={{ marginBottom: '1rem', display: 'block', fontWeight: 'bold' }}>Fases del Torneo</label>
+                    <div className="phases-chips-container" style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                      {(['round_robin', 'group_stage', 'quarterfinals', 'semifinals', 'final'] as const).map(phase => {
+                        const phaseLabels: Record<string, string> = {
+                          round_robin: 'Todos vs Todos',
+                          group_stage: 'Fase de Grupos',
+                          quarterfinals: 'Cuartos',
+                          semifinals: 'Semifinal',
+                          final: 'Final'
+                        };
+                        return (
+                          <label 
+                            key={phase} 
+                            className={`phase-chip ${selectedTournament.phases?.includes(phase) ? 'selected' : ''}`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedTournament.phases?.includes(phase) || false}
+                              onChange={() => togglePhase(phase)}
+                              style={{ display: 'none' }}
+                            />
+                            {phaseLabels[phase]}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+  
+                <div className="form-actions">
+                  <button 
+                    type="button" 
+                    className="btn-secondary"
+                    onClick={() => setSelectedTournament(null)}
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    type="submit" 
+                    className="btn-primary"
+                    disabled={isUpdating}
+                  >
+                    {isUpdating ? 'Actualizando...' : 'Actualizar Torneo'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
 };
 
 export default UpdateTournamentPage;
-
-
-type TeamRef = { id: string; name: string; logo: string };
-interface Match {
-  id: string;
-  phase: string;
-  homeTeam: TeamRef | null;
-  awayTeam: TeamRef | null;
-  date?: string;
-  time?: string;
-  venue?: string;
-  homeScore?: number;
-  awayScore?: number;
-  status: 'scheduled' | 'finished';
-  goals?: string; // texto libre: uno por línea "minuto - jugador"
-  fouls?: string; // texto libre: uno por línea "minuto - falta - jugador"
-}
-
-const STORAGE_KEY = 'scheduled_matches';
