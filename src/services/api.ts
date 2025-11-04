@@ -199,16 +199,14 @@ class ApiService {
   async logout(): Promise<void> {
     try {
       if (this.refreshToken) {
-        await this.makeRequest('/auth/logout/', {
+        await this.makeRequest('/auth/logout', {
           method: 'POST',
           body: JSON.stringify({ refresh: this.refreshToken })
         });
       }
     } catch (error) {
-      // No mostrar error si el backend no está disponible
       console.warn('Backend no disponible para logout, limpiando tokens localmente:', error);
     } finally {
-      // Limpiar tokens independientemente del resultado
       this.accessToken = null;
       this.refreshToken = null;
       localStorage.removeItem('access_token');
@@ -219,7 +217,7 @@ class ApiService {
 
   async getProfile(): Promise<{ success: boolean; user?: User; message?: string }> {
     try {
-      return await this.makeRequest<{ success: boolean; user: User }>('/auth/profile/', {
+      return await this.makeRequest<{ success: boolean; user: User }>('/auth/profile', {
         method: 'GET'
       });
     } catch (error) {
@@ -304,7 +302,7 @@ class ApiService {
   async verifyToken(): Promise<boolean> {
     try {
       const response = await this.authorizedFetch<{ authenticated: boolean }>(
-        '/auth/verify/',
+        '/auth/verify',
         { method: 'GET' }
       );
       return response.authenticated;
