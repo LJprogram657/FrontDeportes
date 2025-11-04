@@ -244,13 +244,63 @@ class ApiService {
     }
   }
 
+  private async authorizedFetch<T>(path: string, init?: RequestInit): Promise<T> {
+    const headers = new Headers(init?.headers || {});
+    if (!headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/json');
+    }
+    if (this.accessToken) {
+      headers.set('Authorization', `Bearer ${this.accessToken}`);
+    }
+
+    const res = await fetch(`/api${path}`, { ...init, headers });
+
+    // Si no es 401, devolver respuesta normal
+    if (res.status !== 401) {
+      return res.json();
+    }
+
+    // Intentar refresh si 401 y hay refresh token
+    if (this.refreshToken) {
+      const refreshRes = await fetch('/api/auth/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh: this.refreshToken }),
+      });
+
+      if (refreshRes.ok) {
+        const data = await refreshRes.json();
+        if (data.access) {
+          this.accessToken = data.access;
+          localStorage.setItem('access_token', data.access);
+      
+          // Reintentar la petición original con nuevo access token
+          const retryHeaders = new Headers(init?.headers || {});
+          if (!retryHeaders.has('Content-Type')) {
+            retryHeaders.set('Content-Type', 'application/json');
+          }
+          retryHeaders.set('Authorization', `Bearer ${this.accessToken}`);
+      
+          const retry = await fetch(`/api${path}`, { ...init, headers: retryHeaders });
+          return retry.json();
+        }
+      }
+    }
+
+    // Si no hubo refresh o falló, propagar error
+    const errBody = await res.json().catch(() => ({}));
+    throw new Error(errBody?.message || 'No autorizado');
+  }
+
+  // Ejemplo de uso dentro del servicio:
   async verifyToken(): Promise<boolean> {
     try {
-      const response = await this.makeRequest<{ success: boolean }>('/auth/verify/', {
-        method: 'GET'
-      });
-      return response.success;
-    } catch (error) {
+      const response = await this.authorizedFetch<{ authenticated: boolean }>(
+        '/auth/verify/',
+        { method: 'GET' }
+      );
+      return response.authenticated;
+    } catch {
       return false;
     }
   }

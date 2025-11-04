@@ -41,6 +41,16 @@ function RegistrationsPage() {
   const [selectedRegistration, setSelectedRegistration] = useState<TeamRegistration | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Helper para adjuntar el token de admin a las llamadas protegidas
+  const authHeaders = (): HeadersInit => {
+    try {
+      const token = localStorage.getItem('access_token');
+      return token ? { Authorization: `Bearer ${token}` } : {};
+    } catch {
+      return {};
+    }
+  };
+
   // Tipado explícito de la metadata de notificaciones
   interface RegistrationMeta {
     id: number;
@@ -148,10 +158,14 @@ function RegistrationsPage() {
       return;
     }
 
-    // Intentar localizar equipo por nombre en BD
-    let teamDbId: number | null = null;
+    let teamDbId: number | undefined;
+
+    // Intentar localizar equipo por nombre en BD (ruta admin requiere token)
     try {
-      const lookup = await fetch(`/api/tournaments/admin/teams?tournament=${tournamentId}`, { cache: 'no-store' });
+      const lookup = await fetch(
+        `/api/tournaments/admin/teams?tournament=${tournamentId}`,
+        { cache: 'no-store', headers: { ...authHeaders() } }
+      );
       if (lookup.ok) {
         const existingTeams = await lookup.json();
         const found = (Array.isArray(existingTeams) ? existingTeams : []).find((t: any) => t.name === reg.teamName);
@@ -194,9 +208,12 @@ function RegistrationsPage() {
       }
     }
 
-    // 2) Aprobar en BD
+    // 2) Aprobar en BD (requiere admin)
     try {
-      const approve = await fetch(`/api/tournaments/teams/${teamDbId}/approve`, { method: 'POST' });
+      const approve = await fetch(
+        `/api/tournaments/teams/${teamDbId}/approve`,
+        { method: 'POST', headers: { ...authHeaders() } }
+      );
       if (!approve.ok) throw new Error('Error al aprobar equipo en BD');
     } catch (e) {
       console.error(e);
@@ -443,18 +460,3 @@ function RegistrationsPage() {
 
 // Exportar por defecto para cumplir con el contrato de Next.js Page
 export default RegistrationsPage;
-
-
-async function approveTeam(teamId: number) {
-  try {
-    const res = await fetch(`/api/tournaments/teams/${teamId}/approve`, { method: 'POST' });
-    if (!res.ok) throw new Error('No autorizado o error al aprobar');
-    const updated = await res.json();
-    // Actualiza tu estado/localStorage si lo mantienes para UI
-    // y refresca listados desde la API para mantener consistencia
-    toast.success('Equipo aprobado en la base de datos');
-  } catch (e) {
-    console.error(e);
-    toast.error('No se pudo aprobar el equipo');
-  }
-}

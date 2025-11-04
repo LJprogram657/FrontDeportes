@@ -93,6 +93,16 @@ function UpdateTournamentPage() {
   // Estado de edición por partido (inputs controlados)
   const [editState, setEditState] = useState<Record<string, { homeScore: number; awayScore: number; goals?: string; fouls?: string }>>({});
 
+  // Helper para adjuntar el token de admin a llamadas protegidas
+  const authHeaders = (): HeadersInit => {
+    try {
+      const token = localStorage.getItem('access_token');
+      return token ? { Authorization: `Bearer ${token}` } : {};
+    } catch {
+      return {};
+    }
+  };
+
   useEffect(() => {
     if (!selectedTournament) {
       setScheduledMatches({});
@@ -102,7 +112,10 @@ function UpdateTournamentPage() {
 
     (async () => {
       try {
-        const res = await fetch(`/api/tournaments/${selectedTournament.id}/matches`, { cache: 'no-store' });
+        const res = await fetch(`/api/tournaments/${selectedTournament.id}/matches`, {
+          cache: 'no-store',
+          headers: { ...authHeaders() }
+        });
         if (!res.ok) throw new Error('No se pudieron cargar los partidos');
         const list = await res.json();
 
@@ -154,7 +167,7 @@ function UpdateTournamentPage() {
     try {
       const res = await fetch(`/api/matches/${matchId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({
           homeScore: Number(edit.homeScore),
           awayScore: Number(edit.awayScore),
@@ -190,7 +203,10 @@ function UpdateTournamentPage() {
 
   const deleteMatch = async (phase: string, matchId: string) => {
     try {
-      const res = await fetch(`/api/matches/${matchId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/matches/${matchId}`, {
+        method: 'DELETE',
+        headers: { ...authHeaders() }
+      });
       if (!res.ok) throw new Error('Error al eliminar partido');
 
       setScheduledMatches(prev => {

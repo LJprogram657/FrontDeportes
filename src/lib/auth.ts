@@ -6,6 +6,22 @@ import { prisma } from './prisma';
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
 const ACCESS_EXPIRES_IN = '60m';
 
+// Añadir secretos y helpers para refresh
+const REFRESH_SECRET = process.env.REFRESH_SECRET || 'dev-refresh-secret';
+const REFRESH_EXPIRES_IN = '7d';
+
+export function signRefreshToken(payload: object) {
+  return jwt.sign(payload, REFRESH_SECRET, { expiresIn: REFRESH_EXPIRES_IN });
+}
+
+export function verifyRefreshToken(token: string) {
+  try {
+    return jwt.verify(token, REFRESH_SECRET) as any;
+  } catch {
+    return null;
+  }
+}
+
 export async function hashPassword(password: string) {
   const salt = await bcrypt.genSalt(10);
   return bcrypt.hash(password, salt);

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyPassword, signAccessToken } from '@/lib/auth';
+import { verifyPassword, signAccessToken, signRefreshToken } from '@/lib/auth';
 import { ensureAdminExists } from '@/lib/bootstrap';
 
 export async function POST(req: Request) {
@@ -27,12 +27,14 @@ export async function POST(req: Request) {
     }
 
     const access = signAccessToken({ sub: user.id, email: user.email, isAdmin: user.isAdmin });
+    const refresh = signRefreshToken({ sub: user.id, token_id: `${user.id}-${Date.now()}` });
+
     return NextResponse.json(
       {
         success: true,
         message: 'Login exitoso',
         access,
-        refresh: null,
+        refresh,
         user: { id: user.id, username: user.email, email: user.email, is_admin: user.isAdmin },
       },
       { status: 200 }
