@@ -40,7 +40,7 @@ const TournamentPage = async ({ params }: TournamentPageProps) => {
       <main className="main-container">
         <div className="tournament-details">
           <Image 
-            src={tournament.image} 
+            src={tournament.image || '/images/slider1.jpg'}
             alt={tournament.title} 
             width={800} 
             height={400} 

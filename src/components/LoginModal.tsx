@@ -75,6 +75,8 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
             onChange={(e) => setEmail(e.target.value)}
             required 
             disabled={isLoading}
+            autoComplete="email"
+            name="email"
           />
           
           <label htmlFor="password">Contraseña</label>
@@ -86,6 +88,8 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
               onChange={(e) => setPassword(e.target.value)}
               required 
               disabled={isLoading}
+              autoComplete="current-password"
+              name="password"
             />
             <button type="button" onClick={togglePasswordVisibility} className="toggle-password">
               {showPassword ? '👁️' : '👁️‍🗨️'}
@@ -96,7 +100,6 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
             {isLoading ? 'Iniciando...' : 'Acceder'}
           </button>
         </form>
-
       </div>
     </div>
   );

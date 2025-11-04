@@ -253,7 +253,7 @@ class ApiService {
       headers.set('Authorization', `Bearer ${this.accessToken}`);
     }
 
-    const res = await fetch(`/api${path}`, { ...init, headers });
+    const res = await fetch(`/api${path}`, { ...init, headers, credentials: 'include' });
 
     if (res.status !== 401) {
       return res.json();
@@ -265,6 +265,7 @@ class ApiService {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refresh: this.refreshToken }),
+        credentials: 'include'
       });
 
       // Si el endpoint no existe o falla, limpiar sesión y propagar 401
@@ -290,7 +291,7 @@ class ApiService {
         }
         retryHeaders.set('Authorization', `Bearer ${this.accessToken}`);
 
-        const retry = await fetch(`/api${path}`, { ...init, headers: retryHeaders });
+        const retry = await fetch(`/api${path}`, { ...init, headers: retryHeaders, credentials: 'include' });
         return retry.json();
       }
     }
