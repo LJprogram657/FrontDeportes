@@ -81,7 +81,7 @@ const SchedulingPage: React.FC = () => {
         const formattedTournaments: Tournament[] = adminTournaments.map((t: any) => ({
           id: t.id,
           name: t.name,
-          logo: t.logo || '/images/default-tournament.png',
+          logo: t.logo || '/images/logo.png',
           format: t.format === 'round-robin' ? 'todos_contra_todos' : 'eliminatorias',
           phases: t.phases || ['Todos contra Todos'],
           sport: t.modality === 'futsal' ? 'futbol.salon' : 'futbol.7'
@@ -278,7 +278,7 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
           id: `local-team-${r.id}`,
           dbId: (typeof r.dbId === 'number' ? r.dbId : r.id), // ← usa dbId si existe
           name: r.teamName,
-          logo: r.teamLogo || '/images/default-team.png',
+          logo: r.teamLogo || '/images/logo.png',
           source: 'local',
         }));
         // Fusionar evitando duplicados

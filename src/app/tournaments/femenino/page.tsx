@@ -138,12 +138,12 @@ const FemeninoPage = () => {
                 <div key={match.id} className="match-card">
                   <div className="match-teams">
                     <div className="team">
-                      <img src={match.homeTeam?.logo || '/images/default-team.png'} alt={match.homeTeam?.name} />
+                      <img src={match.homeTeam?.logo || '/images/logo.png'} alt={match.homeTeam?.name} />
                       <span>{match.homeTeam?.name || 'TBD'}</span>
                     </div>
                     <div className="vs">VS</div>
                     <div className="team">
-                      <img src={match.awayTeam?.logo || '/images/default-team.png'} alt={match.awayTeam?.name} />
+                      <img src={match.awayTeam?.logo || '/images/logo.png'} alt={match.awayTeam?.name} />
                       <span>{match.awayTeam?.name || 'TBD'}</span>
                     </div>
                   </div>

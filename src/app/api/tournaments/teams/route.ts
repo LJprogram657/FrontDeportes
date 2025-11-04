@@ -50,7 +50,7 @@ export async function POST(req: Request) {
       cedula: (p.cedula ?? '').trim(),
       photo: p.photo ?? null,
     }))
-    .filter((p: NormalizedPlayer) => p.name && p.lastName && p.cedula) // filtra vacíos
+    .filter((p: NormalizedPlayer) => p.name && p.lastName && p.cedula)
     .filter((p: NormalizedPlayer) => {
       if (seenCedulas.has(p.cedula)) return false;
       seenCedulas.add(p.cedula);
@@ -92,7 +92,10 @@ export async function POST(req: Request) {
       }
     }
     console.error('Error al crear equipo:', err);
-    return NextResponse.json({ error: 'Error interno creando el equipo' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Error interno creando el equipo', details: err?.message ?? String(err) },
+      { status: 500 }
+    );
   }
 }
 

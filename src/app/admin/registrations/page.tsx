@@ -197,13 +197,14 @@ function RegistrationsPage() {
         });
         if (!create.ok) {
           const msg = await create.json().catch(() => ({}));
-          throw new Error(msg?.error || 'Error al registrar equipo en BD');
+          const composed = [msg?.error, msg?.details].filter(Boolean).join(' - ') || 'Error al registrar equipo en BD';
+          throw new Error(composed);
         }
         const payload = await create.json();
         teamDbId = Number(payload?.team?.id);
       } catch (e) {
         console.error(e);
-        toast.error('No se pudo crear el equipo en la base de datos');
+        toast.error(e instanceof Error ? e.message : 'No se pudo crear el equipo en la base de datos');
         return;
       }
     }

@@ -20,6 +20,9 @@ export async function POST(request: Request, { params }: { params: { id: string 
       return NextResponse.json({ error: 'Equipo no encontrado' }, { status: 404 });
     }
     console.error('Error aprobando equipo:', err);
-    return NextResponse.json({ error: 'Error interno aprobando el equipo' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Error interno aprobando el equipo', details: err?.message ?? String(err) },
+      { status: 500 }
+    );
   }
 }
