@@ -255,12 +255,11 @@ class ApiService {
 
     const res = await fetch(`/api${path}`, { ...init, headers });
 
-    // Si no es 401, devolver respuesta normal
     if (res.status !== 401) {
       return res.json();
     }
 
-    // Intentar refresh si 401 y hay refresh token
+    // Intento de refresh
     if (this.refreshToken) {
       const refreshRes = await fetch('/api/auth/refresh', {
         method: 'POST',
@@ -268,26 +267,34 @@ class ApiService {
         body: JSON.stringify({ refresh: this.refreshToken }),
       });
 
-      if (refreshRes.ok) {
-        const data = await refreshRes.json();
-        if (data.access) {
-          this.accessToken = data.access;
-          localStorage.setItem('access_token', data.access);
-      
-          // Reintentar la petición original con nuevo access token
-          const retryHeaders = new Headers(init?.headers || {});
-          if (!retryHeaders.has('Content-Type')) {
-            retryHeaders.set('Content-Type', 'application/json');
-          }
-          retryHeaders.set('Authorization', `Bearer ${this.accessToken}`);
-      
-          const retry = await fetch(`/api${path}`, { ...init, headers: retryHeaders });
-          return retry.json();
+      // Si el endpoint no existe o falla, limpiar sesión y propagar 401
+      if (!refreshRes.ok) {
+        this.accessToken = null;
+        this.refreshToken = null;
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody?.message || 'No autorizado');
+      }
+
+      // Guardar nuevo access y reintentar
+      const data = await refreshRes.json();
+      if (data?.access) {
+        this.accessToken = data.access;
+        localStorage.setItem('access_token', data.access);
+
+        const retryHeaders = new Headers(init?.headers || {});
+        if (!retryHeaders.has('Content-Type')) {
+          retryHeaders.set('Content-Type', 'application/json');
         }
+        retryHeaders.set('Authorization', `Bearer ${this.accessToken}`);
+
+        const retry = await fetch(`/api${path}`, { ...init, headers: retryHeaders });
+        return retry.json();
       }
     }
 
-    // Si no hubo refresh o falló, propagar error
     const errBody = await res.json().catch(() => ({}));
     throw new Error(errBody?.message || 'No autorizado');
   }
@@ -320,6 +327,13 @@ class ApiService {
 
   getAccessToken(): string | null {
     return this.accessToken;
+  }
+
+  async createTournament(payload: any): Promise<any> {
+    return this.authorizedFetch('/tournaments/', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
   }
 }
 

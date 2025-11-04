@@ -3,9 +3,9 @@ import { prisma } from '@/lib/prisma';
 import { verifyPassword, signAccessToken, signRefreshToken } from '@/lib/auth';
 import { ensureAdminExists } from '@/lib/bootstrap';
 
-export async function POST(req: Request) {
+export async function POST(request: Request) {
   try {
-    const { email, password } = await req.json();
+    const { email, password } = await request.json();
     if (!email || !password) {
       return NextResponse.json(
         { success: false, message: 'Datos inválidos', errors: { email: ['Email y contraseña requeridos'] } },
@@ -26,19 +26,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, message: 'Credenciales inválidas o no autorizado' }, { status: 401 });
     }
 
-    const access = signAccessToken({ sub: user.id, email: user.email, isAdmin: user.isAdmin });
-    const refresh = signRefreshToken({ sub: user.id, token_id: `${user.id}-${Date.now()}` });
-
-    return NextResponse.json(
-      {
-        success: true,
-        message: 'Login exitoso',
-        access,
-        refresh,
-        user: { id: user.id, username: user.email, email: user.email, is_admin: user.isAdmin },
-      },
-      { status: 200 }
-    );
+    // Tras validar credenciales y obtener el usuario desde Prisma:
+    // Asegúrate de tener disponible la variable `user` aquí (usuario válido).
+    // Supone que ya has buscado y validado al usuario en Prisma: const user = ...
+    const userJwt = { sub: user.id, email: user.email, isAdmin: user.isAdmin };
+    
+    const access = signAccessToken(userJwt);
+    const refresh = signRefreshToken(userJwt);
+    
+    return NextResponse.json({ access, refresh, user: userJwt }, { status: 200 });
   } catch (e: any) {
     console.error('Login error:', e);
     return NextResponse.json({ success: false, message: 'Error interno del servidor' }, { status: 500 });
