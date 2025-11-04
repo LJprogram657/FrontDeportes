@@ -71,20 +71,20 @@ const SchedulingPage: React.FC = () => {
   const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Cargar torneos reales del localStorage
+  // Cargar torneos reales desde BD
   useEffect(() => {
-    const loadTournaments = () => {
+    const loadTournaments = async () => {
       try {
-        const adminTournaments = JSON.parse(localStorage.getItem('admin_created_tournaments') || '[]');
+        const res = await fetch('/api/tournaments', { cache: 'no-store' });
+        const list = await res.json();
 
-        // Convertir al formato esperado
-        const formattedTournaments: Tournament[] = adminTournaments.map((t: any) => ({
+        const formattedTournaments: Tournament[] = (Array.isArray(list) ? list : []).map((t: any) => ({
           id: t.id,
           name: t.name,
           logo: t.logo || '/images/logo.png',
-          format: t.format === 'round-robin' ? 'todos_contra_todos' : 'eliminatorias',
-          phases: t.phases || ['Todos contra Todos'],
-          sport: t.modality === 'futsal' ? 'futbol.salon' : 'futbol.7'
+          format: 'todos_contra_todos',
+          phases: ['Todos contra Todos'],
+          sport: 'futbol.salon', // default; las canchas mock soportan ambos
         }));
 
         setTournaments(formattedTournaments);
@@ -251,71 +251,33 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
   // Filtrar canchas por deporte del torneo
   const filteredVenues = venues.filter(v => v.sports.includes(tournament.sport));
 
-  // Cargar equipos registrados reales (API)
+  // Cargar equipos registrados reales (API) sin mezclar con localStorage
   const loadRegisteredTeams = useCallback(async () => {
     try {
       const res = await fetch(`/api/tournaments/${tournament.id}/teams`, {
         cache: 'no-store',
         headers: { ...authHeaders() }
       });
+      if (!res.ok) {
+        const msg = await res.json().catch(() => ({}));
+        throw new Error(msg?.error || 'No se pudieron cargar los equipos');
+      }
       const serverTeams = await res.json();
-      let unique: Team[] = (Array.isArray(serverTeams) ? serverTeams : []).map((t: any) => ({
+      const unique: Team[] = (Array.isArray(serverTeams) ? serverTeams : []).map((t: any) => ({
         id: `team-${t.id}`,
         dbId: Number(t.id),
         name: t.name,
-        logo: t.logo || '/images/default-team.png',
+        logo: t.logo || '/images/logo.png',
         source: 'server',
       }));
-
-      // Fallback/merge: también cargar aprobados desde localStorage
-      try {
-        const ls = JSON.parse(localStorage.getItem('team_registrations') || '[]');
-        const approved = ls.filter((r: any) =>
-          r.status === 'approved' &&
-          ((r.tournamentId ?? r.tournament?.id) === tournament.id)
-        );
-        const localTeams: Team[] = approved.map((r: any) => ({
-          id: `local-team-${r.id}`,
-          dbId: (typeof r.dbId === 'number' ? r.dbId : r.id), // ← usa dbId si existe
-          name: r.teamName,
-          logo: r.teamLogo || '/images/logo.png',
-          source: 'local',
-        }));
-        // Fusionar evitando duplicados
-        const byKey = new Map<string, Team>();
-        [...unique, ...localTeams].forEach(t => {
-          byKey.set(`${t.dbId}-${t.name}`, t);
-        });
-        unique = Array.from(byKey.values());
-      } catch (e) {
-        // Ignorar errores de parseo de localStorage
-      }
-
       setAvailableTeams(unique);
     } catch (error) {
       console.error('Error cargando equipos:', error);
-      // Fallback final: solo localStorage
-      try {
-        const ls = JSON.parse(localStorage.getItem('team_registrations') || '[]');
-        const approved = ls.filter((r: any) =>
-          r.status === 'approved' &&
-          ((r.tournamentId ?? r.tournament?.id) === tournament.id)
-        );
-        const localTeams: Team[] = approved.map((r: any) => ({
-          id: `local-team-${r.id}`,
-          dbId: r.dbId ?? r.id,
-          name: r.teamName,
-          logo: r.teamLogo || '/images/default-team.png',
-          source: 'local',
-        }));
-        setAvailableTeams(localTeams);
-      } catch (e) {
-        setAvailableTeams([]);
-      }
+      toast.error('No se pudieron cargar los equipos del torneo');
+      setAvailableTeams([]);
     }
   }, [tournament.id]);
 
-  // Cargar al montar/actualizar torneo
   useEffect(() => {
     loadRegisteredTeams();
   }, [loadRegisteredTeams]);

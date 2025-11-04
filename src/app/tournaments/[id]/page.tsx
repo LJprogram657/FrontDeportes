@@ -1,36 +1,28 @@
 import React from 'react';
-import tournaments from '@/data/tournaments.json';
 import { notFound } from 'next/navigation';
 import TournamentDetails from '@/components/TournamentDetails';
 import BackButton from '@/components/BackButton';
 import Image from 'next/image';
 
-// Interfaz actualizada para Next.js 15 con params asíncrono
 interface TournamentPageProps {
   params: { id: string };
-}
-
-// Tipado explícito del JSON para evitar 'never'
-interface TournamentData {
-  id: number;
-  title: string;
-  description: string;
-  image: string;
 }
 
 const TournamentPage = async ({ params }: TournamentPageProps) => {
   const { id } = params;
 
-  // Cast seguro del JSON; si está vacío, el array será []
-  const tournamentsData: TournamentData[] = Array.isArray(tournaments)
-    ? (tournaments as unknown as TournamentData[])
-    : [];
-
-  const tournament = tournamentsData.find(t => t.id === parseInt(id, 10));
-
-  if (!tournament) {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? ''}/api/tournaments/${id}`, { cache: 'no-store' });
+  if (!res.ok) {
     notFound();
   }
+  const t = await res.json();
+
+  const tournament = {
+    id: t.id,
+    title: t.name,
+    description: t.description ?? 'Torneo',
+    image: t.logo || '/images/slider1.jpg',
+  };
 
   return (
     <div className="container">

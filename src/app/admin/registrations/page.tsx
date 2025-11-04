@@ -28,20 +28,17 @@ interface TeamRegistration {
   status: 'pending' | 'approved' | 'rejected';
   contactPerson: string;
   notes?: string;
-  // Fallback opcional si algunos registros guardaron solo el id
   tournamentId?: number;
-  dbId?: number; // ← ID real en BD cuando se sincroniza
+  dbId?: number;
 }
 
-// RegistrationsPage component (cliente)
-function RegistrationsPage() {
+export default function RegistrationsPage() {
   const [registrations, setRegistrations] = useState<TeamRegistration[]>([]);
   const [selectedTournament, setSelectedTournament] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedRegistration, setSelectedRegistration] = useState<TeamRegistration | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Helper para adjuntar el token de admin a las llamadas protegidas
   const authHeaders = (): HeadersInit => {
     try {
       const token = localStorage.getItem('access_token');
@@ -51,7 +48,6 @@ function RegistrationsPage() {
     }
   };
 
-  // Tipado explícito de la metadata de notificaciones
   interface RegistrationMeta {
     id: number;
     dismissed?: boolean;
@@ -61,18 +57,63 @@ function RegistrationsPage() {
   const [registrationsMeta, setRegistrationsMeta] = useState<RegistrationMeta[]>([]);
   const [showDismissed, setShowDismissed] = useState<boolean>(false);
 
-  // Cargar datos desde localStorage (si existen)
+  // Cargar notificaciones/meta desde localStorage si existen
   useEffect(() => {
     try {
-      const savedRegs = localStorage.getItem('team_registrations');
       const savedMeta = localStorage.getItem('team_registrations_meta');
-      if (savedRegs) setRegistrations(JSON.parse(savedRegs));
       if (savedMeta) setRegistrationsMeta(JSON.parse(savedMeta));
     } catch {
       // Ignorar errores de parseo
-    } finally {
-      setIsLoading(false);
     }
+  }, []);
+
+  // Cargar registros desde API admin (elimina dependencia de localStorage)
+  useEffect(() => {
+    const loadRegistrations = async () => {
+      setIsLoading(true);
+      try {
+        const res = await fetch(`/api/tournaments/admin/teams`, {
+          cache: 'no-store',
+          headers: { ...authHeaders() },
+        });
+        if (!res.ok) throw new Error('No autorizado o error al cargar equipos');
+        const teams = await res.json();
+        const mapped: TeamRegistration[] = (Array.isArray(teams) ? teams : []).map((t: any) => ({
+          id: Number(t.id),
+          teamName: t.name,
+          teamLogo: t.logo || '/images/default-team.png',
+          contactNumber: t.contact_number || '',
+          contactPerson: t.contact_person || '',
+          tournament: {
+            id: Number(t.tournament?.id ?? t.tournamentId ?? 0),
+            name: t.tournament?.name ?? '',
+            code: t.tournament?.code ?? '',
+            logo: t.tournament?.logo ?? '/images/default-tournament.png',
+          },
+          players: Array.isArray(t.players)
+            ? t.players.map((p: any) => ({
+                id: Number(p.id ?? 0),
+                name: p.name ?? '',
+                lastName: p.lastName ?? '',
+                cedula: p.cedula ?? '',
+                photo: p.photo ?? '',
+              }))
+            : [],
+          registrationDate: t.createdAt ?? new Date().toISOString(),
+          status: (t.status as 'pending' | 'approved' | 'rejected') ?? 'pending',
+          tournamentId: Number(t.tournamentId ?? t.tournament?.id ?? 0),
+          dbId: Number(t.id),
+          notes: t.notes ?? '',
+        }));
+        setRegistrations(mapped);
+      } catch (e) {
+        console.error(e);
+        setRegistrations([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadRegistrations();
   }, []);
 
   // Marcar notificación como oculta sin borrar el registro aprobado
@@ -112,82 +153,35 @@ function RegistrationsPage() {
     return true;
   });
 
-  // Aprobar en lote los registros visibles según filtros
-  const approveVisibleRegistrations = async () => {
-    const pending = filteredRegistrations.filter((r) => r.status !== 'approved');
-    if (pending.length === 0) return;
-    for (const r of pending) {
-      await updateRegistrationStatus(r.id, 'approved');
-    }
-    toast.success(`Aprobados y sincronizados ${pending.length} registros`);
-  };
-
-  // Eliminar registro: si está aprobado, solo ocultar la notificación
-  const handleDeleteRegistration = (reg: TeamRegistration) => {
-    if (reg.status === 'approved') {
-      dismissNotification(reg.id);
-      return;
-    }
-    const updatedRegistrations: TeamRegistration[] = registrations.filter((r) => r.id !== reg.id);
-    setRegistrations(updatedRegistrations);
-    localStorage.setItem('team_registrations', JSON.stringify(updatedRegistrations));
-
-    const updatedMeta = registrationsMeta.filter((m) => m.id !== reg.id);
-    setRegistrationsMeta(updatedMeta);
-    localStorage.setItem('team_registrations_meta', JSON.stringify(updatedMeta));
-  };
-
-  // Actualizar estado del registro (approve/reject)
-  const updateRegistrationStatus = async (regId: number, status: 'approved' | 'rejected' | 'pending') => {
-    const reg = registrations.find(r => r.id === regId);
-    if (!reg) return;
-
-    // Si no es aprobación, sigue como antes
-    if (status !== 'approved') {
-      const next: TeamRegistration[] = registrations.map((r) => (r.id === regId ? { ...r, status } : r));
-      setRegistrations(next);
-      localStorage.setItem('team_registrations', JSON.stringify(next));
-      toast.success(`Estado actualizado a: ${status}`);
-      return;
-    }
-
-    // 1) Asegurar que el equipo exista en BD para este torneo
-    const tournamentId = reg.tournament?.id ?? reg.tournamentId;
-    if (!tournamentId) {
-      toast.error('No se pudo determinar el torneo del registro');
-      return;
-    }
-
-    let teamDbId: number | undefined;
-
-    // Intentar localizar equipo por nombre en BD (ruta admin requiere token)
+  // Aprobar registro: asegura existencia en BD (crea si falta) y aprueba
+  const approveRegistration = async (reg: TeamRegistration) => {
     try {
-      const lookup = await fetch(
-        `/api/tournaments/admin/teams?tournament=${tournamentId}`,
-        { cache: 'no-store', headers: { ...authHeaders() } }
-      );
-      if (lookup.ok) {
-        const existingTeams = await lookup.json();
-        const found = (Array.isArray(existingTeams) ? existingTeams : []).find((t: any) => t.name === reg.teamName);
-        if (found) teamDbId = Number(found.id);
+      let teamDbId = reg.dbId;
+      const tournamentId = reg.tournamentId ?? reg.tournament?.id;
+      // Si no hay dbId, intenta buscar por nombre
+      if (!teamDbId) {
+        const lookup = await fetch(
+          `/api/tournaments/admin/teams?tournament=${tournamentId}`,
+          { cache: 'no-store', headers: { ...authHeaders() } }
+        );
+        if (lookup.ok) {
+          const existingTeams = await lookup.json();
+          const found = (Array.isArray(existingTeams) ? existingTeams : []).find((t: any) => t.name === reg.teamName);
+          if (found) teamDbId = Number(found.id);
+        }
       }
-    } catch {
-      // Ignorar fallos de lookup
-    }
-
-    // Si no existe en BD, crearlo
-    if (!teamDbId) {
-      try {
+      // Si sigue sin existir, crearlo
+      if (!teamDbId) {
         const create = await fetch(`/api/tournaments/teams`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            tournament: Number(tournamentId),
+            tournament: tournamentId,
             name: reg.teamName,
             logo: reg.teamLogo ?? null,
             contact_person: reg.contactPerson,
             contact_number: reg.contactNumber,
-            players: (Array.isArray(reg.players) ? reg.players : []).map((p) => ({
+            players: (reg.players || []).map((p) => ({
               name: p.name,
               lastName: p.lastName,
               cedula: p.cedula,
@@ -202,33 +196,88 @@ function RegistrationsPage() {
         }
         const payload = await create.json();
         teamDbId = Number(payload?.team?.id);
-      } catch (e) {
-        console.error(e);
-        toast.error(e instanceof Error ? e.message : 'No se pudo crear el equipo en la base de datos');
-        return;
       }
-    }
-
-    // 2) Aprobar en BD (requiere admin)
-    try {
-      const approve = await fetch(
-        `/api/tournaments/teams/${teamDbId}/approve`,
-        { method: 'POST', headers: { ...authHeaders() } }
-      );
-      if (!approve.ok) throw new Error('Error al aprobar equipo en BD');
+      // Aprobar
+      const approve = await fetch(`/api/tournaments/teams/${teamDbId}/approve`, {
+        method: 'POST',
+        headers: { ...authHeaders() },
+      });
+      if (!approve.ok) {
+        const msg = await approve.json().catch(() => ({}));
+        const composed = [msg?.error, msg?.details].filter(Boolean).join(' - ') || 'Error al aprobar equipo';
+        throw new Error(composed);
+      }
+      // Actualiza estado local
+      setRegistrations((prev) => prev.map((r) => (r.id === reg.id ? { ...r, status: 'approved', dbId: teamDbId } : r)));
+      toast.success('Equipo aprobado y sincronizado');
     } catch (e) {
       console.error(e);
-      toast.error('No se pudo aprobar el equipo en la base de datos');
+      toast.error(e instanceof Error ? e.message : 'Error al aprobar');
+    }
+  };
+
+  const rejectRegistration = async (reg: TeamRegistration) => {
+    try {
+      const teamId = reg.dbId;
+      if (!teamId) throw new Error('Equipo no sincronizado en BD');
+      const res = await fetch(`/api/tournaments/teams/${teamId}/reject`, {
+        method: 'POST',
+        headers: { ...authHeaders() },
+      });
+      if (!res.ok) {
+        const msg = await res.json().catch(() => ({}));
+        const composed = [msg?.error, msg?.details].filter(Boolean).join(' - ') || 'Error al rechazar equipo';
+        throw new Error(composed);
+      }
+      setRegistrations((prev) => prev.map((r) => (r.id === reg.id ? { ...r, status: 'rejected' } : r)));
+      toast.success('Equipo rechazado');
+    } catch (e) {
+      console.error(e);
+      toast.error(e instanceof Error ? e.message : 'Error al rechazar');
+    }
+  };
+
+  const deleteRegistration = async (reg: TeamRegistration) => {
+    try {
+      const teamId = reg.dbId;
+      if (!teamId) throw new Error('Equipo no sincronizado en BD');
+      const res = await fetch(`/api/tournaments/admin/teams/${teamId}`, {
+        method: 'DELETE',
+        headers: { ...authHeaders() },
+      });
+      if (!res.ok) {
+        const msg = await res.json().catch(() => ({}));
+        const composed = [msg?.error, msg?.details].filter(Boolean).join(' - ') || 'Error al eliminar equipo';
+        throw new Error(composed);
+      }
+      setRegistrations((prev) => prev.filter((r) => r.id !== reg.id));
+      toast.success('Equipo eliminado');
+    } catch (e) {
+      console.error(e);
+      toast.error(e instanceof Error ? e.message : 'Error al eliminar');
+    }
+  };
+
+  // Aprobar en lote los registros visibles según filtros
+  const approveVisibleRegistrations = async () => {
+    const pending = filteredRegistrations.filter((r) => r.status !== 'approved');
+    if (pending.length === 0) return;
+    for (const r of pending) {
+      await approveRegistration(r);
+    }
+    toast.success(`Aprobados y sincronizados ${pending.length} registros`);
+  };
+
+  // Eliminar registro: si está aprobado, solo ocultar la notificación
+  const handleDeleteRegistration = async (reg: TeamRegistration) => {
+    if (reg.status === 'approved') {
+      dismissNotification(reg.id);
       return;
     }
-
-    // 3) Actualizar localStorage con estado y dbId real
-    const next: TeamRegistration[] = registrations.map((r) =>
-      r.id === regId ? { ...r, status: 'approved', dbId: teamDbId! } : r
-    );
-    setRegistrations(next);
-    localStorage.setItem('team_registrations', JSON.stringify(next));
-    toast.success('Equipo aprobado y sincronizado en la base de datos');
+    await deleteRegistration(reg);
+    const updatedMeta = registrationsMeta.filter((m) => m.id !== reg.id);
+    setRegistrationsMeta(updatedMeta);
+    localStorage.setItem('team_registrations_meta', JSON.stringify(updatedMeta));
   };
 
   // Métricas visibles (según torneo seleccionado y ocultando dismissed)
@@ -257,7 +306,6 @@ function RegistrationsPage() {
       <div className="registrations-container">
         <div className="filters-section">
           <div className="filters-grid">
-            {/* Torneo */}
             <div className="filter-group">
               <label>Torneo</label>
               <select value={selectedTournament} onChange={(e) => setSelectedTournament(e.target.value)}>
@@ -275,7 +323,6 @@ function RegistrationsPage() {
                 ))}
               </select>
             </div>
-            {/* Estado */}
             <div className="filter-group">
               <label>Estado</label>
               <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)}>
@@ -285,28 +332,19 @@ function RegistrationsPage() {
                 <option value="rejected">Rechazado</option>
               </select>
             </div>
-            {/* Mostrar ocultas */}
             <div className="filter-group">
               <label>Notificaciones</label>
               <label style={{ fontWeight: 400 }}>
-                <input
-                  type="checkbox"
-                  checked={showDismissed}
-                  onChange={(e) => setShowDismissed(e.target.checked)}
-                /> Mostrar ocultas
+                <input type="checkbox" checked={showDismissed} onChange={(e) => setShowDismissed(e.target.checked)} /> Mostrar ocultas
               </label>
             </div>
-            {/* Acción en lote */}
             <div className="filter-group">
               <label>Acciones</label>
-              <button className="btn-success" onClick={approveVisibleRegistrations}>
-                Aprobar visibles
-              </button>
+              <button className="btn-success" onClick={approveVisibleRegistrations}>Aprobar visibles</button>
             </div>
           </div>
         </div>
 
-        {/* Métricas */}
         <div className="registrations-stats">
           <div className="stat-card">
             <h4>Total</h4>
@@ -326,7 +364,6 @@ function RegistrationsPage() {
           </div>
         </div>
 
-        {/* Listado y detalle */}
         {isLoading ? (
           <p>Cargando...</p>
         ) : filteredRegistrations.length === 0 ? (
@@ -340,11 +377,7 @@ function RegistrationsPage() {
                   <div key={r.id} className="registration-card">
                     <div className="registration-header">
                       <div className="team-info">
-                        <img
-                          className="team-logo-small"
-                          src={r.teamLogo || '/images/default-team.png'}
-                          alt={r.teamName}
-                        />
+                        <img className="team-logo-small" src={r.teamLogo || '/images/default-team.png'} alt={r.teamName} />
                         <div>
                           <strong>{r.teamName}</strong>
                           <div style={{ fontSize: '0.9rem', color: '#666' }}>
@@ -363,26 +396,16 @@ function RegistrationsPage() {
                     </div>
 
                     <div className="action-buttons">
-                      <button className="btn-success" onClick={() => updateRegistrationStatus(r.id, 'approved')}>
-                        Aprobar
-                      </button>
-                      <button className="btn-danger" onClick={() => updateRegistrationStatus(r.id, 'rejected')}>
-                        Rechazar
-                      </button>
+                      <button className="btn-success" onClick={() => approveRegistration(r)}>Aprobar</button>
+                      <button className="btn-danger" onClick={() => rejectRegistration(r)}>Rechazar</button>
 
                       {meta?.dismissed ? (
-                        <button className="btn btn-secondary" onClick={() => undismissNotification(r.id)}>
-                          Restaurar notificación
-                        </button>
+                        <button className="btn btn-secondary" onClick={() => undismissNotification(r.id)}>Restaurar notificación</button>
                       ) : (
-                        <button className="btn btn-danger" onClick={() => handleDeleteRegistration(r)}>
-                          Eliminar
-                        </button>
+                        <button className="btn btn-danger" onClick={() => handleDeleteRegistration(r)}>Eliminar</button>
                       )}
 
-                      <button className="btn btn-secondary" onClick={() => setSelectedRegistration(r)}>
-                        Ver detalle
-                      </button>
+                      <button className="btn btn-secondary" onClick={() => setSelectedRegistration(r)}>Ver detalle</button>
                     </div>
                   </div>
                 );
@@ -393,29 +416,19 @@ function RegistrationsPage() {
               <div className="registration-detail">
                 <div className="detail-header">
                   <h4>Detalle de registro: {selectedRegistration.teamName}</h4>
-                  <button className="btn btn-secondary" onClick={() => setSelectedRegistration(null)}>
-                    Cerrar
-                  </button>
+                  <button className="btn btn-secondary" onClick={() => setSelectedRegistration(null)}>Cerrar</button>
                 </div>
                 <div className="detail-content">
                   <div className="team-section">
                     <div className="team-header">
-                      <img
-                        className="team-logo-large"
-                        src={selectedRegistration.teamLogo || '/images/default-team.png'}
-                        alt={selectedRegistration.teamName}
-                      />
+                      <img className="team-logo-large" src={selectedRegistration.teamLogo || '/images/default-team.png'} alt={selectedRegistration.teamName} />
                       <div>
                         <strong>{selectedRegistration.teamName}</strong>
                         <div style={{ color: '#666' }}>
-                          {selectedRegistration.tournament?.name ||
-                            selectedRegistration.tournament?.code ||
-                            selectedRegistration.tournamentId}
+                          {selectedRegistration.tournament?.name || selectedRegistration.tournament?.code || selectedRegistration.tournamentId}
                         </div>
                         <div>
-                          Estado: <span className={`status-badge ${selectedRegistration.status}`}>
-                            {selectedRegistration.status}
-                          </span>
+                          Estado: <span className={`status-badge ${selectedRegistration.status}`}>{selectedRegistration.status}</span>
                         </div>
                       </div>
                     </div>
@@ -438,15 +451,9 @@ function RegistrationsPage() {
 
                   <div className="actions-section">
                     <div className="action-buttons">
-                      <button className="btn-success" onClick={() => updateRegistrationStatus(selectedRegistration.id, 'approved')}>
-                        Aprobar
-                      </button>
-                      <button className="btn-danger" onClick={() => updateRegistrationStatus(selectedRegistration.id, 'rejected')}>
-                        Rechazar
-                      </button>
-                      <button className="btn btn-danger" onClick={() => handleDeleteRegistration(selectedRegistration)}>
-                        Eliminar
-                      </button>
+                      <button className="btn-success" onClick={() => approveRegistration(selectedRegistration)}>Aprobar</button>
+                      <button className="btn-danger" onClick={() => rejectRegistration(selectedRegistration)}>Rechazar</button>
+                      <button className="btn btn-danger" onClick={() => handleDeleteRegistration(selectedRegistration)}>Eliminar</button>
                     </div>
                   </div>
                 </div>
@@ -458,6 +465,3 @@ function RegistrationsPage() {
     </>
   );
 }
-
-// Exportar por defecto para cumplir con el contrato de Next.js Page
-export default RegistrationsPage;

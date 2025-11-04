@@ -103,7 +103,43 @@ function UpdateTournamentPage() {
     }
   };
 
+  // Cargar torneos EXCLUSIVAMENTE desde BD
   useEffect(() => {
+    const loadTournaments = async () => {
+      try {
+        const res = await fetch('/api/tournaments', { cache: 'no-store', headers: { ...authHeaders() } });
+        if (!res.ok) throw new Error('No se pudieron cargar los torneos');
+        const data = await res.json();
+        const withPhases = (Array.isArray(data) ? data : []).map((t: any) => ({
+          id: t.id,
+          name: t.name,
+          description: '',
+          sport: 'futbol',
+          category: t.category,
+          startDate: t.start_date ? new Date(t.start_date).toISOString().slice(0, 10) : '',
+          endDate: '',
+          registrationDeadline: t.registration_deadline ? new Date(t.registration_deadline).toISOString().slice(0, 10) : '',
+          maxTeams: t.max_teams ?? 16,
+          location: '',
+          format: 'round_robin',
+          prizePool: '',
+          status: t.status,
+          phases: ['round_robin'],
+          logo: t.logo || '/images/logo.png',
+          origin: 'created',
+          modality: 'futsal',
+        }));
+        setTournaments(withPhases);
+        setIsLoading(false);
+      } catch (error) {
+        console.error(error);
+        setTournaments([]);
+        setIsLoading(false);
+      }
+    };
+    loadTournaments();
+  }, []);
+
     if (!selectedTournament) {
       setScheduledMatches({});
       setEditState({});

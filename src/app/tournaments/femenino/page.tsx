@@ -35,22 +35,50 @@ const FemeninoPage = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const loadData = () => {
+    const loadData = async () => {
       try {
-        // Cargar torneos femeninos del localStorage
-        const adminTournaments = JSON.parse(localStorage.getItem('admin_created_tournaments') || '[]');
-        const feminineTournaments = adminTournaments.filter((t: Tournament) => t.category === 'femenino');
+        const res = await fetch('/api/tournaments/active?category=femenino', { cache: 'no-store' });
+        if (!res.ok) throw new Error('No se pudieron cargar torneos femeninos');
+        const list = await res.json();
+
+        const feminineTournaments = (Array.isArray(list) ? list : []).map((t: any) => ({
+          id: t.id,
+          name: t.name,
+          logo: t.logo || '/images/logo.png',
+          category: 'femenino',
+          modality: 'futsal',
+          status: t.status,
+          startDate: t.start_date ? new Date(t.start_date).toISOString().slice(0, 10) : undefined,
+          endDate: undefined,
+          description: undefined,
+        }));
         setTournaments(feminineTournaments);
 
-        // Cargar partidos programados (si existen)
-        const scheduledMatches = JSON.parse(localStorage.getItem('scheduled_matches') || '[]');
-        const feminineMatches = scheduledMatches.filter((match: any) => {
-          const tournament = feminineTournaments.find((t: Tournament) => t.id === match.tournamentId);
-          return tournament !== undefined;
-        });
-        setMatches(feminineMatches);
+        // Cargar próximos partidos por torneo (público)
+        const allMatches: Match[] = [];
+        for (const t of feminineTournaments) {
+          const mRes = await fetch(`/api/tournaments/${t.id}/matches`, { cache: 'no-store' });
+          if (!mRes.ok) continue;
+          const mList = await mRes.json();
+          const mapped: Match[] = (Array.isArray(mList) ? mList : [])
+            .filter((m: any) => m.status === 'scheduled')
+            .map((m: any) => ({
+              id: String(m.id),
+              phase: m.phase || 'Sin Fase',
+              homeTeam: m.homeTeam ? { name: m.homeTeam.name, logo: m.homeTeam.logo } : null,
+              awayTeam: m.awayTeam ? { name: m.awayTeam.name, logo: m.awayTeam.logo } : null,
+              date: m.date ? new Date(m.date).toISOString().slice(0, 10) : undefined,
+              time: m.time ?? undefined,
+              venue: m.venue ?? undefined,
+              status: 'scheduled',
+            }));
+          allMatches.push(...mapped);
+        }
+        setMatches(allMatches);
       } catch (error) {
         console.error('Error cargando datos:', error);
+        setTournaments([]);
+        setMatches([]);
       } finally {
         setIsLoading(false);
       }

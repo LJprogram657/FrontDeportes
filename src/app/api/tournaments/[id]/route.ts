@@ -28,3 +28,38 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
 
   return NextResponse.json({ message: 'Torneo eliminado' }, { status: 200 });
 }
+
+export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+  const admin = await requireAdmin(request as any);
+  if (!admin) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+
+  const id = Number(params.id);
+  const body = await request.json();
+
+  const statusStr = body.status ? String(body.status).toLowerCase() : null;
+  if (statusStr && !['active', 'upcoming', 'finished'].includes(statusStr)) {
+    return NextResponse.json({ error: 'Estado inválido' }, { status: 400 });
+  }
+
+  const updated = await prisma.tournament.update({
+    where: { id },
+    data: {
+      status: statusStr ? (statusStr as any) : undefined,
+      registrationDeadline: body.registration_deadline ? new Date(body.registration_deadline) : undefined,
+      startDate: body.start_date ? new Date(body.start_date) : undefined,
+      endDate: body.end_date ? new Date(body.end_date) : undefined,
+      logo: body.logo ?? undefined,
+      description: body.description ?? undefined,
+      maxTeams: body.max_teams ? Number(body.max_teams) : undefined,
+      location: body.location ?? undefined,
+      prizePool: body.prize_pool ?? undefined,
+      format: body.format ? (String(body.format) as any) : undefined,
+    },
+    select: {
+      id: true, name: true, code: true, category: true, logo: true, status: true,
+      startDate: true, registrationDeadline: true, maxTeams: true,
+    },
+  });
+
+  return NextResponse.json(updated, { status: 200 });
+}

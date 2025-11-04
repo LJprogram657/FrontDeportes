@@ -52,80 +52,104 @@ const CreateTournamentPage: React.FC = () => {
 
   const router = useRouter();
 
-  // Cargar torneos creados al inicializar
+  // Header de autorización para admin (token)
+  const authHeaders = (): HeadersInit => {
+    try {
+      const token = localStorage.getItem('access_token');
+      return token ? { Authorization: `Bearer ${token}` } : {};
+    } catch {
+      return {};
+    }
+  };
+
+  // Cargar torneos desde BD
   useEffect(() => {
-    const loadCreatedTournaments = () => {
+    const loadCreatedTournaments = async () => {
       try {
-        const stored = localStorage.getItem('admin_created_tournaments');
-        if (stored) {
-          const tournaments = JSON.parse(stored);
-          setCreatedTournaments(tournaments);
-        }
+        const res = await fetch('/api/tournaments', { cache: 'no-store', headers: { ...authHeaders() } });
+        if (!res.ok) throw new Error('No se pudieron cargar los torneos');
+        const data = await res.json();
+
+        const mapped = (Array.isArray(data) ? data : []).map((t: any) => ({
+          id: t.id,
+          name: t.name,
+          description: '',
+          sport: 'futbol',
+          category: t.category,
+          modality: 'futsal',
+          startDate: t.start_date ? new Date(t.start_date).toISOString().slice(0, 10) : '',
+          endDate: '',
+          registrationDeadline: t.registration_deadline ? new Date(t.registration_deadline).toISOString().slice(0, 10) : '',
+          maxTeams: t.max_teams ?? 16,
+          location: '',
+          format: 'round_robin',
+          prizePool: '',
+          status: t.status,
+          logo: t.logo || '/images/logo.png',
+          origin: 'created',
+          phases: ['round_robin'],
+        }));
+        setCreatedTournaments(mapped);
       } catch (error) {
         console.error('Error loading tournaments:', error);
+        setCreatedTournaments([]);
       }
     };
 
     loadCreatedTournaments();
   }, []);
 
-  const createAndRedirect = (base: { name: string; logo?: string | null; category: 'femenino' | 'masculino'; modality: 'futsal' | 'futbol7'; description?: string }) => {
-    const getDefaultLogo = (category: 'femenino' | 'masculino', modality: 'futsal' | 'futbol7') => {
-      if (category === 'femenino' && modality === 'futsal') {
-        return '/images/femenino-futsal-1.png';
-      } else if (category === 'femenino' && modality === 'futbol7') {
-        return '/images/femenino-f7-1.png';
-      } else if (category === 'masculino' && modality === 'futsal') {
-        return '/images/masculino-futsal-1.png';
-      } else if (category === 'masculino' && modality === 'futbol7') {
-        return '/images/masculino-f7-1.png';
-      }
-      return '/images/logo.png'; // Fallback
-    };
-
-    const newTournament = {
-      id: Date.now(),
-      name: base.name,
-      description: base.description || `Torneo de ${base.modality} ${base.category}`,
-      sport: 'futbol',
-      category: base.category,
-      modality: base.modality,
-      startDate: '',
-      endDate: '',
-      registrationDeadline: '',
-      maxTeams: 16,
-      location: '',
-      format: 'round-robin',
-      prizePool: '',
-      status: 'upcoming' as const,
-      logo: base.logo || getDefaultLogo(base.category, base.modality),
-      origin: 'created' as const,
-      phases: ['round_robin']
-    };
-
-    const key = 'admin_created_tournaments';
+  const createAndRedirect = async (base: { name: string; logo?: string | null; category: 'femenino' | 'masculino'; modality: 'futsal' | 'futbol7'; description?: string }) => {
     try {
-      const list = JSON.parse(localStorage.getItem(key) || '[]');
-      list.push(newTournament);
-      localStorage.setItem(key, JSON.stringify(list));
-      
-      setCreatedTournaments(list);
-      
+      const res = await fetch('/api/tournaments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({
+          name: base.name,
+          category: base.category,
+          logo: base.logo ?? null,
+          status: 'upcoming',
+          description: base.description ?? undefined,
+          format: 'round_robin',
+          max_teams: 16,
+        }),
+      });
+      if (!res.ok) {
+        const msg = await res.json().catch(() => ({}));
+        throw new Error(msg?.error || 'No se pudo crear el torneo');
+      }
+      const created = await res.json();
+      setCreatedTournaments(prev => [
+        ...prev,
+        {
+          id: created.id,
+          name: created.name,
+          description: base.description || `Torneo de ${base.modality} ${base.category}`,
+          sport: 'futbol',
+          category: created.category,
+          modality: 'futsal',
+          startDate: created.startDate ? new Date(created.startDate).toISOString().slice(0, 10) : '',
+          endDate: '',
+          registrationDeadline: created.registrationDeadline ? new Date(created.registrationDeadline).toISOString().slice(0, 10) : '',
+          maxTeams: created.maxTeams ?? 16,
+          location: '',
+          format: 'round_robin',
+          prizePool: '',
+          status: created.status,
+          logo: created.logo || '/images/logo.png',
+          origin: 'created',
+          phases: ['round_robin'],
+        },
+      ]);
       setCustomName('');
       setCustomLogo(null);
       setCustomCategory('masculino');
       setCustomModality('futsal');
       setIsCreatingCustom(false);
-      
       toast.success('¡Torneo creado exitosamente!');
-      
     } catch (error) {
-      if (error instanceof DOMException && error.code === 22) {
-        toast.error("Almacenamiento lleno. Intenta de nuevo después de limpiar datos.");
-      } else {
-        console.error("Error saving to localStorage", error);
-        toast.error("No se pudo crear el torneo.");
-      }
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : 'Error al crear el torneo');
     }
   };
 
@@ -175,22 +199,21 @@ const CreateTournamentPage: React.FC = () => {
 
   const deleteTournament = (tournamentId: number, tournamentName: string) => {
     const confirmDelete = window.confirm(`¿Estás seguro de que quieres eliminar el torneo "${tournamentName}"? Esta acción no se puede deshacer.`);
-    
-    if (confirmDelete) {
+    if (!confirmDelete) return;
+    (async () => {
       try {
-        const key = 'admin_created_tournaments';
-        const currentTournaments = JSON.parse(localStorage.getItem(key) || '[]');
-        const updatedTournaments = currentTournaments.filter((t: CreatedTournament) => t.id !== tournamentId);
-        
-        localStorage.setItem(key, JSON.stringify(updatedTournaments));
-        setCreatedTournaments(updatedTournaments);
-        
+        const res = await fetch(`/api/tournaments/${tournamentId}`, {
+          method: 'DELETE',
+          headers: { ...authHeaders() },
+        });
+        if (!res.ok) throw new Error('No se pudo eliminar el torneo');
+        setCreatedTournaments(prev => prev.filter(t => t.id !== tournamentId));
         toast.success('Torneo eliminado exitosamente');
-      } catch (error) {
-        console.error('Error eliminando torneo:', error);
+      } catch (e) {
+        console.error('Error eliminando torneo:', e);
         toast.error('Error al eliminar el torneo');
       }
-    }
+    })();
   };
 
   const handleEditChange = (field: keyof typeof editForm, value: any) => {
@@ -204,28 +227,38 @@ const CreateTournamentPage: React.FC = () => {
 
   const saveTournamentConfig = () => {
     if (!selectedTournamentForEdit) return;
-    try {
-      const key = 'admin_created_tournaments';
-      const current = JSON.parse(localStorage.getItem(key) || '[]');
-      const updated = current.map((t: CreatedTournament) => {
-        if (t.id === selectedTournamentForEdit.id) {
-          return {
-            ...t,
+    (async () => {
+      try {
+        const res = await fetch(`/api/tournaments/${selectedTournamentForEdit.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', ...authHeaders() },
+          body: JSON.stringify({
             status: editForm.status,
-            registrationDeadline: editForm.registrationDeadline,
-            startDate: editForm.startDate,
-          };
-        }
-        return t;
-      });
-      localStorage.setItem(key, JSON.stringify(updated));
-      setCreatedTournaments(updated);
-      toast.success('Torneo actualizado');
-      closeEditModal();
-    } catch (e) {
-      console.error(e);
-      toast.error('Error al actualizar el torneo');
-    }
+            registration_deadline: editForm.registrationDeadline || null,
+            start_date: editForm.startDate || null,
+          }),
+        });
+        if (!res.ok) throw new Error('Error al actualizar torneo en BD');
+        const updated = await res.json();
+
+        setCreatedTournaments(prev => prev.map(t =>
+          t.id === selectedTournamentForEdit.id
+            ? {
+                ...t,
+                status: updated.status,
+                registrationDeadline: updated.registrationDeadline ? new Date(updated.registrationDeadline).toISOString().slice(0, 10) : '',
+                startDate: updated.startDate ? new Date(updated.startDate).toISOString().slice(0, 10) : '',
+              }
+            : t
+        ));
+
+        toast.success('Torneo actualizado');
+        closeEditModal();
+      } catch (e) {
+        console.error(e);
+        toast.error('Error al actualizar el torneo');
+      }
+    })();
   };
 
   return (

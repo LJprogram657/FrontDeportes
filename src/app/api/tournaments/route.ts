@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireAuth } from '@/lib/auth';
+import { requireAdmin } from '@/lib/auth';
 
 export async function GET(request: Request) {
   const tournaments = await prisma.tournament.findMany({
@@ -32,32 +32,76 @@ export async function GET(request: Request) {
 }
 
 export async function POST(req: Request) {
-  const user = await requireAuth(req as any);
-  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+  const admin = await requireAdmin(req as any);
+  if (!admin) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   const body = await req.json();
+
+  const name = String(body.name ?? '').trim();
+  const category = body.category === 'femenino' ? 'femenino' : 'masculino';
+  if (!name) return NextResponse.json({ error: 'Nombre requerido' }, { status: 400 });
+
+  const formatStr = String(body.format ?? 'round_robin').trim().toLowerCase();
+  const format = ['round_robin', 'knockout', 'group_stage'].includes(formatStr) ? formatStr : 'round_robin';
+
+  const statusStr = String(body.status ?? 'upcoming').trim().toLowerCase();
+  const status = ['active', 'upcoming', 'finished'].includes(statusStr) ? statusStr : 'upcoming';
+
+  const slug = name.toUpperCase().replace(/\s+/g, '-').replace(/[^A-Z0-9-]/g, '');
+  let code = String(body.code ?? `${slug}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`);
+
   try {
     const created = await prisma.tournament.create({
       data: {
-        name: body.name,
-        code: body.code,
-        category: body.category,
+        name,
+        code,
+        category: category as any,
         logo: body.logo ?? null,
+        status: status as any,
         description: body.description ?? null,
         startDate: body.start_date ? new Date(body.start_date) : null,
         endDate: body.end_date ? new Date(body.end_date) : null,
         registrationDeadline: body.registration_deadline ? new Date(body.registration_deadline) : null,
-        maxTeams: body.max_teams ?? 16,
-        format: body.format ?? 'round_robin',
+        maxTeams: Number(body.max_teams ?? 16),
+        format: format as any,
         location: body.location ?? null,
         prizePool: body.prize_pool ?? null,
       },
+      select: {
+        id: true, name: true, code: true, category: true, logo: true, status: true,
+        startDate: true, registrationDeadline: true, maxTeams: true,
+      },
     });
+
     return NextResponse.json(created, { status: 201 });
-  } catch (e: any) {
-    if (String(e.message).includes('Unique constraint')) {
-      return NextResponse.json({ error: 'Ya existe un torneo con este código.' }, { status: 400 });
+  } catch (err: any) {
+    // Unicidad de code
+    if (err?.code === 'P2002') {
+      code = `${slug}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+      const retry = await prisma.tournament.create({
+        data: {
+          name,
+          code,
+          category: category as any,
+          logo: body.logo ?? null,
+          status: status as any,
+          description: body.description ?? null,
+          startDate: body.start_date ? new Date(body.start_date) : null,
+          endDate: body.end_date ? new Date(body.end_date) : null,
+          registrationDeadline: body.registration_deadline ? new Date(body.registration_deadline) : null,
+          maxTeams: Number(body.max_teams ?? 16),
+          format: format as any,
+          location: body.location ?? null,
+          prizePool: body.prize_pool ?? null,
+        },
+        select: {
+          id: true, name: true, code: true, category: true, logo: true, status: true,
+          startDate: true, registrationDeadline: true, maxTeams: true,
+        },
+      });
+      return NextResponse.json(retry, { status: 201 });
     }
-    return NextResponse.json({ error: 'Error al crear torneo' }, { status: 500 });
+    console.error('Error creando torneo:', err);
+    return NextResponse.json({ error: 'Error interno creando torneo', details: err?.message ?? String(err) }, { status: 500 });
   }
 }

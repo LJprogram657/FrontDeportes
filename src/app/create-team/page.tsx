@@ -43,28 +43,25 @@ const CreateTeamPage: React.FC = () => {
 
   // Cargar torneos reales del localStorage
   useEffect(() => {
-    const loadTournaments = () => {
+    const loadTournaments = async () => {
       try {
-        // Cargar torneos creados por el admin
-        const adminTournaments = JSON.parse(localStorage.getItem('admin_created_tournaments') || '[]');
-        
-        // Convertir al formato esperado
-        const formattedTournaments = adminTournaments.map((t: any) => ({
+        const res = await fetch('/api/tournaments/active', { cache: 'no-store' });
+        if (!res.ok) throw new Error('No se pudieron cargar torneos');
+        const data = await res.json();
+        const formattedTournaments = (Array.isArray(data) ? data : []).map((t: any) => ({
           id: t.id.toString(),
           name: t.name,
           code: t.code || `TORNEO_${t.id}`,
           logo: t.logo || '/images/default-tournament.png',
           category: t.category,
-          status: t.status === 'active' ? 'active' : 'upcoming'
+          status: t.status,
         }));
-        
         setAvailableTournaments(formattedTournaments);
       } catch (error) {
         console.error('Error cargando torneos:', error);
         setAvailableTournaments([]);
       }
     };
-
     loadTournaments();
   }, []);
 
@@ -245,138 +242,35 @@ const CreateTeamPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-
     try {
-      // Verificar espacio de almacenamiento antes de proceder
-      const hasSpace = checkStorageUsage();
-      
-      // Crear registro con metadata optimizada (sin imágenes grandes)
-      const registrationMetadata = {
-        id: Date.now(),
-        teamName: formData.teamName,
-        contactNumber: formData.contactNumber,
-        contactPerson: formData.contactPerson,
-        tournamentId: Number(formData.selectedTournament?.id || 0), // ← NUEVO
-        tournament: {
-          id: Number(formData.selectedTournament?.id || 0),
-          name: formData.selectedTournament?.name || '',
-          code: formData.selectedTournament?.code || '',
-          logo: formData.selectedTournament?.logo || ''
-        },
-        players: formData.players.map((p, idx) => ({
-          id: idx + 1,
-          name: p.name,
-          lastName: p.lastName,
-          cedula: p.cedula,
-          hasPhoto: !!p.photoPreview && p.photoPreview !== 'processing...'
-        })),
-        registrationDate: new Date().toISOString().slice(0, 10),
-        status: 'pending',
-        notes: '',
-        hasTeamLogo: !!formData.teamLogoPreview && formData.teamLogoPreview !== 'processing...'
-      };
-
-      // Crear registro completo con imágenes comprimidas (para backup)
-      const fullRegistration = {
-        ...registrationMetadata,
-        tournamentId: registrationMetadata.tournamentId, // ← GARANTIZA EL CAMPO
-        teamLogo: formData.teamLogoPreview || undefined,
-        players: formData.players.map((p, idx) => ({
-          id: idx + 1,
-          name: p.name,
-          lastName: p.lastName,
-          cedula: p.cedula,
-          photo: p.photoPreview && p.photoPreview !== 'processing...' ? p.photoPreview : undefined
-        }))
-      };
-
-      // Función para leer localStorage de forma segura
-      const getStorageData = (key: string) => {
-        try {
-          return JSON.parse(localStorage.getItem(key) || '[]');
-        } catch (error) {
-          console.warn(`Error leyendo ${key}, limpiando...`, error);
-          try {
-            localStorage.removeItem(key);
-            return [];
-          } catch (e) {
-            console.error(`Error crítico limpiando ${key}:`, e);
-            return [];
-          }
-        }
-      };
-
-      // Estrategia de almacenamiento profesional
-      const saveRegistration = () => {
-        try {
-          // Paso 1: Intentar guardar metadata (ligera) en localStorage
-          const metadataList = getStorageData('team_registrations_meta');
-          metadataList.push(registrationMetadata);
-          
-          localStorage.setItem('team_registrations_meta', JSON.stringify(metadataList));
-          console.log('✅ Metadata guardada en localStorage');
-
-          // Paso 2: Intentar guardar registro completo (con imágenes) en localStorage
-          try {
-            const fullList = getStorageData('team_registrations');
-            fullList.push(fullRegistration);
-            
-            localStorage.setItem('team_registrations', JSON.stringify(fullList));
-            console.log('✅ Registro completo guardado en localStorage');
-            return 'localStorage';
-          } catch (error) {
-            if (error instanceof DOMException && error.name === 'QuotaExceededError') {
-              console.warn('⚠️ LocalStorage lleno para imágenes, usando estrategia de limpieza...');
-              
-              // Limpiar registros antiguos y mantener solo los últimos 3
-              try {
-                const cleanList = getStorageData('team_registrations').slice(-3); // ← ANTES -2
-                cleanList.push(fullRegistration);
-                localStorage.setItem('team_registrations', JSON.stringify(cleanList));
-                console.log('✅ Registro guardado después de limpieza');
-                return 'localStorage_cleaned';
-              } catch (e) {
-                // Si aún falla, usar sessionStorage como backup
-                try {
-                  sessionStorage.setItem('team_registrations_backup', JSON.stringify([fullRegistration]));
-                  console.log('⚠️ Registro guardado en sessionStorage (temporal)');
-                  return 'sessionStorage';
-                } catch (sessionError) {
-                  console.warn('❌ Fallo total de almacenamiento, solo metadata disponible');
-                  return 'metadata_only';
-                }
-              }
-            }
-            throw error;
-          }
-        } catch (error) {
-          console.error('Error crítico guardando registro:', error);
-          return 'failed';
-        }
-      };
-
-      // Ejecutar estrategia de guardado
-      const saveResult = saveRegistration();
-      
-      // Proporcionar feedback apropiado según el resultado
-      switch (saveResult) {
-        case 'localStorage':
-          toast.success('¡Solicitud de equipo enviada exitosamente! 🎉\nTodos los datos y fotos han sido guardados correctamente.');
-          break;
-        case 'localStorage_cleaned':
-          toast.warning('¡Solicitud enviada exitosamente! 🎉\n⚠️ Se limpiaron registros antiguos para hacer espacio.');
-          break;
-        case 'sessionStorage':
-          toast.warning('¡Solicitud enviada! ⚠️\nLas fotos se guardaron temporalmente. No cierres la pestaña hasta confirmar con el administrador.');
-          break;
-        case 'metadata_only':
-          toast.warning('¡Solicitud enviada! ⚠️\nSolo se guardaron los datos básicos (sin fotos). Contacta al administrador para enviar las fotos por separado.');
-          break;
-        case 'failed':
-          throw new Error('No se pudo guardar el registro');
+      if (!formData.selectedTournament) {
+        toast.error('Selecciona un torneo');
+        return;
       }
-
-      // Reset del formulario
+      const payload = {
+        tournament: Number(formData.selectedTournament.id),
+        name: formData.teamName.trim(),
+        logo: formData.teamLogoPreview || null,
+        contact_person: formData.contactPerson.trim(),
+        contact_number: formData.contactNumber.trim(),
+        players: (formData.players || []).map(p => ({
+          name: p.name.trim(),
+          lastName: p.lastName.trim(),
+          cedula: p.cedula.trim(),
+          photo: p.photoPreview && p.photoPreview !== 'processing...' ? p.photoPreview : null,
+        })),
+      };
+      const resp = await fetch('/api/tournaments/teams', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const result = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        const msg = [result?.error, result?.details].filter(Boolean).join(' - ') || 'No se pudo registrar el equipo';
+        throw new Error(msg);
+      }
+      toast.success('¡Solicitud de equipo enviada exitosamente! Pendiente de aprobación.');
       setFormData({
         teamName: '',
         selectedTournament: null,
@@ -387,10 +281,9 @@ const CreateTeamPage: React.FC = () => {
         players: []
       });
       setCurrentStep(1);
-
     } catch (error) {
       console.error('Error al enviar solicitud:', error);
-      toast.error('❌ Hubo un error al enviar la solicitud. Por favor, inténtalo de nuevo o contacta al administrador.');
+      toast.error(error instanceof Error ? error.message : 'Error al enviar la solicitud');
     } finally {
       setIsSubmitting(false);
     }
