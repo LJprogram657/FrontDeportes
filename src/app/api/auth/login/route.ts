@@ -34,7 +34,13 @@ export async function POST(request: Request) {
     const access = signAccessToken(userJwt);
     const refresh = signRefreshToken(userJwt);
     
-    return NextResponse.json({ access, refresh, user: userJwt }, { status: 200 });
+    return NextResponse.json({
+      success: true,
+      message: 'Login exitoso',
+      access,
+      refresh,
+      user: { id: user.id, username: user.email, email: user.email, is_admin: user.isAdmin }
+    }, { status: 200 });
   } catch (e: any) {
     console.error('Login error:', e);
     return NextResponse.json({ success: false, message: 'Error interno del servidor' }, { status: 500 });
