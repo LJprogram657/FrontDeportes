@@ -34,10 +34,12 @@ interface TeamRegistration {
 
 export default function RegistrationsPage() {
   const [registrations, setRegistrations] = useState<TeamRegistration[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedTournament, setSelectedTournament] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedRegistration, setSelectedRegistration] = useState<TeamRegistration | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [registrationsMeta, setRegistrationsMeta] = useState<RegistrationMeta[]>([]);
+  const [showDismissed, setShowDismissed] = useState<boolean>(false);
 
   const authHeaders = (): HeadersInit => {
     try {
@@ -67,14 +69,14 @@ export default function RegistrationsPage() {
     }
   }, []);
 
-  // Cargar registros desde API admin (elimina dependencia de localStorage)
+  // Cargar registros desde API admin (sin localStorage)
   useEffect(() => {
     const loadRegistrations = async () => {
       setIsLoading(true);
       try {
         const res = await fetch(`/api/tournaments/admin/teams`, {
           cache: 'no-store',
-          headers: { ...authHeaders() },
+          headers: { ...authHeaders() }
         });
         if (!res.ok) throw new Error('No autorizado o error al cargar equipos');
         const teams = await res.json();
@@ -85,22 +87,20 @@ export default function RegistrationsPage() {
           contactNumber: t.contact_number || '',
           contactPerson: t.contact_person || '',
           tournament: {
-            id: Number(t.tournament?.id ?? t.tournamentId ?? 0),
+            id: Number(t.tournament?.id ?? t.tournamentId),
             name: t.tournament?.name ?? '',
             code: t.tournament?.code ?? '',
             logo: t.tournament?.logo ?? '/images/default-tournament.png',
           },
-          players: Array.isArray(t.players)
-            ? t.players.map((p: any) => ({
-                id: Number(p.id ?? 0),
-                name: p.name ?? '',
-                lastName: p.lastName ?? '',
-                cedula: p.cedula ?? '',
-                photo: p.photo ?? '',
-              }))
-            : [],
+          players: Array.isArray(t.players) ? t.players.map((p: any) => ({
+            id: Number(p.id ?? 0),
+            name: p.name ?? '',
+            lastName: p.lastName ?? '',
+            cedula: p.cedula ?? '',
+            photo: p.photo ?? '',
+          })) : [],
           registrationDate: t.createdAt ?? new Date().toISOString(),
-          status: (t.status as 'pending' | 'approved' | 'rejected') ?? 'pending',
+          status: t.status ?? 'pending',
           tournamentId: Number(t.tournamentId ?? t.tournament?.id ?? 0),
           dbId: Number(t.id),
           notes: t.notes ?? '',

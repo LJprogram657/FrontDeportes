@@ -43,7 +43,7 @@ interface Tournament {
   modality?: 'futsal' | 'futbol7';
 }
 
-function UpdateTournamentPage() {
+export default function AdminTournamentUpdatePage() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -496,5 +496,3 @@ function UpdateTournamentPage() {
     </div>
   );
 }
-
-export default UpdateTournamentPage;
