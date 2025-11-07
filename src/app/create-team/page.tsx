@@ -35,7 +35,7 @@ interface TeamFormData {
   players: Player[];
 }
 
-const CreateTeamPage: React.FC = () => {
+export default function CreateTeamPage() {
   // const { user, isAuthenticated } = useAuth();       // ← Quitado
   
   // DATOS LIMPIOS - SIN TORNEOS DE PRUEBA
@@ -143,12 +143,11 @@ const CreateTeamPage: React.FC = () => {
       let usedSpace = 0;
       
       // Estimar espacio usado
-      for (let key in localStorage) {
-        if (localStorage.hasOwnProperty(key)) {
-          usedSpace += localStorage[key].length + key.length;
-        }
-      }
-      
+      // Removida la función 'checkStorageUsage' y cualquier recorrido de localStorage
+      // Antes:
+      // for (let key in localStorage) { ... }
+      // Ahora: no inspeccionamos el storage; toda la información proviene de la API
+
       const usedKB = Math.round(usedSpace / 1024);
       console.log(`📊 Almacenamiento usado: ${usedKB} KB`);
       

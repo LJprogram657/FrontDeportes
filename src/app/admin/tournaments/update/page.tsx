@@ -48,6 +48,22 @@ export default function AdminTournamentUpdatePage() {
   const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Eliminar lectura de 'admin_created_tournaments' en localStorage:
+  // const key = 'admin_created_tournaments';
+  // const created = JSON.parse(localStorage.getItem(key) || '[]');
+
+  const [created, setCreated] = useState<any[]>([]);
+
+  useEffect(() => {
+    // Cargar desde la API en lugar de localStorage
+    fetch('/api/tournaments', { headers: { 'Content-Type': 'application/json' } })
+      .then(r => r.json())
+      .then(data => setCreated(Array.isArray(data?.tournaments) ? data.tournaments : []))
+      .catch(() => setCreated([]));
+  }, []);
+  const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
   useEffect(() => {
     const key = 'admin_created_tournaments';
     const created = JSON.parse(localStorage.getItem(key) || '[]');

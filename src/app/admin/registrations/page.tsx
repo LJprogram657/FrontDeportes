@@ -32,7 +32,7 @@ interface TeamRegistration {
   dbId?: number;
 }
 
-export default function RegistrationsPage() {
+export default function AdminRegistrationsPage() {
   const [registrations, setRegistrations] = useState<TeamRegistration[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTournament, setSelectedTournament] = useState<string>('all');
@@ -153,8 +153,21 @@ export default function RegistrationsPage() {
     return true;
   });
 
-  // Aprobar registro: asegura existencia en BD (crea si falta) y aprueba
-  const approveRegistration = async (reg: TeamRegistration) => {
+  // Eliminar cargas/escrituras a localStorage de 'team_registrations_meta'
+  // Antes: const savedMeta = localStorage.getItem('team_registrations_meta');
+  // Ahora: estado únicamente en memoria, inicializado vacío
+  const [meta, setMeta] = useState<{ notifications: Record<number, string>; lastActionAt: string | null }>({
+    notifications: {},
+    lastActionAt: null,
+  });
+
+  useEffect(() => {
+    // Antes: leer 'team_registrations_meta' de localStorage
+    // Ahora: no leer nada local; si quieres meta del server, crear endpoint dedicado
+    setMeta(prev => prev);
+  }, []);
+
+  async function approveRegistration(id: number) {
     try {
       let teamDbId = reg.dbId;
       const tournamentId = reg.tournamentId ?? reg.tournament?.id;
