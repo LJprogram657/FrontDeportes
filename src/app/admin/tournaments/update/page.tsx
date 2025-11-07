@@ -47,42 +47,8 @@ export default function AdminTournamentUpdatePage() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-
-  // Eliminar lectura de 'admin_created_tournaments' en localStorage:
-  // const key = 'admin_created_tournaments';
-  // const created = JSON.parse(localStorage.getItem(key) || '[]');
-
-  const [created, setCreated] = useState<any[]>([]);
-
-  useEffect(() => {
-    // Cargar desde la API en lugar de localStorage
-    fetch('/api/tournaments', { headers: { 'Content-Type': 'application/json' } })
-      .then(r => r.json())
-      .then(data => setCreated(Array.isArray(data?.tournaments) ? data.tournaments : []))
-      .catch(() => setCreated([]));
-  }, []);
-  const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const key = 'admin_created_tournaments';
-    const created = JSON.parse(localStorage.getItem(key) || '[]');
-    const withPhases = created.map((t: any) => {
-      const defaultPhases = t.phases
-        ? t.phases
-        : (t.format === 'grupos'
-            ? ['group_stage', 'quarterfinals', 'semifinals', 'final']
-            : ['round_robin']);
-      return {
-        ...t,
-        phases: defaultPhases,
-        origin: 'created',
-      };
-    });
-
-    setTournaments(withPhases);
-    setIsLoading(false);
-  }, []);
+  const [scheduledMatches, setScheduledMatches] = useState<Record<string, Match[]>>({});
+  const [editState, setEditState] = useState<Record<string, { homeScore: number; awayScore: number; goals?: string; fouls?: string }>>({});
 
   const getStatusBadge = (status: string) => {
     const badgeClasses = {
@@ -90,13 +56,11 @@ export default function AdminTournamentUpdatePage() {
       upcoming: 'status-badge upcoming',
       completed: 'status-badge completed',
     };
-
     const statusText = {
       active: 'Activo',
       upcoming: 'Próximo',
       completed: 'Finalizado',
     };
-
     return (
       <span className={badgeClasses[status as keyof typeof badgeClasses]}>
         {statusText[status as keyof typeof statusText]}
@@ -104,12 +68,6 @@ export default function AdminTournamentUpdatePage() {
     );
   };
 
-  // Estado de partidos por fase
-  const [scheduledMatches, setScheduledMatches] = useState<Record<string, Match[]>>({});
-  // Estado de edición por partido (inputs controlados)
-  const [editState, setEditState] = useState<Record<string, { homeScore: number; awayScore: number; goals?: string; fouls?: string }>>({});
-
-  // Helper para adjuntar el token de admin a llamadas protegidas
   const authHeaders = (): HeadersInit => {
     try {
       const token = localStorage.getItem('access_token');
@@ -119,43 +77,44 @@ export default function AdminTournamentUpdatePage() {
     }
   };
 
-  // Cargar torneos EXCLUSIVAMENTE desde BD
   useEffect(() => {
     const loadTournaments = async () => {
       try {
         const res = await fetch('/api/tournaments', { cache: 'no-store', headers: { ...authHeaders() } });
         if (!res.ok) throw new Error('No se pudieron cargar los torneos');
         const data = await res.json();
-        const withPhases = (Array.isArray(data) ? data : []).map((t: any) => ({
-          id: t.id,
+        const list = Array.isArray(data) ? data : Array.isArray(data?.tournaments) ? data.tournaments : [];
+        const withPhases = list.map((t: any) => ({
+          id: Number(t.id),
           name: t.name,
-          description: '',
-          sport: 'futbol',
+          description: t.description ?? '',
+          sport: t.sport ?? 'futbol',
           category: t.category,
           startDate: t.start_date ? new Date(t.start_date).toISOString().slice(0, 10) : '',
-          endDate: '',
+          endDate: t.end_date ? new Date(t.end_date).toISOString().slice(0, 10) : '',
           registrationDeadline: t.registration_deadline ? new Date(t.registration_deadline).toISOString().slice(0, 10) : '',
           maxTeams: t.max_teams ?? 16,
-          location: '',
-          format: 'round_robin',
-          prizePool: '',
+          location: t.location ?? '',
+          format: t.format ?? 'round_robin',
+          prizePool: t.prize_pool ?? '',
           status: t.status,
-          phases: ['round_robin'],
+          phases: Array.isArray(t.phases) && t.phases.length > 0 ? t.phases : ['round_robin'],
           logo: t.logo || '/images/logo.png',
           origin: 'created',
-          modality: 'futsal',
+          modality: t.modality ?? 'futsal',
         }));
         setTournaments(withPhases);
-        setIsLoading(false);
       } catch (error) {
         console.error(error);
         setTournaments([]);
+      } finally {
         setIsLoading(false);
       }
     };
     loadTournaments();
   }, []);
 
+  useEffect(() => {
     if (!selectedTournament) {
       setScheduledMatches({});
       setEditState({});
@@ -174,10 +133,11 @@ export default function AdminTournamentUpdatePage() {
         const byPhase: Record<string, Match[]> = {};
         const nextEdit: Record<string, { homeScore: number; awayScore: number; goals?: string; fouls?: string }> = {};
 
-        for (const m of list) {
+        for (const m of Array.isArray(list) ? list : []) {
           const phaseKey = m.phase || 'Sin Fase';
           byPhase[phaseKey] = byPhase[phaseKey] || [];
-          const matchItem: Match = {
+
+          byPhase[phaseKey].push({
             id: String(m.id),
             phase: m.phase,
             homeTeam: m.homeTeam ? { id: String(m.homeTeam.id), name: m.homeTeam.name, logo: m.homeTeam.logo } : null,
@@ -192,8 +152,7 @@ export default function AdminTournamentUpdatePage() {
             status: m.status,
             goals: m.goals ?? undefined,
             fouls: m.fouls ?? undefined,
-          };
-          byPhase[phaseKey].push(matchItem);
+          });
 
           nextEdit[String(m.id)] = {
             homeScore: typeof m.homeScore === 'number' ? m.homeScore : 0,
@@ -215,7 +174,6 @@ export default function AdminTournamentUpdatePage() {
 
   const saveResult = async (phase: string, matchId: string) => {
     const edit = editState[matchId] || { homeScore: 0, awayScore: 0, goals: '', fouls: '' };
-
     try {
       const res = await fetch(`/api/matches/${matchId}`, {
         method: 'PATCH',

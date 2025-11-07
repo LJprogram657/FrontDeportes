@@ -41,13 +41,13 @@ const MasculinoPage = () => {
         if (!res.ok) throw new Error('No se pudieron cargar torneos masculinos');
         const list = await res.json();
 
-        const masculineTournaments = (Array.isArray(list) ? list : []).map((t: any) => ({
-          id: t.id,
-          name: t.name,
+        const masculineTournaments: Tournament[] = (Array.isArray(list) ? list : []).map((t: any) => ({
+          id: Number(t.id),
+          name: String(t.name),
           logo: t.logo || '/images/logo.png',
-          category: 'masculino',
-          modality: 'futsal',
-          status: t.status,
+          category: 'masculino' as const,
+          modality: 'futsal' as const,
+          status: String(t.status),
           startDate: t.start_date ? new Date(t.start_date).toISOString().slice(0, 10) : undefined,
           endDate: undefined,
           description: undefined,

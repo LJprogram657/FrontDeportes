@@ -625,4 +625,5 @@ export default function CreateTeamPage() {
   );
 };
 
-export default CreateTeamPage;
+// Eliminar exportación duplicada al final si existía:
+// export default CreateTeamPage;

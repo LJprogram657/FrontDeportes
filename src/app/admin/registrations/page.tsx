@@ -56,18 +56,21 @@ export default function AdminRegistrationsPage() {
     dismissedAt?: string;
   }
 
-  const [registrationsMeta, setRegistrationsMeta] = useState<RegistrationMeta[]>([]);
-  const [showDismissed, setShowDismissed] = useState<boolean>(false);
+  // Quitar carga desde localStorage; mantener meta solo en memoria
+  useEffect(() => {
+    setRegistrationsMeta([]);
+  }, []);
 
   // Cargar notificaciones/meta desde localStorage si existen
-  useEffect(() => {
-    try {
-      const savedMeta = localStorage.getItem('team_registrations_meta');
-      if (savedMeta) setRegistrationsMeta(JSON.parse(savedMeta));
-    } catch {
-      // Ignorar errores de parseo
-    }
-  }, []);
+  // (Eliminar este efecto si deseas meta solo en memoria)
+  // useEffect(() => {
+  //   try {
+  //     const savedMeta = localStorage.getItem('team_registrations_meta');
+  //     if (savedMeta) setRegistrationsMeta(JSON.parse(savedMeta));
+  //   } catch {
+  //     // Ignorar errores de parseo
+  //   }
+  // }, []);
 
   // Cargar registros desde API admin (sin localStorage)
   useEffect(() => {
@@ -124,7 +127,7 @@ export default function AdminRegistrationsPage() {
     if (idx >= 0) nextMeta[idx] = { ...nextMeta[idx], ...entry };
     else nextMeta.push(entry);
     setRegistrationsMeta(nextMeta);
-    localStorage.setItem('team_registrations_meta', JSON.stringify(nextMeta));
+    // (eliminado) localStorage.setItem('team_registrations_meta', JSON.stringify(nextMeta));
   };
 
   // Restaurar notificación (quitar dismissed)
@@ -134,7 +137,7 @@ export default function AdminRegistrationsPage() {
     if (idx >= 0) {
       nextMeta[idx] = { ...nextMeta[idx], dismissed: false, dismissedAt: undefined };
       setRegistrationsMeta(nextMeta);
-      localStorage.setItem('team_registrations_meta', JSON.stringify(nextMeta));
+      // (eliminado) localStorage.setItem('team_registrations_meta', JSON.stringify(nextMeta));
     }
   };
 
@@ -167,7 +170,7 @@ export default function AdminRegistrationsPage() {
     setMeta(prev => prev);
   }, []);
 
-  async function approveRegistration(id: number) {
+  async function approveRegistration(reg: TeamRegistration) {
     try {
       let teamDbId = reg.dbId;
       const tournamentId = reg.tournamentId ?? reg.tournament?.id;
@@ -290,7 +293,7 @@ export default function AdminRegistrationsPage() {
     await deleteRegistration(reg);
     const updatedMeta = registrationsMeta.filter((m) => m.id !== reg.id);
     setRegistrationsMeta(updatedMeta);
-    localStorage.setItem('team_registrations_meta', JSON.stringify(updatedMeta));
+    // (eliminado) localStorage.setItem('team_registrations_meta', JSON.stringify(updatedMeta));
   };
 
   // Métricas visibles (según torneo seleccionado y ocultando dismissed)
