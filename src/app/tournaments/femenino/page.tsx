@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import BackButton from '@/components/BackButton';
 
@@ -29,10 +29,25 @@ interface Match {
   status: 'scheduled' | 'finished';
 }
 
+interface Standing {
+  id: number;
+  team: { name: string; logo?: string | null };
+  played: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  goalDiff: number;
+  points: number;
+}
+
 const FemeninoPage = () => {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const standings: Standing[] = []; // Declaración tipada para evitar any[]
 
   useEffect(() => {
     const loadData = async () => {
@@ -111,46 +126,67 @@ const FemeninoPage = () => {
           <p>Los torneos aparecerán aquí una vez que el administrador los cree.</p>
         </div>
       ) : (
-        <div className="tournaments-grid">
-          {tournaments.map((tournament) => (
-            <div key={tournament.id} className="tournament-card">
-              <div className="tournament-header">
-                <img 
-                  src={tournament.logo || '/images/default-tournament.png'} 
-                  alt={tournament.name}
-                  className="tournament-logo"
-                />
-                <h3>{tournament.name}</h3>
-              </div>
-              
-              <div className="tournament-info">
-                <p><strong>Modalidad:</strong> {tournament.modality === 'futsal' ? 'Fútbol de Salón' : 'Fútbol 7'}</p>
-                {tournament.startDate && tournament.endDate && (
-                  <p><strong>Fechas:</strong> {tournament.startDate} - {tournament.endDate}</p>
-                )}
-                <p><strong>Estado:</strong> {tournament.status || 'Activo'}</p>
-              </div>
-
-              <div className="tournament-stats">
-                <div className="stat-item">
-                  <span className="stat-number">
-                    {matches.filter(m => m.status === 'finished').length}
-                  </span>
-                  <span className="stat-label">Partidos Jugados</span>
+        <div className="tournaments-section">
+          <h2>Tabla de Posiciones</h2>
+          <div className="standings-cards">
+            {standings.length > 0 ? (
+              standings.map((team, index) => (
+                <div key={team.id} className="standings-card">
+                  <h3>{index + 1}. {team.team.name}</h3>
+                  <p>Jugados: {team.played}</p>
+                  <p>Ganados: {team.wins}</p>
+                  <p>Empatados: {team.draws}</p>
+                  <p>Perdidos: {team.losses}</p>
+                  <p>GF: {team.goalsFor} | GC: {team.goalsAgainst}</p>
+                  <p>Diferencia: {team.goalDiff}</p>
+                  <p>Puntos: {team.points}</p>
                 </div>
-                <div className="stat-item">
-                  <span className="stat-number">
-                    {matches.filter(m => m.status === 'scheduled').length}
-                  </span>
-                  <span className="stat-label">Próximos Partidos</span>
+              ))
+            ) : (
+              <p>No hay datos disponibles para la tabla de posiciones.</p>
+            )}
+          </div>
+          <div className="tournaments-grid">
+            {tournaments.map((tournament) => (
+              <div key={tournament.id} className="tournament-card">
+                <div className="tournament-header">
+                  <img 
+                    src={tournament.logo || '/images/default-tournament.png'} 
+                    alt={tournament.name}
+                    className="tournament-logo"
+                  />
+                  <h3>{tournament.name}</h3>
                 </div>
-              </div>
+                
+                <div className="tournament-info">
+                  <p><strong>Modalidad:</strong> {tournament.modality === 'futsal' ? 'Fútbol de Salón' : 'Fútbol 7'}</p>
+                  {tournament.startDate && tournament.endDate && (
+                    <p><strong>Fechas:</strong> {tournament.startDate} - {tournament.endDate}</p>
+                  )}
+                  <p><strong>Estado:</strong> {tournament.status || 'Activo'}</p>
+                </div>
 
-              <Link href={`/tournaments/${tournament.id}`} className="btn btn-primary">
-                Ver Detalles del Torneo
-              </Link>
-            </div>
-          ))}
+                <div className="tournament-stats">
+                  <div className="stat-item">
+                    <span className="stat-number">
+                      {matches.filter(m => m.status === 'finished').length}
+                    </span>
+                    <span className="stat-label">Partidos Jugados</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-number">
+                      {matches.filter(m => m.status === 'scheduled').length}
+                    </span>
+                    <span className="stat-label">Próximos Partidos</span>
+                  </div>
+                </div>
+
+                <Link href={`/tournaments/${tournament.id}`} className="btn btn-primary">
+                  Ver Detalles del Torneo
+                </Link>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

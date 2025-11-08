@@ -36,36 +36,36 @@ enum MatchStatus {
 }
 
 model User {
-  id         Int      @id @default(autoincrement())
-  email      String   @unique
-  password   String
-  firstName  String   @default("")
-  lastName   String   @default("")
-  isAdmin    Boolean  @default(false)
-  isActive   Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  firstName String   @default("")
+  lastName  String   @default("")
+  isAdmin   Boolean  @default(false)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Tournament {
-  id                   Int               @id @default(autoincrement())
+  id                   Int              @id @default(autoincrement())
   name                 String
-  code                 String            @unique
+  code                 String           @unique
   category             Category
   logo                 String?
-  status               TournamentStatus  @default(active)
+  status               TournamentStatus @default(active)
   description          String?
   startDate            DateTime?
   endDate              DateTime?
   registrationDeadline DateTime?
-  maxTeams             Int               @default(16)
-  format               TournamentFormat  @default(round_robin)
+  maxTeams             Int              @default(16)
+  format               TournamentFormat @default(round_robin)
   location             String?
   prizePool            String?
-  createdAt            DateTime          @default(now())
-  updatedAt            DateTime          @updatedAt
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
 
-  teams Team[]
+  teams   Team[]
   matches Match[]
 }
 
@@ -76,25 +76,26 @@ model Team {
   tournamentId  Int
   contactPerson String
   contactNumber String
-  status        TeamStatus  @default(pending)
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  status        TeamStatus @default(pending)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 
-  tournament Tournament @relation(fields: [tournamentId], references: [id])
-  players    Player[]
-  homeMatches Match[] @relation("homeTeam")
-  awayMatches Match[] @relation("awayTeam")
+  tournament    Tournament      @relation(fields: [tournamentId], references: [id])
+  players       Player[]
+  homeMatches   Match[]         @relation("homeTeam")
+  awayMatches   Match[]         @relation("awayTeam")
+  groupStanding GroupStanding[] // Relación con GroupStanding
 
   @@index([tournamentId])
 }
 
 model Player {
-  id       Int    @id @default(autoincrement())
-  teamId   Int
-  name     String
-  lastName String
-  cedula   String
-  photo    String?
+  id        Int      @id @default(autoincrement())
+  teamId    Int
+  name      String
+  lastName  String
+  cedula    String
+  photo     String?
   createdAt DateTime @default(now())
 
   team Team @relation(fields: [teamId], references: [id])
@@ -103,23 +104,23 @@ model Player {
 }
 
 model Match {
-  id            Int         @id @default(autoincrement())
-  tournamentId  Int
-  phase         String
-  venue         String?
-  date          DateTime?
-  time          String?
-  round         Int?
-  group         String?
-  homeTeamId    Int?
-  awayTeamId    Int?
-  homeScore     Int?
-  awayScore     Int?
-  goals         String?
-  fouls         String?
-  status        MatchStatus @default(scheduled)
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  id           Int         @id @default(autoincrement())
+  tournamentId Int
+  phase        String
+  venue        String?
+  date         DateTime?
+  time         String?
+  round        Int?
+  group        String?
+  homeTeamId   Int?
+  awayTeamId   Int?
+  homeScore    Int?
+  awayScore    Int?
+  goals        String?
+  fouls        String?
+  status       MatchStatus @default(scheduled)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 
   tournament Tournament @relation(fields: [tournamentId], references: [id])
   homeTeam   Team?      @relation("homeTeam", fields: [homeTeamId], references: [id])
@@ -128,4 +129,34 @@ model Match {
   @@index([tournamentId])
   @@index([homeTeamId])
   @@index([awayTeamId])
+}
+
+model GroupStanding {
+  id           Int @id @default(autoincrement())
+  teamId       Int
+  phaseId      Int
+  played       Int @default(0)
+  wins         Int @default(0)
+  draws        Int @default(0)
+  losses       Int @default(0)
+  goalsFor     Int @default(0)
+  goalsAgainst Int @default(0)
+  goalDiff     Int @default(0)
+  points       Int @default(0)
+
+  team  Team  @relation(fields: [teamId], references: [id])
+  phase Phase @relation(fields: [phaseId], references: [id])
+
+  @@index([teamId])
+  @@index([phaseId])
+}
+
+model Phase {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  groupStandings GroupStanding[]
 }

@@ -29,10 +29,25 @@ interface Match {
   status: 'scheduled' | 'finished';
 }
 
+interface Standing {
+  id: number;
+  team: { name: string; logo?: string | null };
+  played: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  goalDiff: number;
+  points: number;
+}
+
 const MasculinoPage = () => {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const standings: Standing[] = [];
 
   useEffect(() => {
     const loadData = async () => {
@@ -112,6 +127,23 @@ const MasculinoPage = () => {
         </div>
       ) : (
         <div className="tournaments-grid">
+  <div className="tournaments-section">
+    <h2>Tabla de Posiciones</h2>
+    <div className="standings-cards">
+      {standings.map((team, index) => (
+        <div key={team.id} className="standings-card">
+          <h3>{index + 1}. {team.team.name}</h3>
+          <p>Jugados: {team.played}</p>
+          <p>Ganados: {team.wins}</p>
+          <p>Empatados: {team.draws}</p>
+          <p>Perdidos: {team.losses}</p>
+          <p>GF: {team.goalsFor} | GC: {team.goalsAgainst}</p>
+          <p>Diferencia: {team.goalDiff}</p>
+          <p>Puntos: {team.points}</p>
+        </div>
+      ))}
+    </div>
+  </div>
           {tournaments.map((tournament) => (
             <div key={tournament.id} className="tournament-card">
               <div className="tournament-header">

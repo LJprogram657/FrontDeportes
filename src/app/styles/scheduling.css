@@ -195,6 +195,23 @@
   min-height: 100px;
   transition: background-color 0.2s, border-color 0.2s;
 }
+/* NUEVO: contenedor de equipo dentro del partido */
+.team-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+/* NUEVO: tamaño adaptable del logo dentro del partido */
+.match-teams .team-info img {
+  width: clamp(32px, 5vw, 56px);
+  height: clamp(32px, 5vw, 56px);
+  border-radius: 50%;
+  object-fit: contain;
+  background: #fff;
+  padding: 4px;
+  border: 1px solid #eee;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
 
 .team-slot.is-dragging-over {
   background-color: #e8f4ff;
@@ -307,4 +324,16 @@
   height: 70px;
   object-fit: cover;
   border-radius: 4px;
+}
+
+@media (max-width: 768px) {
+  .scheduler-layout {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  /* Opcional: un poco más pequeño en móviles */
+  .match-teams .team-info img {
+    width: clamp(28px, 8vw, 48px);
+    height: clamp(28px, 8vw, 48px);
+  }
 }
