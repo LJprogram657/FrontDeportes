@@ -127,23 +127,47 @@ const MasculinoPage = () => {
         </div>
       ) : (
         <div className="tournaments-grid">
-  <div className="tournaments-section">
-    <h2>Tabla de Posiciones</h2>
-    <div className="standings-cards">
-      {standings.map((team, index) => (
-        <div key={team.id} className="standings-card">
-          <h3>{index + 1}. {team.team.name}</h3>
-          <p>Jugados: {team.played}</p>
-          <p>Ganados: {team.wins}</p>
-          <p>Empatados: {team.draws}</p>
-          <p>Perdidos: {team.losses}</p>
-          <p>GF: {team.goalsFor} | GC: {team.goalsAgainst}</p>
-          <p>Diferencia: {team.goalDiff}</p>
-          <p>Puntos: {team.points}</p>
-        </div>
-      ))}
-    </div>
-  </div>
+          <div className="tournaments-section">
+            <h2>Tabla de Posiciones</h2>
+            {standings.length > 0 ? (
+              <table className="standings-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Equipo</th>
+                    <th>J</th>
+                    <th>G</th>
+                    <th>E</th>
+                    <th>P</th>
+                    <th>GF</th>
+                    <th>GC</th>
+                    <th>DG</th>
+                    <th>Pts</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {standings.map((s, idx) => (
+                    <tr key={s.id}>
+                      <td>{idx + 1}</td>
+                      <td>{s.team.name}</td>
+                      <td>{s.played}</td>
+                      <td>{s.wins}</td>
+                      <td>{s.draws}</td>
+                      <td>{s.losses}</td>
+                      <td>{s.goalsFor}</td>
+                      <td>{s.goalsAgainst}</td>
+                      <td>{s.goalDiff}</td>
+                      <td>{s.points}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p>No hay posiciones disponibles.</p>
+            )}
+          </div>
+  
+          {/* Tarjetas de torneos debajo */}
           {tournaments.map((tournament) => (
             <div key={tournament.id} className="tournament-card">
               <div className="tournament-header">

@@ -4,6 +4,15 @@ import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import '../../../styles/tournament-form.css';
 
+const ALL_PHASES = [
+  'round_robin',
+  'group_stage',
+  'round_of_16',
+  'quarterfinals',
+  'semifinals',
+  'final',
+] as const;
+
 type TeamRef = { id: string; name: string; logo: string };
 
 interface Match {
@@ -70,7 +79,7 @@ export default function AdminTournamentUpdatePage() {
 
   const authHeaders = (): HeadersInit => {
     try {
-      const token = localStorage.getItem('access_token');
+      const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
       return token ? { Authorization: `Bearer ${token}` } : {};
     } catch {
       return {};
@@ -272,6 +281,27 @@ export default function AdminTournamentUpdatePage() {
                     <strong>Fecha:</strong> {tournament.startDate} - {tournament.endDate}
                   </p>
                 </div>
+
+                <div style={{ marginTop: '8px' }}>
+                  <strong>Fases:</strong>
+                  <div>
+                    {ALL_PHASES.map((p) => (
+                      <span
+                        key={p}
+                        className={`phase-chip ${tournament.phases?.includes(p) ? 'selected' : ''}`}
+                      >
+                        {p === 'round_robin' ? 'Todos contra Todos'
+                          : p === 'group_stage' ? 'Fase de Grupos'
+                          : p === 'round_of_16' ? 'Octavos'
+                          : p === 'quarterfinals' ? 'Cuartos'
+                          : p === 'semifinals' ? 'Semifinal'
+                          : p === 'final' ? 'Final'
+                          : p}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
                 <button className="btn-primary" onClick={() => setSelectedTournament({ ...tournament })}>
                   Editar
                 </button>
@@ -286,13 +316,13 @@ export default function AdminTournamentUpdatePage() {
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
                 <h3 style={{ marginBottom: 0, marginRight: '1rem' }}>
-                  Resultados: {selectedTournament.name}
+                  Resultados: {selectedTournament!.name}
                 </h3>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <span className="badge">
-                    {selectedTournament.modality === 'futsal' ? 'Fútbol de Salón' : selectedTournament.modality === 'futbol7' ? 'Fútbol 7' : '-'}
+                    {selectedTournament!.modality === 'futsal' ? 'Fútbol de Salón' : selectedTournament!.modality === 'futbol7' ? 'Fútbol 7' : '-'}
                   </span>
-                  <span className="badge">{selectedTournament.category === 'masculino' ? 'Masculino' : 'Femenino'}</span>
+                  <span className="badge">{selectedTournament!.category === 'masculino' ? 'Masculino' : 'Femenino'}</span>
                 </div>
               </div>
               <button className="btn-secondary" onClick={() => setSelectedTournament(null)}>
@@ -300,14 +330,13 @@ export default function AdminTournamentUpdatePage() {
               </button>
             </div>
 
-            {/* Fases del Torneo */}
             <div style={{ margin: '16px 0' }}>
               <h4>Fases del Torneo</h4>
               <div>
                 {ALL_PHASES.map((p) => (
                   <span
                     key={p}
-                    className={`phase-chip ${selectedTournament.phases?.includes(p) ? 'selected' : ''}`}
+                    className={`phase-chip ${selectedTournament!.phases?.includes(p) ? 'selected' : ''}`}
                   >
                     {p === 'round_robin' ? 'Todos contra Todos'
                      : p === 'group_stage' ? 'Fase de Grupos'
@@ -491,12 +520,3 @@ export default function AdminTournamentUpdatePage() {
     </div>
   );
 }
-
-const ALL_PHASES: NonNullable<Tournament['phases']> = [
-  'round_robin',
-  'group_stage',
-  'round_of_16',
-  'quarterfinals',
-  'semifinals',
-  'final',
-];
