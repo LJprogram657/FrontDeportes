@@ -21,8 +21,24 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
 
   // Borrado en orden por restricciones FK (RESTRICT)
   await prisma.$transaction([
+    // Eliminar partidos del torneo
+    prisma.match.deleteMany({ where: { tournamentId: id } }),
+    // Eliminar standings que referencian equipos del torneo o fases del torneo
+    prisma.groupStanding.deleteMany({
+      where: {
+        OR: [
+          { team: { tournamentId: id } },
+          { phase: { tournamentId: id } },
+        ],
+      },
+    }),
+    // Eliminar jugadores de equipos del torneo
     prisma.player.deleteMany({ where: { team: { tournamentId: id } } }),
+    // Eliminar equipos del torneo
     prisma.team.deleteMany({ where: { tournamentId: id } }),
+    // Eliminar fases del torneo (nuevo)
+    prisma.phase.deleteMany({ where: { tournamentId: id } }),
+    // Finalmente eliminar el torneo
     prisma.tournament.delete({ where: { id } }),
   ]);
 
