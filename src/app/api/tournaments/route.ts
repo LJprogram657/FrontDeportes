@@ -9,6 +9,7 @@ export async function GET(request: Request) {
       id: true, name: true, code: true, category: true, logo: true, status: true,
       startDate: true, registrationDeadline: true, maxTeams: true,
       _count: { select: { teams: true } },
+      phases: { select: { type: true } },
     },
   });
   return NextResponse.json(
@@ -23,6 +24,7 @@ export async function GET(request: Request) {
       registration_deadline: t.registrationDeadline,
       max_teams: t.maxTeams,
       teams_count: t._count.teams,
+      phases: (t.phases || []).map(p => p.type),
       is_registration_open:
         (!!t.registrationDeadline ? new Date() <= new Date(t.registrationDeadline) : t.status === 'active') &&
         t.status === 'active',
@@ -70,6 +72,16 @@ export async function POST(req: Request) {
       select: {
         id: true, name: true, code: true, category: true, logo: true, status: true,
         startDate: true, registrationDeadline: true, maxTeams: true,
+      },
+    });
+
+    // Crear fase inicial "Todos contra Todos"
+    await prisma.phase.create({
+      data: {
+        name: 'Todos contra Todos',
+        type: 'round_robin',
+        order: 1,
+        tournamentId: created.id,
       },
     });
 

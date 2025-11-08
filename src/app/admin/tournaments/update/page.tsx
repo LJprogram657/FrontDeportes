@@ -37,7 +37,7 @@ interface Tournament {
   format: string;
   prizePool: string;
   status: 'active' | 'upcoming' | 'completed';
-  phases?: ('round_robin' | 'group_stage' | 'quarterfinals' | 'semifinals' | 'final')[];
+  phases?: ('round_robin' | 'group_stage' | 'round_of_16' | 'quarterfinals' | 'semifinals' | 'final')[];
   logo?: string;
   origin?: 'created' | 'mock';
   modality?: 'futsal' | 'futbol7';
@@ -98,7 +98,7 @@ export default function AdminTournamentUpdatePage() {
           format: t.format ?? 'round_robin',
           prizePool: t.prize_pool ?? '',
           status: t.status,
-          phases: Array.isArray(t.phases) && t.phases.length > 0 ? t.phases : ['round_robin'],
+          phases: Array.isArray(t.phases) ? t.phases : ['round_robin'],
           logo: t.logo || '/images/logo.png',
           origin: 'created',
           modality: t.modality ?? 'futsal',
@@ -300,6 +300,27 @@ export default function AdminTournamentUpdatePage() {
               </button>
             </div>
 
+            {/* Fases del Torneo */}
+            <div style={{ margin: '16px 0' }}>
+              <h4>Fases del Torneo</h4>
+              <div>
+                {ALL_PHASES.map((p) => (
+                  <span
+                    key={p}
+                    className={`phase-chip ${selectedTournament.phases?.includes(p) ? 'selected' : ''}`}
+                  >
+                    {p === 'round_robin' ? 'Todos contra Todos'
+                     : p === 'group_stage' ? 'Fase de Grupos'
+                     : p === 'round_of_16' ? 'Octavos'
+                     : p === 'quarterfinals' ? 'Cuartos'
+                     : p === 'semifinals' ? 'Semifinal'
+                     : p === 'final' ? 'Final'
+                     : p}
+                  </span>
+                ))}
+              </div>
+            </div>
+
             {Object.keys(scheduledMatches).length === 0 ? (
               <div
                 style={{
@@ -470,3 +491,12 @@ export default function AdminTournamentUpdatePage() {
     </div>
   );
 }
+
+const ALL_PHASES: NonNullable<Tournament['phases']> = [
+  'round_robin',
+  'group_stage',
+  'round_of_16',
+  'quarterfinals',
+  'semifinals',
+  'final',
+];

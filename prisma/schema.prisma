@@ -67,6 +67,7 @@ model Tournament {
 
   teams   Team[]
   matches Match[]
+  phases  Phase[]
 }
 
 model Team {
@@ -151,12 +152,27 @@ model GroupStanding {
   @@index([phaseId])
 }
 
-model Phase {
-  id          Int      @id @default(autoincrement())
-  name        String
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+enum PhaseType {
+  round_robin
+  group_stage
+  round_of_16
+  quarterfinals
+  semifinals
+  final
+}
 
+model Phase {
+  id           Int       @id @default(autoincrement())
+  name         String
+  description  String?
+  type         PhaseType
+  order        Int       @default(1)
+  tournamentId Int
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  tournament     Tournament      @relation(fields: [tournamentId], references: [id])
   groupStandings GroupStanding[]
+
+  @@index([tournamentId])
 }
