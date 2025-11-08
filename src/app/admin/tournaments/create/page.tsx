@@ -34,7 +34,9 @@ interface CreatedTournament {
   phases: string[];
 }
 
-const CreateTournamentPage: React.FC = () => {
+export default CreateTournamentPage;
+
+function CreateTournamentPage() {
   const [isCreatingCustom, setIsCreatingCustom] = useState(false);
   const [customName, setCustomName] = useState('');
   const [customLogo, setCustomLogo] = useState<string | null>(null);
@@ -49,6 +51,23 @@ const CreateTournamentPage: React.FC = () => {
     registrationDeadline: string;
     startDate: string;
   }>({ status: 'upcoming', registrationDeadline: '', startDate: '' });
+
+  // Declarar fases y estado del modal dentro del componente (no fuera)
+  const PHASES = [
+    { type: 'round_robin', label: 'Todos contra Todos' },
+    { type: 'group_stage', label: 'Fase de Grupos' },
+    { type: 'round_of_16', label: 'Octavos' },
+    { type: 'quarterfinals', label: 'Cuartos' },
+    { type: 'semifinals', label: 'Semifinal' },
+    { type: 'final', label: 'Final' },
+  ] as const;
+
+  const [editPhases, setEditPhases] = useState<string[]>([]);
+  const toggleEditPhase = (phaseType: string) => {
+    setEditPhases(prev =>
+      prev.includes(phaseType) ? prev.filter(p => p !== phaseType) : [...prev, phaseType]
+    );
+  };
 
   const router = useRouter();
 
@@ -84,10 +103,11 @@ const CreateTournamentPage: React.FC = () => {
           location: '',
           format: 'round_robin',
           prizePool: '',
-          status: (t.status === 'active' || t.status === 'upcoming' || t.status === 'completed' ? t.status : 'upcoming'),
+          status: (t.status === 'active' || t.status === 'upcoming' ? t.status : (t.status === 'finished' ? 'completed' : 'upcoming')),
           logo: t.logo || '/images/logo.png',
           origin: 'created',
-          phases: ['round_robin'],
+          // Precargar fases reales desde el API
+          phases: Array.isArray(t.phases) ? t.phases : ['round_robin'],
         }));
         setCreatedTournaments(mapped);
       } catch (error) {
@@ -194,6 +214,7 @@ const CreateTournamentPage: React.FC = () => {
       registrationDeadline: t.registrationDeadline || '',
       startDate: t.startDate || '',
     });
+    setEditPhases(Array.isArray(t.phases) && t.phases.length > 0 ? t.phases : ['round_robin']);
     setIsEditModalOpen(true);
   };
 
@@ -236,6 +257,8 @@ const CreateTournamentPage: React.FC = () => {
             status: editForm.status,
             registration_deadline: editForm.registrationDeadline || null,
             start_date: editForm.startDate || null,
+            // Enviar fases para persistirlas
+            phases: editPhases,
           }),
         });
         if (!res.ok) throw new Error('Error al actualizar torneo en BD');
@@ -248,6 +271,8 @@ const CreateTournamentPage: React.FC = () => {
                 status: updated.status,
                 registrationDeadline: updated.registrationDeadline ? new Date(updated.registrationDeadline).toISOString().slice(0, 10) : '',
                 startDate: updated.startDate ? new Date(updated.startDate).toISOString().slice(0, 10) : '',
+                // Actualizar fases en el estado local
+                phases: editPhases.length > 0 ? editPhases : t.phases,
               }
             : t
         ));
@@ -511,7 +536,7 @@ const CreateTournamentPage: React.FC = () => {
             <h3 style={{ marginBottom: '16px' }}>
               Editar torneo: {selectedTournamentForEdit.name}
             </h3>
-
+        
             <div style={{ display: 'grid', gap: '12px' }}>
               <div>
                 <label style={{ fontWeight: 'bold' }}>Estado</label>
@@ -544,6 +569,33 @@ const CreateTournamentPage: React.FC = () => {
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ccc' }}
                 />
               </div>
+
+              {/* Fases del torneo */}
+              <div>
+                <label style={{ fontWeight: 'bold' }}>Fases del torneo</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
+                  {PHASES.map(({ type, label }) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => toggleEditPhase(type)}
+                      className={`phase-chip ${editPhases.includes(type) ? 'selected' : ''}`}
+                      style={{
+                        padding: '6px 10px',
+                        borderRadius: '20px',
+                        border: editPhases.includes(type) ? '1px solid #dc3545' : '1px solid #ccc',
+                        background: editPhases.includes(type) ? '#ffe5e8' : '#fff',
+                        color: editPhases.includes(type) ? '#dc3545' : '#333',
+                        fontSize: '12px',
+                        cursor: 'pointer'
+                      }}
+                      aria-pressed={editPhases.includes(type)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
@@ -570,5 +622,3 @@ const CreateTournamentPage: React.FC = () => {
 
 
 };
-
-export default CreateTournamentPage;

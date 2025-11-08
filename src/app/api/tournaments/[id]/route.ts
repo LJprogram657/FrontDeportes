@@ -61,5 +61,32 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     },
   });
 
+  // Guardar fases si vienen en el cuerpo
+  if (Array.isArray(body.phases)) {
+    const validTypes = [
+      'round_robin',
+      'group_stage',
+      'round_of_16',
+      'quarterfinals',
+      'semifinals',
+      'final',
+    ];
+
+    const phasesIn = body.phases.filter((p: any) => typeof p === 'string' && validTypes.includes(p));
+
+    await prisma.phase.deleteMany({ where: { tournamentId: id } });
+    if (phasesIn.length > 0) {
+      await prisma.phase.createMany({
+        data: phasesIn.map((type: string, idx: number) => ({
+          name: type,
+          description: null,
+          type: type as any,
+          order: idx + 1,
+          tournamentId: id,
+        })),
+      });
+    }
+  }
+
   return NextResponse.json(updated, { status: 200 });
 }
