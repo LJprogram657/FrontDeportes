@@ -220,29 +220,6 @@ export default function AdminTournamentUpdatePage() {
     }
   };
 
-  const deleteMatch = async (phase: string, matchId: string) => {
-    try {
-      const res = await fetch(`/api/matches/${matchId}`, {
-        method: 'DELETE',
-        headers: { ...authHeaders() }
-      });
-      if (!res.ok) throw new Error('Error al eliminar partido');
-
-      setScheduledMatches(prev => {
-        const phaseMatches = (prev[phase] || []).filter(m => m.id !== matchId);
-        return { ...prev, [phase]: phaseMatches };
-      });
-      setEditState(prev => {
-        const { [matchId]: _, ...rest } = prev;
-        return rest;
-      });
-
-      toast.success('Partido eliminado');
-    } catch {
-      toast.error('No se pudo eliminar el partido');
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="loading-container">
@@ -303,7 +280,7 @@ export default function AdminTournamentUpdatePage() {
                 </div>
 
                 <button className="btn-primary" onClick={() => setSelectedTournament({ ...tournament })}>
-                  Editar
+                  Actualizar resultados
                 </button>
               </div>
             ))}
@@ -410,10 +387,6 @@ export default function AdminTournamentUpdatePage() {
                               <span>Fecha: {m.date || '-'}</span>
                               <span>Hora: {m.time || '-'}</span>
                             </div>
-
-                            <button className="btn-secondary" onClick={() => deleteMatch(phase, m.id)}>
-                              Eliminar
-                            </button>
 
                             {m.status !== 'finished' ? (
                               <div className="match-edit" style={{ marginTop: '0.75rem' }}>
