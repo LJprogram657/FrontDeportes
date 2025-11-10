@@ -171,6 +171,15 @@ export default function AdminTournamentUpdatePage() {
           };
         }
 
+        // Ordenar por fecha/hora ascendente dentro de cada fase
+        Object.keys(byPhase).forEach(phase => {
+          byPhase[phase].sort((a, b) => {
+            const da = a.date ? new Date(`${a.date}T${a.time || '00:00'}`) : new Date(0);
+            const db = b.date ? new Date(`${b.date}T${b.time || '00:00'}`) : new Date(0);
+            return da.getTime() - db.getTime();
+          });
+        });
+
         setScheduledMatches(byPhase);
         setEditState(nextEdit);
       } catch (e) {
@@ -292,6 +301,11 @@ export default function AdminTournamentUpdatePage() {
               style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                <img
+                  src={selectedTournament!.logo || '/images/logo.png'}
+                  alt={selectedTournament!.name}
+                  style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 8, border: '1px solid #ddd' }}
+                />
                 <h3 style={{ marginBottom: 0, marginRight: '1rem' }}>
                   Resultados: {selectedTournament!.name}
                 </h3>
@@ -346,27 +360,16 @@ export default function AdminTournamentUpdatePage() {
                   <div key={phase} style={{ marginBottom: '2rem' }}>
                     <h4 style={{ marginBottom: '1rem' }}>Fase: {phase}</h4>
 
-                    {phaseMatches.length === 0 ? (
-                      <div
-                        className="no-matches"
-                        style={{
-                          textAlign: 'center',
-                          padding: '1rem',
-                          backgroundColor: '#f8f9fa',
-                          borderRadius: '8px',
-                        }}
-                      >
-                        <p>No hay partidos en esta fase.</p>
-                      </div>
-                    ) : (
-                      <div className="matches-grid">
-                        {phaseMatches.map(m => (
-                          <div key={m.id} className={`match-card ${m.status}`} style={{ marginBottom: '1rem' }}>
+                    {/* Programados */}
+                    <div className="matches-block">
+                      <h6>Programados</h6>
+                      {(phaseMatches || [])
+                        .filter(m => m.status === 'scheduled')
+                        .map(m => (
+                          <div key={m.id} className="match-card scheduled" style={{ marginBottom: '1rem' }}>
                             <div className="match-header" style={{ display: 'flex', justifyContent: 'space-between' }}>
                               <span>{m.group || (m.round ? `Ronda ${m.round}` : '')}</span>
-                              <span className={`status-indicator ${m.status === 'finished' ? 'complete' : 'incomplete'}`}>
-                                {m.status === 'finished' ? '✔ Finalizado' : '✔ Programado'}
-                              </span>
+                              <span className="status-indicator incomplete">✔ Programado</span>
                             </div>
 
                             <div className="match-teams" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -379,110 +382,135 @@ export default function AdminTournamentUpdatePage() {
                               </div>
                             </div>
 
-                            <div
-                              className="match-details"
-                              style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginTop: '0.75rem' }}
-                            >
+                            <div className="match-details" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginTop: '0.75rem' }}>
                               <span>Cancha: {m.venue || '-'}</span>
                               <span>Fecha: {m.date || '-'}</span>
                               <span>Hora: {m.time || '-'}</span>
                             </div>
 
-                            {m.status !== 'finished' ? (
-                              <div className="match-edit" style={{ marginTop: '0.75rem' }}>
-                                <div className="form-grid">
-                                  <div className="form-group">
-                                    <label>Goles Local</label>
-                                    <input
-                                      type="number"
-                                      value={editState[m.id]?.homeScore ?? 0}
-                                      onChange={e =>
-                                        setEditState(prev => ({
-                                          ...prev,
-                                          [m.id]: {
-                                            ...(prev[m.id] || { homeScore: 0, awayScore: 0 }),
-                                            homeScore: Number(e.target.value),
-                                          },
-                                        }))
-                                      }
-                                    />
-                                  </div>
-                                  <div className="form-group">
-                                    <label>Goles Visitante</label>
-                                    <input
-                                      type="number"
-                                      value={editState[m.id]?.awayScore ?? 0}
-                                      onChange={e =>
-                                        setEditState(prev => ({
-                                          ...prev,
-                                          [m.id]: {
-                                            ...(prev[m.id] || { homeScore: 0, awayScore: 0 }),
-                                            awayScore: Number(e.target.value),
-                                          },
-                                        }))
-                                      }
-                                    />
-                                  </div>
-                                  <div className="form-group full-width">
-                                    <label>Goles (detalle)</label>
-                                    <textarea
-                                      rows={2}
-                                      value={editState[m.id]?.goals ?? ''}
-                                      onChange={e =>
-                                        setEditState(prev => ({
-                                          ...prev,
-                                          [m.id]: {
-                                            ...(prev[m.id] || { homeScore: 0, awayScore: 0 }),
-                                            goals: e.target.value,
-                                          },
-                                        }))
-                                      }
-                                    />
-                                  </div>
-                                  <div className="form-group full-width">
-                                    <label>Faltas (detalle)</label>
-                                    <textarea
-                                      rows={2}
-                                      value={editState[m.id]?.fouls ?? ''}
-                                      onChange={e =>
-                                        setEditState(prev => ({
-                                          ...prev,
-                                          [m.id]: {
-                                            ...(prev[m.id] || { homeScore: 0, awayScore: 0 }),
-                                            fouls: e.target.value,
-                                          },
-                                        }))
-                                      }
-                                    />
-                                  </div>
-                                  <div style={{ gridColumn: '1 / -1', textAlign: 'right' }}>
-                                    <button className="btn-primary" onClick={() => saveResult(phase, m.id)}>
-                                      Guardar Resultado
-                                    </button>
-                                  </div>
+                            <div className="match-edit" style={{ marginTop: '0.75rem' }}>
+                              <div className="form-grid">
+                                <div className="form-group">
+                                  <label>Goles Local</label>
+                                  <input
+                                    type="number"
+                                    value={editState[m.id]?.homeScore ?? 0}
+                                    onChange={e =>
+                                      setEditState(prev => ({
+                                        ...prev,
+                                        [m.id]: {
+                                          ...(prev[m.id] || { homeScore: 0, awayScore: 0 }),
+                                          homeScore: Number(e.target.value),
+                                        },
+                                      }))
+                                    }
+                                  />
+                                </div>
+                                <div className="form-group">
+                                  <label>Goles Visitante</label>
+                                  <input
+                                    type="number"
+                                    value={editState[m.id]?.awayScore ?? 0}
+                                    onChange={e =>
+                                      setEditState(prev => ({
+                                        ...prev,
+                                        [m.id]: {
+                                          ...(prev[m.id] || { homeScore: 0, awayScore: 0 }),
+                                          awayScore: Number(e.target.value),
+                                        },
+                                      }))
+                                    }
+                                  />
+                                </div>
+                                <div className="form-group full-width">
+                                  <label>Goles (detalle)</label>
+                                  <textarea
+                                    rows={2}
+                                    value={editState[m.id]?.goals ?? ''}
+                                    onChange={e =>
+                                      setEditState(prev => ({
+                                        ...prev,
+                                        [m.id]: {
+                                          ...(prev[m.id] || { homeScore: 0, awayScore: 0 }),
+                                          goals: e.target.value,
+                                        },
+                                      }))
+                                    }
+                                  />
+                                </div>
+                                <div className="form-group full-width">
+                                  <label>Faltas (detalle)</label>
+                                  <textarea
+                                    rows={2}
+                                    value={editState[m.id]?.fouls ?? ''}
+                                    onChange={e =>
+                                      setEditState(prev => ({
+                                        ...prev,
+                                        [m.id]: {
+                                          ...(prev[m.id] || { homeScore: 0, awayScore: 0 }),
+                                          fouls: e.target.value,
+                                        },
+                                      }))
+                                    }
+                                  />
+                                </div>
+                                <div style={{ gridColumn: '1 / -1', textAlign: 'right' }}>
+                                  <button className="btn-primary" onClick={() => saveResult(phase, m.id)}>
+                                    Guardar Resultado
+                                  </button>
                                 </div>
                               </div>
-                            ) : (
-                              <div className="match-result-display" style={{ marginTop: '0.75rem' }}>
-                                <strong>Resultado:</strong> {m.homeScore} - {m.awayScore}
-                                {!!m.goals && (
-                                  <div>
-                                    <strong>Goles:</strong>
-                                    <pre style={{ whiteSpace: 'pre-wrap' }}>{m.goals}</pre>
-                                  </div>
-                                )}
-                                {!!m.fouls && (
-                                  <div>
-                                    <strong>Faltas:</strong>
-                                    <pre style={{ whiteSpace: 'pre-wrap' }}>{m.fouls}</pre>
-                                  </div>
-                                )}
-                              </div>
-                            )}
+                            </div>
                           </div>
                         ))}
-                      </div>
-                    )}
+                    </div>
+
+                    {/* Finalizados */}
+                    <div className="matches-block" style={{ marginTop: '1rem' }}>
+                      <h6>Finalizados</h6>
+                      {(phaseMatches || [])
+                        .filter(m => m.status === 'finished')
+                        .map(m => (
+                          <div key={m.id} className="match-card finished" style={{ marginBottom: '1rem' }}>
+                            <div className="match-header" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span>{m.group || (m.round ? `Ronda ${m.round}` : '')}</span>
+                              <span className="status-indicator complete">✔ Finalizado</span>
+                            </div>
+
+                            <div className="match-teams" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                              <div className="team-slot home">
+                                <span>{m.homeTeam?.name || 'Local'}</span>
+                              </div>
+                              <span className="vs-separator">VS</span>
+                              <div className="team-slot away">
+                                <span>{m.awayTeam?.name || 'Visitante'}</span>
+                              </div>
+                            </div>
+
+                            <div className="match-details" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginTop: '0.75rem' }}>
+                              <span>Cancha: {m.venue || '-'}</span>
+                              <span>Fecha: {m.date || '-'}</span>
+                              <span>Hora: {m.time || '-'}</span>
+                            </div>
+
+                            <div className="match-result-display" style={{ marginTop: '0.75rem' }}>
+                              <strong>Resultado:</strong> {m.homeScore} - {m.awayScore}
+                              {!!m.goals && (
+                                <div>
+                                  <strong>Goles:</strong>
+                                  <pre style={{ whiteSpace: 'pre-wrap' }}>{m.goals}</pre>
+                                </div>
+                              )}
+                              {!!m.fouls && (
+                                <div>
+                                  <strong>Faltas:</strong>
+                                  <pre style={{ whiteSpace: 'pre-wrap' }}>{m.fouls}</pre>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                    </div>
                   </div>
                 ))}
               </div>

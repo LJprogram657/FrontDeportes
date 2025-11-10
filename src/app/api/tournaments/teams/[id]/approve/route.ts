@@ -8,6 +8,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
     if (!admin) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     const id = Number(params.id);
+
     try {
         const team = await prisma.team.update({
             where: { id },
@@ -17,19 +18,21 @@ export async function POST(request: Request, { params }: { params: { id: string 
             },
         });
 
-        // Resolver una Phase válida sin depender de tournament.phaseId
-        const phase = await prisma.phase.findFirst({
+        // Seleccionar la primera fase (order=1) del mismo torneo del equipo
+        const firstPhase = await prisma.phase.findFirst({
+            where: { tournamentId: team.tournamentId },
+            orderBy: { order: 'asc' },
             select: { id: true },
-            orderBy: { id: 'asc' },
         });
 
-        if (!phase) {
-            return NextResponse.json({ error: 'No hay fases configuradas' }, { status: 400 });
+        const phaseId = firstPhase?.id;
+        if (!phaseId) {
+            return NextResponse.json({ error: 'El torneo no tiene fases configuradas' }, { status: 400 });
         }
 
-        // Evitar duplicados: comprobar si ya existe el standing para (teamId, phaseId)
+        // Evitar duplicado (teamId + phaseId)
         const existingStanding = await prisma.groupStanding.findFirst({
-            where: { teamId: id, phaseId: phase.id },
+            where: { teamId: id, phaseId },
             select: { id: true },
         });
 
@@ -37,7 +40,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
             await prisma.groupStanding.create({
                 data: {
                     teamId: id,
-                    phaseId: phase.id,
+                    phaseId,
                     played: 0,
                     wins: 0,
                     draws: 0,
@@ -50,7 +53,6 @@ export async function POST(request: Request, { params }: { params: { id: string 
             });
         }
 
-        // Se elimina la lógica de Phase y GroupStanding para evitar errores de tipos en el build
         return NextResponse.json(team, { status: 200 });
     } catch (err: any) {
         if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025') {
