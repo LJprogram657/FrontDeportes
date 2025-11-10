@@ -69,6 +69,86 @@ export default function AdminTournamentUpdatePage() {
     Record<string, Match[]>
   >({});
 
+  // Cargar torneos y seleccionar uno al montar la página (elige el primero disponible)
+  useEffect(() => {
+    (async () => {
+      if (selectedTournament) return;
+      try {
+        const token = apiService.getAccessToken();
+        const res = await fetch('/api/tournaments', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          credentials: 'include',
+        });
+        const tournaments = await res.json();
+        if (Array.isArray(tournaments) && tournaments.length > 0) {
+          setSelectedTournament({
+            id: Number(tournaments[0].id),
+            name: String(tournaments[0].name),
+          });
+        } else {
+          setScheduledMatches({});
+        }
+      } catch (err) {
+        console.error(err);
+        toast.error('No se pudieron cargar torneos');
+      }
+    })();
+  }, [selectedTournament]);
+
+  // Cargar partidos del torneo seleccionado y agrupar por fase
+  useEffect(() => {
+    (async () => {
+      if (!selectedTournament) {
+        setScheduledMatches({});
+        return;
+      }
+      try {
+        const token = apiService.getAccessToken();
+        const res = await fetch(`/api/tournaments/${selectedTournament.id}/matches`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          credentials: 'include',
+        });
+        const matches = await res.json();
+
+        const grouped: Record<string, Match[]> = {};
+        (matches || []).forEach((m: any) => {
+          const phase = m.phase || 'General';
+          const mapped: Match = {
+            id: String(m.id),
+            homeTeam: m.homeTeam ? { id: Number(m.homeTeam.id), name: m.homeTeam.name } : undefined,
+            awayTeam: m.awayTeam ? { id: Number(m.awayTeam.id), name: m.awayTeam.name } : undefined,
+            venue: m.venue ?? undefined,
+            date: m.date ? new Date(m.date).toISOString().slice(0, 10) : undefined,
+            time: m.time ?? undefined,
+            group: m.group ?? undefined,
+            round: typeof m.round === 'number' ? m.round : undefined,
+            homeScore: typeof m.homeScore === 'number' ? m.homeScore : undefined,
+            awayScore: typeof m.awayScore === 'number' ? m.awayScore : undefined,
+            goals: m.goals ?? undefined,
+            fouls: m.fouls ?? undefined,
+            status: m.status === 'finished' ? 'finished' : 'scheduled',
+          };
+          if (!grouped[phase]) grouped[phase] = [];
+          grouped[phase].push(mapped);
+        });
+
+        setScheduledMatches(grouped);
+      } catch (err) {
+        console.error(err);
+        toast.error('Error cargando partidos');
+        setScheduledMatches({});
+      }
+    })();
+  }, [selectedTournament]);
+
   // Cargar equipos y jugadores cuando haya torneo seleccionado
   useEffect(() => {
     (async () => {
@@ -701,23 +781,19 @@ export default function AdminTournamentUpdatePage() {
 
                           <div style={{ marginTop: '0.75rem' }}>
                             <button
-                              className="btn-primary"
                               onClick={() => saveMatchResult(m.id, phase)}
+                              style={{ padding: '0.5rem 1rem' }}
                             >
                               Guardar resultado
                             </button>
                           </div>
                         </div>
-                        {/* Fin sección de edición */}
                       </div>
                     </div>
                   </div>
                 ))}
-            </div>
 
-            {/* Finalizados (solo lectura) */}
-            <div className="matches-block" style={{ marginTop: '1rem' }}>
-              <h6>Finalizados</h6>
+              {/* Finalizados */}
               {(phaseMatches || [])
                 .filter((m) => m.status === 'finished')
                 .map((m) => (
