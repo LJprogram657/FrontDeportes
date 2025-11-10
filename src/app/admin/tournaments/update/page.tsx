@@ -334,6 +334,85 @@ export default function AdminTournamentUpdatePage() {
     }
   };
 
+  // Helpers de presentación (solo visuales)
+  const parseEvents = (
+    input?: string
+  ): { home: any[]; away: any[] } => {
+    if (!input) return { home: [], away: [] };
+    try {
+      const obj = JSON.parse(input);
+      const home = Array.isArray(obj?.home) ? obj.home : [];
+      const away = Array.isArray(obj?.away) ? obj.away : [];
+      return { home, away };
+    } catch {
+      return { home: [], away: [] };
+    }
+  };
+
+  const formatEventItem = (ev: any): string => {
+    const name =
+      ev?.name ??
+      ev?.playerName ??
+      (ev?.playerId != null ? `Jugador ${ev.playerId}` : 'Jugador');
+    const parts: string[] = [];
+    if (typeof ev?.goals === 'number' && ev.goals > 0) parts.push(`${ev.goals} gol(es)`);
+    if (typeof ev?.fouls === 'number' && ev.fouls > 0) parts.push(`${ev.fouls} falta(s)`);
+    if (ev?.yellow) parts.push('tarjeta amarilla');
+    if (ev?.red) parts.push('tarjeta roja');
+    return parts.length ? `${name} — ${parts.join(' · ')}` : name;
+  };
+
+  function RenderEventBlock({
+    label,
+    data,
+    homeName,
+    awayName,
+  }: {
+    label: string;
+    data: { home: any[]; away: any[] };
+    homeName: string;
+    awayName: string;
+  }) {
+    return (
+      <div style={{ marginTop: '0.5rem' }}>
+        <strong>{label}:</strong>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '0.75rem',
+            marginTop: '0.25rem',
+          }}
+        >
+          <div>
+            <em style={{ color: '#555' }}>{homeName}</em>
+            {data.home.length === 0 ? (
+              <div>Ninguno</div>
+            ) : (
+              <ul style={{ margin: '0.25rem 0', paddingLeft: '1rem' }}>
+                {data.home.map((ev, i) => (
+                  <li key={`h-${i}`}>{formatEventItem(ev)}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <div>
+            <em style={{ color: '#555' }}>{awayName}</em>
+            {data.away.length === 0 ? (
+              <div>Ninguno</div>
+            ) : (
+              <ul style={{ margin: '0.25rem 0', paddingLeft: '1rem' }}>
+                {data.away.map((ev, i) => (
+                  <li key={`a-${i}`}>{formatEventItem(ev)}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       {/* Vista inicial: cuadrícula de logos de torneos */}
@@ -363,17 +442,32 @@ export default function AdminTournamentUpdatePage() {
                     borderRadius: '8px',
                     padding: '0.75rem',
                     background: '#fff',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
                   }}
                   title={`Abrir ${t.name}`}
                 >
                   <div
                     className="tournament-logo"
-                    style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.5rem' }}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      height: '100px',
+                      width: '100%',
+                      marginBottom: '0.5rem',
+                    }}
                   >
                     <img
                       src={t.logo || '/images/logo.png'}
                       alt={t.name}
-                      style={{ width: '80px', height: '80px', objectFit: 'contain' }}
+                      style={{
+                        maxWidth: '90px',
+                        maxHeight: '90px',
+                        objectFit: 'contain',
+                        display: 'block',
+                      }}
                     />
                   </div>
                   <div className="tournament-info" style={{ textAlign: 'center' }}>
@@ -874,88 +968,88 @@ export default function AdminTournamentUpdatePage() {
                 {/* Finalizados */}
                 {(phaseMatches || [])
                   .filter((m) => m.status === 'finished')
-                  .map((m) => (
-                    <div
-                      key={m.id}
-                      className="match-card finished"
-                      style={{ marginBottom: '1rem' }}
-                    >
+                  .map((m) => {
+                    const goalsData = parseEvents(m.goals);
+                    const foulsData = parseEvents(m.fouls);
+                    return (
                       <div
-                        className="match-header"
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                        }}
+                        key={m.id}
+                        className="match-card finished"
+                        style={{ marginBottom: '1rem' }}
                       >
-                        <span>
-                          {m.group ||
-                            (m.round ? `Ronda ${m.round}` : '')}
-                        </span>
-                        <span className="status-indicator complete">
-                          ✔ Finalizado
-                        </span>
-                      </div>
-
-                      <div
-                        className="match-teams"
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '1rem',
-                        }}
-                      >
-                        <div className="team-slot home">
+                        <div
+                          className="match-header"
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                          }}
+                        >
                           <span>
-                            {m.homeTeam?.name || 'Local'}
+                            {m.group ||
+                              (m.round ? `Ronda ${m.round}` : '')}
+                          </span>
+                          <span className="status-indicator complete">
+                            ✔ Finalizado
                           </span>
                         </div>
-                        <span className="vs-separator">VS</span>
-                        <div className="team-slot away">
-                          <span>
-                            {m.awayTeam?.name || 'Visitante'}
-                          </span>
+
+                        <div
+                          className="match-teams"
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '1rem',
+                          }}
+                        >
+                          <div className="team-slot home">
+                            <span>
+                              {m.homeTeam?.name || 'Local'}
+                            </span>
+                          </div>
+                          <span className="vs-separator">VS</span>
+                          <div className="team-slot away">
+                            <span>
+                              {m.awayTeam?.name || 'Visitante'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div
+                          className="match-details"
+                          style={{
+                            display: 'flex',
+                            gap: '0.75rem',
+                            alignItems: 'center',
+                            marginTop: '0.75rem',
+                          }}
+                        >
+                          <span>Cancha: {m.venue || '-'}</span>
+                          <span>Fecha: {m.date || '-'}</span>
+                          <span>Hora: {m.time || '-'}</span>
+                        </div>
+
+                        <div
+                          className="match-result-display"
+                          style={{ marginTop: '0.75rem' }}
+                        >
+                          <strong>Resultado:</strong>{' '}
+                          {m.homeScore} - {m.awayScore}
+                          <RenderEventBlock
+                            label="Goles"
+                            data={goalsData}
+                            homeName={m.homeTeam?.name || 'Local'}
+                            awayName={m.awayTeam?.name || 'Visitante'}
+                          />
+                          <RenderEventBlock
+                            label="Faltas"
+                            data={foulsData}
+                            homeName={m.homeTeam?.name || 'Local'}
+                            awayName={m.awayTeam?.name || 'Visitante'}
+                          />
                         </div>
                       </div>
-
-                      <div
-                        className="match-details"
-                        style={{
-                          display: 'flex',
-                          gap: '0.75rem',
-                          alignItems: 'center',
-                          marginTop: '0.75rem',
-                        }}
-                      >
-                        <span>Cancha: {m.venue || '-'}</span>
-                        <span>Fecha: {m.date || '-'}</span>
-                        <span>Hora: {m.time || '-'}</span>
-                      </div>
-
-                      <div
-                        className="match-result-display"
-                        style={{ marginTop: '0.75rem' }}
-                      >
-                        <strong>Resultado:</strong>{' '}
-                        {m.homeScore} - {m.awayScore}
-                        {!!m.goals && (
-                          <div>
-                            <strong>Goles:</strong>
-                            <pre style={{ whiteSpace: 'pre-wrap' }}>
-                              {m.goals}
-                            </pre>
-                          </div>
-                        )}
-                        {!!m.fouls && (
-                          <div>
-                            <strong>Faltas:</strong>
-                            <pre style={{ whiteSpace: 'pre-wrap' }}>
-                              {m.fouls}
-                            </pre>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
               </div>
             </div>
           ))}
