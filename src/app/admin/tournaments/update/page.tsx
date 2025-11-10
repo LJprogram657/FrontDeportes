@@ -334,6 +334,22 @@ export default function AdminTournamentUpdatePage() {
     }
   };
 
+  // Paleta y sombras (solo estilos)
+  const ui = {
+    color: {
+      primary: '#c8102e',       // rojo del header
+      surface: '#ffffff',
+      text: '#222',
+      muted: '#6b7280',
+      border: '#e5e7eb',
+      successBg: '#e8fff0',
+      successText: '#0f5132',
+      scheduledBg: '#f8fafc',
+    },
+    shadow: '0 6px 16px rgba(0,0,0,0.08)',
+    radius: '12px',
+  };
+
   // Helpers de presentación (solo visuales)
   const parseEvents = (
     input?: string
@@ -355,10 +371,10 @@ export default function AdminTournamentUpdatePage() {
       ev?.playerName ??
       (ev?.playerId != null ? `Jugador ${ev.playerId}` : 'Jugador');
     const parts: string[] = [];
-    if (typeof ev?.goals === 'number' && ev.goals > 0) parts.push(`${ev.goals} gol(es)`);
-    if (typeof ev?.fouls === 'number' && ev.fouls > 0) parts.push(`${ev.fouls} falta(s)`);
-    if (ev?.yellow) parts.push('tarjeta amarilla');
-    if (ev?.red) parts.push('tarjeta roja');
+    if (typeof ev?.goals === 'number' && ev.goals > 0) parts.push(`⚽ ${ev.goals} gol(es)`);
+    if (typeof ev?.fouls === 'number' && ev.fouls > 0) parts.push(`⛔ ${ev.fouls} falta(s)`);
+    if (ev?.yellow) parts.push('🟨 TA');
+    if (ev?.red) parts.push('🟥 TR');
     return parts.length ? `${name} — ${parts.join(' · ')}` : name;
   };
 
@@ -426,7 +442,7 @@ export default function AdminTournamentUpdatePage() {
               className="tournaments-grid"
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
                 gap: '1rem',
                 marginTop: '1rem',
               }}
@@ -438,15 +454,25 @@ export default function AdminTournamentUpdatePage() {
                   onClick={() => setSelectedTournament({ id: t.id, name: t.name })}
                   style={{
                     cursor: 'pointer',
-                    border: '1px solid #ddd',
-                    borderRadius: '8px',
-                    padding: '0.75rem',
-                    background: '#fff',
+                    border: `1px solid ${ui.color.border}`,
+                    borderRadius: ui.radius,
+                    padding: '1rem',
+                    background: ui.color.surface,
+                    boxShadow: ui.shadow,
+                    transition: 'transform .15s ease, box-shadow .15s ease',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                   }}
                   title={`Abrir ${t.name}`}
+                  onMouseEnter={(e: any) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 10px 20px rgba(0,0,0,0.12)';
+                  }}
+                  onMouseLeave={(e: any) => {
+                    e.currentTarget.style.transform = 'none';
+                    e.currentTarget.style.boxShadow = ui.shadow;
+                  }}
                 >
                   <div
                     className="tournament-logo"
@@ -454,23 +480,23 @@ export default function AdminTournamentUpdatePage() {
                       display: 'flex',
                       justifyContent: 'center',
                       alignItems: 'center',
-                      height: '100px',
+                      height: '120px',
                       width: '100%',
-                      marginBottom: '0.5rem',
+                      marginBottom: '0.75rem',
                     }}
                   >
                     <img
                       src={t.logo || '/images/logo.png'}
                       alt={t.name}
                       style={{
-                        maxWidth: '90px',
-                        maxHeight: '90px',
+                        maxWidth: '100px',
+                        maxHeight: '100px',
                         objectFit: 'contain',
                         display: 'block',
                       }}
                     />
                   </div>
-                  <div className="tournament-info" style={{ textAlign: 'center' }}>
+                  <div className="tournament-info" style={{ textAlign: 'center', color: ui.color.text }}>
                     <strong>{t.name}</strong>
                   </div>
                 </div>
@@ -506,20 +532,38 @@ export default function AdminTournamentUpdatePage() {
                     <div
                       key={m.id}
                       className="match-card scheduled"
-                      style={{ marginBottom: '1rem' }}
+                      style={{
+                        marginBottom: '1rem',
+                        border: `1px solid ${ui.color.border}`,
+                        borderRadius: ui.radius,
+                        background: ui.color.scheduledBg,
+                        boxShadow: ui.shadow,
+                        padding: '1rem',
+                      }}
                     >
                       <div
                         className="match-header"
                         style={{
                           display: 'flex',
                           justifyContent: 'space-between',
+                          alignItems: 'center',
+                          marginBottom: '0.5rem',
                         }}
                       >
-                        <span>
+                        <span style={{ color: ui.color.muted }}>
                           {m.group ||
                             (m.round ? `Ronda ${m.round}` : '')}
                         </span>
-                        <span className="status-indicator complete">
+                        <span
+                          className="status-indicator complete"
+                          style={{
+                            background: '#eef2ff',
+                            color: '#3730a3',
+                            borderRadius: '999px',
+                            padding: '0.15rem 0.5rem',
+                            fontSize: '0.85rem',
+                          }}
+                        >
                           ✔ Programado
                         </span>
                       </div>
@@ -530,6 +574,8 @@ export default function AdminTournamentUpdatePage() {
                           display: 'flex',
                           alignItems: 'center',
                           gap: '1rem',
+                          fontWeight: 600,
+                          color: ui.color.text,
                         }}
                       >
                         <div className="team-slot home">
@@ -537,7 +583,18 @@ export default function AdminTournamentUpdatePage() {
                             {m.homeTeam?.name || 'Local'}
                           </span>
                         </div>
-                        <span className="vs-separator">VS</span>
+                        <span
+                          className="vs-separator"
+                          style={{
+                            background: '#f1f5f9',
+                            border: `1px solid ${ui.color.border}`,
+                            borderRadius: '999px',
+                            padding: '0.1rem 0.5rem',
+                            fontSize: '0.85rem',
+                          }}
+                        >
+                          VS
+                        </span>
                         <div className="team-slot away">
                           <span>
                             {m.awayTeam?.name || 'Visitante'}
@@ -551,7 +608,9 @@ export default function AdminTournamentUpdatePage() {
                           display: 'flex',
                           gap: '0.75rem',
                           alignItems: 'center',
-                          marginTop: '0.75rem',
+                          marginTop: '0.5rem',
+                          color: ui.color.muted,
+                          fontSize: '0.9rem',
                         }}
                       >
                         <span>Cancha: {m.venue || '-'}</span>
@@ -975,20 +1034,38 @@ export default function AdminTournamentUpdatePage() {
                       <div
                         key={m.id}
                         className="match-card finished"
-                        style={{ marginBottom: '1rem' }}
+                        style={{
+                          marginBottom: '1rem',
+                          border: `1px solid ${ui.color.border}`,
+                          borderRadius: ui.radius,
+                          background: ui.color.surface,
+                          boxShadow: ui.shadow,
+                          padding: '1rem',
+                        }}
                       >
                         <div
                           className="match-header"
                           style={{
                             display: 'flex',
                             justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginBottom: '0.5rem',
                           }}
                         >
-                          <span>
+                          <span style={{ color: ui.color.muted }}>
                             {m.group ||
                               (m.round ? `Ronda ${m.round}` : '')}
                           </span>
-                          <span className="status-indicator complete">
+                          <span
+                            className="status-indicator complete"
+                            style={{
+                              background: ui.color.successBg,
+                              color: ui.color.successText,
+                              borderRadius: '999px',
+                              padding: '0.15rem 0.5rem',
+                              fontSize: '0.85rem',
+                            }}
+                          >
                             ✔ Finalizado
                           </span>
                         </div>
@@ -999,6 +1076,8 @@ export default function AdminTournamentUpdatePage() {
                             display: 'flex',
                             alignItems: 'center',
                             gap: '1rem',
+                            fontWeight: 600,
+                            color: ui.color.text,
                           }}
                         >
                           <div className="team-slot home">
@@ -1006,7 +1085,18 @@ export default function AdminTournamentUpdatePage() {
                               {m.homeTeam?.name || 'Local'}
                             </span>
                           </div>
-                          <span className="vs-separator">VS</span>
+                          <span
+                            className="vs-separator"
+                            style={{
+                              background: '#f1f5f9',
+                              border: `1px solid ${ui.color.border}`,
+                              borderRadius: '999px',
+                              padding: '0.1rem 0.5rem',
+                              fontSize: '0.85rem',
+                            }}
+                          >
+                            VS
+                          </span>
                           <div className="team-slot away">
                             <span>
                               {m.awayTeam?.name || 'Visitante'}
@@ -1020,7 +1110,9 @@ export default function AdminTournamentUpdatePage() {
                             display: 'flex',
                             gap: '0.75rem',
                             alignItems: 'center',
-                            marginTop: '0.75rem',
+                            marginTop: '0.5rem',
+                            color: ui.color.muted,
+                            fontSize: '0.9rem',
                           }}
                         >
                           <span>Cancha: {m.venue || '-'}</span>
@@ -1030,22 +1122,45 @@ export default function AdminTournamentUpdatePage() {
 
                         <div
                           className="match-result-display"
-                          style={{ marginTop: '0.75rem' }}
+                          style={{
+                            marginTop: '0.75rem',
+                            display: 'grid',
+                            gridTemplateColumns: '140px 1fr',
+                            gap: '1rem',
+                            alignItems: 'start',
+                          }}
                         >
-                          <strong>Resultado:</strong>{' '}
-                          {m.homeScore} - {m.awayScore}
-                          <RenderEventBlock
-                            label="Goles"
-                            data={goalsData}
-                            homeName={m.homeTeam?.name || 'Local'}
-                            awayName={m.awayTeam?.name || 'Visitante'}
-                          />
-                          <RenderEventBlock
-                            label="Faltas"
-                            data={foulsData}
-                            homeName={m.homeTeam?.name || 'Local'}
-                            awayName={m.awayTeam?.name || 'Visitante'}
-                          />
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              border: `1px solid ${ui.color.border}`,
+                              borderRadius: ui.radius,
+                              padding: '0.75rem',
+                              background: '#f8fafc',
+                              fontWeight: 700,
+                              fontSize: '1.6rem',
+                              color: ui.color.text,
+                            }}
+                          >
+                            {m.homeScore} — {m.awayScore}
+                          </div>
+
+                          <div>
+                            <RenderEventBlock
+                              label="Goles"
+                              data={goalsData}
+                              homeName={m.homeTeam?.name || 'Local'}
+                              awayName={m.awayTeam?.name || 'Visitante'}
+                            />
+                            <RenderEventBlock
+                              label="Faltas"
+                              data={foulsData}
+                              homeName={m.homeTeam?.name || 'Local'}
+                              awayName={m.awayTeam?.name || 'Visitante'}
+                            />
+                          </div>
                         </div>
                       </div>
                     );
