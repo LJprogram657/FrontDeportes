@@ -1,14 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import apiService from '@/services/api';
 
-// Tipos fuera del componente para evitar conflictos con el parser TSX
+// Tipos fuera del componente (evita conflictos del parser TSX)
 interface Player {
   id: number;
   name: string;
   lastName?: string;
 }
-
 interface PlayerEvent {
   playerId: number;
   name: string;
@@ -39,18 +40,8 @@ interface Match {
   status: 'scheduled' | 'finished';
 }
 
-// Stubs seguros para evitar errores de build si no existen en tu proyecto
-const authHeaders = (): Record<string, string> => {
-  // Reemplaza con tu implementación real de auth headers
-  return {};
-};
-const toast = {
-  success: (_msg: string) => {},
-  error: (_msg: string) => {},
-};
-
 export default function AdminTournamentUpdatePage() {
-  // Selección de torneo (local) para evitar errores si no llega por props/contexto
+  // Selección de torneo (si en tu app llega por contexto/props, reemplaza este estado)
   const [selectedTournament, setSelectedTournament] =
     useState<{ id: number; name: string } | null>(null);
 
@@ -86,23 +77,26 @@ export default function AdminTournamentUpdatePage() {
         return;
       }
       try {
+        const token = apiService.getAccessToken();
         const res = await fetch(
           `/api/tournaments/admin/tournaments/${selectedTournament.id}/teams`,
           {
-            headers: { ...authHeaders() },
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            credentials: 'include',
           }
         );
-        if (!res.ok) throw new Error('No se pudieron cargar equipos');
+
         const teams: Array<{
           id: number;
           name: string;
           players: Array<{ id: number; name: string; lastName?: string }>;
         }> = await res.json();
 
-        const map: Record<
-          number,
-          { id: number; name: string; players: Player[] }
-        > = {};
+        const map: Record<number, { id: number; name: string; players: Player[] }> = {};
         teams.forEach((t) => {
           map[t.id] = {
             id: t.id,
@@ -115,9 +109,9 @@ export default function AdminTournamentUpdatePage() {
           };
         });
         setTeamsById(map);
-      } catch (e) {
-        console.error(e);
-        setTeamsById({});
+      } catch (err) {
+        console.error(err);
+        toast.error('Error cargando equipos');
       }
     })();
   }, [selectedTournament]);
@@ -170,9 +164,8 @@ export default function AdminTournamentUpdatePage() {
   };
 
   // Guardar resultado y eventos por jugador
-  const saveResult = async (phase: string, matchId: string) => {
-    const edit =
-      editState[matchId] || { homeScore: 0, awayScore: 0 };
+  const saveMatchResult = async (matchId: string, phase: string) => {
+    const edit = editState[matchId] || { homeScore: 0, awayScore: 0 };
     const events = edit.events || { home: [], away: [] };
 
     const goalsPayload = JSON.stringify({
@@ -210,12 +203,14 @@ export default function AdminTournamentUpdatePage() {
     });
 
     try {
-      const res = await fetch(`/api/matches/${matchId}`, {
+      const token = apiService.getAccessToken();
+      await fetch(`/api/matches/${matchId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          ...authHeaders(),
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
+        credentials: 'include',
         body: JSON.stringify({
           homeScore: Number(edit.homeScore),
           awayScore: Number(edit.awayScore),
@@ -224,224 +219,258 @@ export default function AdminTournamentUpdatePage() {
           fouls: foulsPayload,
         }),
       });
-      if (!res.ok) throw new Error('Error al actualizar resultado');
 
       setScheduledMatches((prev) => {
         const phaseMatches = prev[phase] || [];
         const newPhase: Match[] = phaseMatches.map((m) =>
           m.id === matchId
-            ? {
-                ...m,
-                homeScore: Number(edit.homeScore),
-                awayScore: Number(edit.awayScore),
-                status: 'finished',
-                goals: goalsPayload,
-                fouls: foulsPayload,
-              }
+            ? { ...m, status: 'finished', homeScore: edit.homeScore, awayScore: edit.awayScore }
             : m
         );
         return { ...prev, [phase]: newPhase };
       });
 
       toast.success('Resultado actualizado');
-    } catch {
+    } catch (err) {
+      console.error(err);
       toast.error('No se pudo guardar el resultado');
     }
   };
 
   return (
     <div>
-      {/* Selector simple de torneo (opcional) */}
-      {/* Reemplaza esto por tu selector real */}
-      <div style={{ marginBottom: '1rem' }}>
-        <button
-          onClick={() =>
-            setSelectedTournament({ id: 1, name: 'Torneo Demo' })
-          }
-        >
-          Seleccionar Torneo Demo
-        </button>
-      </div>
-
+      {/* Selector de torneo (reemplaza por tu selector real si aplica) */}
       <div className="matches-by-phase">
-        {Object.entries(scheduledMatches).map(
-          ([phase, phaseMatches]) => (
-            <div key={phase} style={{ marginBottom: '2rem' }}>
-              <h4 style={{ marginBottom: '1rem' }}>
-                Fase: {phase}
-              </h4>
+        {Object.entries(scheduledMatches).map(([phase, phaseMatches]) => (
+          <div key={phase} style={{ marginBottom: '2rem' }}>
+            <h4 style={{ marginBottom: '1rem' }}>Fase: {phase}</h4>
 
-              {/* Programados */}
-              <div className="matches-block">
-                <h6>Programados</h6>
-                {(phaseMatches || [])
-                  .filter((m) => m.status === 'scheduled')
-                  .map((m) => (
+            {/* Programados */}
+            <div className="matches-block">
+              <h6>Programados</h6>
+              {(phaseMatches || [])
+                .filter((m) => m.status === 'scheduled')
+                .map((m) => (
+                  <div
+                    key={m.id}
+                    className="match-card scheduled"
+                    style={{ marginBottom: '1rem' }}
+                  >
                     <div
-                      key={m.id}
-                      className="match-card scheduled"
-                      style={{ marginBottom: '1rem' }}
+                      className="match-header"
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                      }}
                     >
-                      <div
-                        className="match-header"
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                        }}
-                      >
+                      <span>
+                        {m.group ||
+                          (m.round ? `Ronda ${m.round}` : '')}
+                      </span>
+                      <span className="status-indicator complete">
+                        ✔ Programado
+                      </span>
+                    </div>
+
+                    <div
+                      className="match-teams"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '1rem',
+                      }}
+                    >
+                      <div className="team-slot home">
                         <span>
-                          {m.group ||
-                            (m.round ? `Ronda ${m.round}` : '')}
-                        </span>
-                        <span className="status-indicator complete">
-                          ✔ Programado
+                          {m.homeTeam?.name || 'Local'}
                         </span>
                       </div>
+                      <span className="vs-separator">VS</span>
+                      <div className="team-slot away">
+                        <span>
+                          {m.awayTeam?.name || 'Visitante'}
+                        </span>
+                      </div>
+                    </div>
 
+                    <div
+                      className="match-details"
+                      style={{
+                        display: 'flex',
+                        gap: '0.75rem',
+                        alignItems: 'center',
+                        marginTop: '0.75rem',
+                      }}
+                    >
+                      <span>Cancha: {m.venue || '-'}</span>
+                      <span>Fecha: {m.date || '-'}</span>
+                      <span>Hora: {m.time || '-'}</span>
+                    </div>
+
+                    {/* Sección de edición: resultado y eventos por jugador */}
+                    <div
+                      className="match-edit"
+                      style={{ marginTop: '0.75rem' }}
+                    >
+                      {/* Resultado simple */}
+                      <div className="form-grid">
+                        <div className="form-group">
+                          <label>Goles Local</label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={editState[m.id]?.homeScore ?? 0}
+                            onChange={(e) =>
+                              setEditState((prev) => ({
+                                ...prev,
+                                [m.id]: {
+                                  ...(prev[m.id] || { awayScore: 0 }),
+                                  homeScore: Number(e.target.value),
+                                  events:
+                                    prev[m.id]?.events ?? ensureEventsForMatch(m),
+                                },
+                              }))
+                            }
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label>Goles Visitante</label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={editState[m.id]?.awayScore ?? 0}
+                            onChange={(e) =>
+                              setEditState((prev) => ({
+                                ...prev,
+                                [m.id]: {
+                                  ...(prev[m.id] || { homeScore: 0 }),
+                                  awayScore: Number(e.target.value),
+                                  events:
+                                    prev[m.id]?.events ?? ensureEventsForMatch(m),
+                                },
+                              }))
+                            }
+                          />
+                        </div>
+                      </div>
+
+                      {/* Eventos por jugador */}
                       <div
-                        className="match-teams"
+                        className="team-events"
                         style={{
-                          display: 'flex',
-                          alignItems: 'center',
+                          display: 'grid',
+                          gridTemplateColumns: '1fr 1fr',
                           gap: '1rem',
+                          marginTop: '1rem',
                         }}
                       >
-                        <div className="team-slot home">
-                          <span>
-                            {m.homeTeam?.name || 'Local'}
-                          </span>
-                        </div>
-                        <span className="vs-separator">VS</span>
-                        <div className="team-slot away">
-                          <span>
-                            {m.awayTeam?.name || 'Visitante'}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div
-                        className="match-details"
-                        style={{
-                          display: 'flex',
-                          gap: '0.75rem',
-                          alignItems: 'center',
-                          marginTop: '0.75rem',
-                        }}
-                      >
-                        <span>Cancha: {m.venue || '-'}</span>
-                        <span>Fecha: {m.date || '-'}</span>
-                        <span>Hora: {m.time || '-'}</span>
-                      </div>
-
-                      {/* Sección de edición: resultado y eventos por jugador */}
-                      <div
-                        className="match-edit"
-                        style={{ marginTop: '0.75rem' }}
-                      >
-                        {/* Resultado simple */}
-                        <div className="form-grid">
-                          <div className="form-group">
-                            <label>Goles Local</label>
-                            <input
-                              type="number"
-                              min={0}
-                              value={
-                                editState[m.id]?.homeScore ?? 0
-                              }
-                              onChange={(e) =>
-                                setEditState((prev) => ({
-                                  ...prev,
-                                  [m.id]: {
-                                    ...(prev[m.id] || {
-                                      awayScore: 0,
-                                    }),
-                                    homeScore: Number(
-                                      e.target.value
-                                    ),
-                                    events:
+                        {/* Local */}
+                        <div>
+                          <h5>
+                            Local: {m.homeTeam?.name || '-'}
+                          </h5>
+                          {(
+                            editState[m.id]?.events ??
+                            ensureEventsForMatch(m)
+                          ).home.map((p, idx) => (
+                            <div
+                              key={`home-${p.playerId}`}
+                              style={{
+                                display: 'grid',
+                                gridTemplateColumns:
+                                  '2fr repeat(4, 1fr)',
+                                gap: '0.5rem',
+                                alignItems: 'center',
+                                marginBottom: '0.5rem',
+                              }}
+                            >
+                              <span>{p.name}</span>
+                              <input
+                                type="number"
+                                min={0}
+                                value={p.goals}
+                                onChange={(e) => {
+                                  const val = Number(e.target.value);
+                                  setEditState((prev) => {
+                                    const events =
                                       prev[m.id]?.events ??
-                                      ensureEventsForMatch(m),
-                                  },
-                                }))
-                              }
-                            />
-                          </div>
-                          <div className="form-group">
-                            <label>Goles Visitante</label>
-                            <input
-                              type="number"
-                              min={0}
-                              value={
-                                editState[m.id]?.awayScore ?? 0
-                              }
-                              onChange={(e) =>
-                                setEditState((prev) => ({
-                                  ...prev,
-                                  [m.id]: {
-                                    ...(prev[m.id] || {
-                                      homeScore: 0,
-                                    }),
-                                    awayScore: Number(
-                                      e.target.value
-                                    ),
-                                    events:
+                                      ensureEventsForMatch(m);
+                                    const nextHome = events.home.slice();
+                                    nextHome[idx] = {
+                                      ...nextHome[idx],
+                                      goals: val,
+                                    };
+                                    return {
+                                      ...prev,
+                                      [m.id]: {
+                                        ...(prev[m.id] || {
+                                          homeScore: 0,
+                                          awayScore: 0,
+                                        }),
+                                        events: {
+                                          home: nextHome,
+                                          away: events.away,
+                                        },
+                                      },
+                                    };
+                                  });
+                                }}
+                                placeholder="Goles"
+                                title="Goles"
+                              />
+                              <input
+                                type="number"
+                                min={0}
+                                value={p.fouls}
+                                onChange={(e) => {
+                                  const val = Number(e.target.value);
+                                  setEditState((prev) => {
+                                    const events =
                                       prev[m.id]?.events ??
-                                      ensureEventsForMatch(m),
-                                  },
-                                }))
-                              }
-                            />
-                          </div>
-                        </div>
-
-                        {/* Eventos por jugador */}
-                        <div
-                          className="team-events"
-                          style={{
-                            display: 'grid',
-                            gridTemplateColumns: '1fr 1fr',
-                            gap: '1rem',
-                            marginTop: '1rem',
-                          }}
-                        >
-                          {/* Local */}
-                          <div>
-                            <h5>
-                              Local: {m.homeTeam?.name || '-'}
-                            </h5>
-                            {(
-                              editState[m.id]?.events ??
-                              ensureEventsForMatch(m)
-                            ).home.map((p, idx) => (
-                              <div
-                                key={`home-${p.playerId}`}
+                                      ensureEventsForMatch(m);
+                                    const nextHome = events.home.slice();
+                                    nextHome[idx] = {
+                                      ...nextHome[idx],
+                                      fouls: val,
+                                    };
+                                    return {
+                                      ...prev,
+                                      [m.id]: {
+                                        ...(prev[m.id] || {
+                                          homeScore: 0,
+                                          awayScore: 0,
+                                        }),
+                                        events: {
+                                          home: nextHome,
+                                          away: events.away,
+                                        },
+                                      },
+                                    };
+                                  });
+                                }}
+                                placeholder="Faltas"
+                                title="Faltas"
+                              />
+                              <label
                                 style={{
-                                  display: 'grid',
-                                  gridTemplateColumns:
-                                    '2fr repeat(4, 1fr)',
-                                  gap: '0.5rem',
+                                  display: 'flex',
                                   alignItems: 'center',
-                                  marginBottom: '0.5rem',
+                                  gap: '0.25rem',
                                 }}
                               >
-                                <span>{p.name}</span>
                                 <input
-                                  type="number"
-                                  min={0}
-                                  value={p.goals}
+                                  type="checkbox"
+                                  checked={p.yellow}
                                   onChange={(e) => {
-                                    const val = Number(
-                                      e.target.value
-                                    );
+                                    const checked = e.target.checked;
                                     setEditState((prev) => {
                                       const events =
                                         prev[m.id]?.events ??
                                         ensureEventsForMatch(m);
-                                      const nextHome =
-                                        events.home.slice();
+                                      const nextHome = events.home.slice();
                                       nextHome[idx] = {
                                         ...nextHome[idx],
-                                        goals: val,
+                                        yellow: checked,
                                       };
                                       return {
                                         ...prev,
@@ -458,26 +487,29 @@ export default function AdminTournamentUpdatePage() {
                                       };
                                     });
                                   }}
-                                  placeholder="Goles"
-                                  title="Goles"
                                 />
+                                TA
+                              </label>
+                              <label
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.25rem',
+                                }}
+                              >
                                 <input
-                                  type="number"
-                                  min={0}
-                                  value={p.fouls}
+                                  type="checkbox"
+                                  checked={p.red}
                                   onChange={(e) => {
-                                    const val = Number(
-                                      e.target.value
-                                    );
+                                    const checked = e.target.checked;
                                     setEditState((prev) => {
                                       const events =
                                         prev[m.id]?.events ??
                                         ensureEventsForMatch(m);
-                                      const nextHome =
-                                        events.home.slice();
+                                      const nextHome = events.home.slice();
                                       nextHome[idx] = {
                                         ...nextHome[idx],
-                                        fouls: val,
+                                        red: checked,
                                       };
                                       return {
                                         ...prev,
@@ -494,133 +526,118 @@ export default function AdminTournamentUpdatePage() {
                                       };
                                     });
                                   }}
-                                  placeholder="Faltas"
-                                  title="Faltas"
                                 />
-                                <label
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.25rem',
-                                  }}
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={p.yellow}
-                                    onChange={(e) => {
-                                      const checked =
-                                        e.target.checked;
-                                      setEditState((prev) => {
-                                        const events =
-                                          prev[m.id]?.events ??
-                                          ensureEventsForMatch(m);
-                                        const nextHome =
-                                          events.home.slice();
-                                        nextHome[idx] = {
-                                          ...nextHome[idx],
-                                          yellow: checked,
-                                        };
-                                        return {
-                                          ...prev,
-                                          [m.id]: {
-                                            ...(prev[m.id] || {
-                                              homeScore: 0,
-                                              awayScore: 0,
-                                            }),
-                                            events: {
-                                              home: nextHome,
-                                              away: events.away,
-                                            },
-                                          },
-                                        };
-                                      });
-                                    }}
-                                  />
-                                  TA
-                                </label>
-                                <label
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.25rem',
-                                  }}
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={p.red}
-                                    onChange={(e) => {
-                                      const checked =
-                                        e.target.checked;
-                                      setEditState((prev) => {
-                                        const events =
-                                          prev[m.id]?.events ??
-                                          ensureEventsForMatch(m);
-                                        const nextHome =
-                                          events.home.slice();
-                                        nextHome[idx] = {
-                                          ...nextHome[idx],
-                                          red: checked,
-                                        };
-                                        return {
-                                          ...prev,
-                                          [m.id]: {
-                                            ...(prev[m.id] || {
-                                              homeScore: 0,
-                                              awayScore: 0,
-                                            }),
-                                            events: {
-                                              home: nextHome,
-                                              away: events.away,
-                                            },
-                                          },
-                                        };
-                                      });
-                                    }}
-                                  />
-                                  TR
-                                </label>
-                              </div>
-                            ))}
-                          </div>
+                                TR
+                              </label>
+                            </div>
+                          ))}
+                        </div>
 
-                          {/* Visitante */}
-                          <div>
-                            <h5>
-                              Visitante: {m.awayTeam?.name || '-'}
-                            </h5>
-                            {(
-                              editState[m.id]?.events ??
-                              ensureEventsForMatch(m)
-                            ).away.map((p, idx) => (
-                              <div
-                                key={`away-${p.playerId}`}
+                        {/* Visitante */}
+                        <div>
+                          <h5>Visitante: {m.awayTeam?.name || '-'}</h5>
+                          {(
+                            editState[m.id]?.events ??
+                            ensureEventsForMatch(m)
+                          ).away.map((p, idx) => (
+                            <div
+                              key={`away-${p.playerId}`}
+                              style={{
+                                display: 'grid',
+                                gridTemplateColumns:
+                                  '2fr repeat(4, 1fr)',
+                                gap: '0.5rem',
+                                alignItems: 'center',
+                                marginBottom: '0.5rem',
+                              }}
+                            >
+                              <span>{p.name}</span>
+                              <input
+                                type="number"
+                                min={0}
+                                value={p.goals}
+                                onChange={(e) => {
+                                  const val = Number(e.target.value);
+                                  setEditState((prev) => {
+                                    const events =
+                                      prev[m.id]?.events ??
+                                      ensureEventsForMatch(m);
+                                    const nextAway = events.away.slice();
+                                    nextAway[idx] = {
+                                      ...nextAway[idx],
+                                      goals: val,
+                                    };
+                                    return {
+                                      ...prev,
+                                      [m.id]: {
+                                        ...(prev[m.id] || {
+                                          homeScore: 0,
+                                          awayScore: 0,
+                                        }),
+                                        events: {
+                                          home: events.home,
+                                          away: nextAway,
+                                        },
+                                      },
+                                    };
+                                  });
+                                }}
+                                placeholder="Goles"
+                                title="Goles"
+                              />
+                              <input
+                                type="number"
+                                min={0}
+                                value={p.fouls}
+                                onChange={(e) => {
+                                  const val = Number(e.target.value);
+                                  setEditState((prev) => {
+                                    const events =
+                                      prev[m.id]?.events ??
+                                      ensureEventsForMatch(m);
+                                    const nextAway = events.away.slice();
+                                    nextAway[idx] = {
+                                      ...nextAway[idx],
+                                      fouls: val,
+                                    };
+                                    return {
+                                      ...prev,
+                                      [m.id]: {
+                                        ...(prev[m.id] || {
+                                          homeScore: 0,
+                                          awayScore: 0,
+                                        }),
+                                        events: {
+                                          home: events.home,
+                                          away: nextAway,
+                                        },
+                                      },
+                                    };
+                                  });
+                                }}
+                                placeholder="Faltas"
+                                title="Faltas"
+                              />
+                              <label
                                 style={{
-                                  display: 'grid',
-                                  gridTemplateColumns:
-                                    '2fr repeat(4, 1fr)',
-                                  gap: '0.5rem',
+                                  display: 'flex',
                                   alignItems: 'center',
-                                  marginBottom: '0.5rem',
+                                  gap: '0.25rem',
                                 }}
                               >
-                                <span>{p.name}</span>
                                 <input
-                                  type="number"
-                                  min={0}
-                                  value={p.goals}
+                                  type="checkbox"
+                                  checked={p.yellow}
                                   onChange={(e) => {
-                                    const val = Number(
-                                      e.target.value
-                                    );
+                                    const checked = e.target.checked;
                                     setEditState((prev) => {
                                       const events =
                                         prev[m.id]?.events ??
                                         ensureEventsForMatch(m);
-                                      const nextAway =
-                                        events.away.slice();
+                                      const nextAway = events.away.slice();
                                       nextAway[idx] = {
                                         ...nextAway[idx],
-                                        goals: val,
+                                        yellow: checked,
                                       };
                                       return {
                                         ...prev,
@@ -637,26 +654,29 @@ export default function AdminTournamentUpdatePage() {
                                       };
                                     });
                                   }}
-                                  placeholder="Goles"
-                                  title="Goles"
                                 />
+                                TA
+                              </label>
+                              <label
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.25rem',
+                                }}
+                              >
                                 <input
-                                  type="number"
-                                  min={0}
-                                  value={p.fouls}
+                                  type="checkbox"
+                                  checked={p.red}
                                   onChange={(e) => {
-                                    const val = Number(
-                                      e.target.value
-                                    );
+                                    const checked = e.target.checked;
                                     setEditState((prev) => {
                                       const events =
                                         prev[m.id]?.events ??
                                         ensureEventsForMatch(m);
-                                      const nextAway =
-                                        events.away.slice();
+                                      const nextAway = events.away.slice();
                                       nextAway[idx] = {
                                         ...nextAway[idx],
-                                        fouls: val,
+                                        red: checked,
                                       };
                                       return {
                                         ...prev,
@@ -673,201 +693,118 @@ export default function AdminTournamentUpdatePage() {
                                       };
                                     });
                                   }}
-                                  placeholder="Faltas"
-                                  title="Faltas"
                                 />
-                                <label
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.25rem',
-                                  }}
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={p.yellow}
-                                    onChange={(e) => {
-                                      const checked =
-                                        e.target.checked;
-                                      setEditState((prev) => {
-                                        const events =
-                                          prev[m.id]?.events ??
-                                          ensureEventsForMatch(m);
-                                        const nextAway =
-                                          events.away.slice();
-                                        nextAway[idx] = {
-                                          ...nextAway[idx],
-                                          yellow: checked,
-                                        };
-                                        return {
-                                          ...prev,
-                                          [m.id]: {
-                                            ...(prev[m.id] || {
-                                              homeScore: 0,
-                                              awayScore: 0,
-                                            }),
-                                            events: {
-                                              home: events.home,
-                                              away: nextAway,
-                                            },
-                                          },
-                                        };
-                                      });
-                                    }}
-                                  />
-                                  TA
-                                </label>
-                                <label
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.25rem',
-                                  }}
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={p.red}
-                                    onChange={(e) => {
-                                      const checked =
-                                        e.target.checked;
-                                      setEditState((prev) => {
-                                        const events =
-                                          prev[m.id]?.events ??
-                                          ensureEventsForMatch(m);
-                                        const nextAway =
-                                          events.away.slice();
-                                        nextAway[idx] = {
-                                          ...nextAway[idx],
-                                          red: checked,
-                                        };
-                                        return {
-                                          ...prev,
-                                          [m.id]: {
-                                            ...(prev[m.id] || {
-                                              homeScore: 0,
-                                              awayScore: 0,
-                                            }),
-                                            events: {
-                                              home: events.home,
-                                              away: nextAway,
-                                            },
-                                          },
-                                        };
-                                      });
-                                    }}
-                                  />
-                                  TR
-                                </label>
-                              </div>
-                            ))}
+                                TR
+                              </label>
+                            </div>
+                          ))}
+
+                          <div style={{ marginTop: '0.75rem' }}>
+                            <button
+                              className="btn-primary"
+                              onClick={() => saveMatchResult(m.id, phase)}
+                            >
+                              Guardar resultado
+                            </button>
                           </div>
                         </div>
-
-                        <div style={{ marginTop: '0.75rem' }}>
-                          <button
-                            className="btn-primary"
-                            onClick={() => saveResult(phase, m.id)}
-                          >
-                            Guardar resultado
-                          </button>
-                        </div>
-                      </div>
-                      {/* Fin sección de edición */}
-                    </div>
-                  ))}
-              </div>
-
-              {/* Finalizados (solo lectura) */}
-              <div className="matches-block" style={{ marginTop: '1rem' }}>
-                <h6>Finalizados</h6>
-                {(phaseMatches || [])
-                  .filter((m) => m.status === 'finished')
-                  .map((m) => (
-                    <div
-                      key={m.id}
-                      className="match-card finished"
-                      style={{ marginBottom: '1rem' }}
-                    >
-                      <div
-                        className="match-header"
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                        }}
-                      >
-                        <span>
-                          {m.group ||
-                            (m.round ? `Ronda ${m.round}` : '')}
-                        </span>
-                        <span className="status-indicator complete">
-                          ✔ Finalizado
-                        </span>
-                      </div>
-
-                      <div
-                        className="match-teams"
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '1rem',
-                        }}
-                      >
-                        <div className="team-slot home">
-                          <span>
-                            {m.homeTeam?.name || 'Local'}
-                          </span>
-                        </div>
-                        <span className="vs-separator">VS</span>
-                        <div className="team-slot away">
-                          <span>
-                            {m.awayTeam?.name || 'Visitante'}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div
-                        className="match-details"
-                        style={{
-                          display: 'flex',
-                          gap: '0.75rem',
-                          alignItems: 'center',
-                          marginTop: '0.75rem',
-                        }}
-                      >
-                        <span>Cancha: {m.venue || '-'}</span>
-                        <span>Fecha: {m.date || '-'}</span>
-                        <span>Hora: {m.time || '-'}</span>
-                      </div>
-
-                      <div
-                        className="match-result-display"
-                        style={{ marginTop: '0.75rem' }}
-                      >
-                        <strong>Resultado:</strong>{' '}
-                        {m.homeScore} - {m.awayScore}
-                        {!!m.goals && (
-                          <div>
-                            <strong>Goles:</strong>
-                            <pre style={{ whiteSpace: 'pre-wrap' }}>
-                              {m.goals}
-                            </pre>
-                          </div>
-                        )}
-                        {!!m.fouls && (
-                          <div>
-                            <strong>Faltas:</strong>
-                            <pre style={{ whiteSpace: 'pre-wrap' }}>
-                              {m.fouls}
-                            </pre>
-                          </div>
-                        )}
+                        {/* Fin sección de edición */}
                       </div>
                     </div>
-                  ))}
-              </div>
+                  </div>
+                ))}
             </div>
-          )
-        )}
+
+            {/* Finalizados (solo lectura) */}
+            <div className="matches-block" style={{ marginTop: '1rem' }}>
+              <h6>Finalizados</h6>
+              {(phaseMatches || [])
+                .filter((m) => m.status === 'finished')
+                .map((m) => (
+                  <div
+                    key={m.id}
+                    className="match-card finished"
+                    style={{ marginBottom: '1rem' }}
+                  >
+                    <div
+                      className="match-header"
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <span>
+                        {m.group ||
+                          (m.round ? `Ronda ${m.round}` : '')}
+                      </span>
+                      <span className="status-indicator complete">
+                        ✔ Finalizado
+                      </span>
+                    </div>
+
+                    <div
+                      className="match-teams"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '1rem',
+                      }}
+                    >
+                      <div className="team-slot home">
+                        <span>
+                          {m.homeTeam?.name || 'Local'}
+                        </span>
+                      </div>
+                      <span className="vs-separator">VS</span>
+                      <div className="team-slot away">
+                        <span>
+                          {m.awayTeam?.name || 'Visitante'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div
+                      className="match-details"
+                      style={{
+                        display: 'flex',
+                        gap: '0.75rem',
+                        alignItems: 'center',
+                        marginTop: '0.75rem',
+                      }}
+                    >
+                      <span>Cancha: {m.venue || '-'}</span>
+                      <span>Fecha: {m.date || '-'}</span>
+                      <span>Hora: {m.time || '-'}</span>
+                    </div>
+
+                    <div
+                      className="match-result-display"
+                      style={{ marginTop: '0.75rem' }}
+                    >
+                      <strong>Resultado:</strong>{' '}
+                      {m.homeScore} - {m.awayScore}
+                      {!!m.goals && (
+                        <div>
+                          <strong>Goles:</strong>
+                          <pre style={{ whiteSpace: 'pre-wrap' }}>
+                            {m.goals}
+                          </pre>
+                        </div>
+                      )}
+                      {!!m.fouls && (
+                        <div>
+                          <strong>Faltas:</strong>
+                          <pre style={{ whiteSpace: 'pre-wrap' }}>
+                            {m.fouls}
+                          </pre>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
