@@ -1,15 +1,36 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { toast } from 'sonner';
 import apiService from '@/services/api';
 
-// Tipos fuera del componente (evita conflictos del parser TSX)
+// Paleta y estilos UI utilizados en tarjetas y controles
+const ui = {
+  color: {
+    bg: '#0b0f19',
+    surface: '#121826',
+    surfaceAlt: '#0f172a',
+    border: '#1f2937',
+    text: '#e5e7eb',
+    muted: '#9ca3af',
+    brand: '#ef4444',
+    brandAlt: '#f59e0b',
+    success: '#22c55e',
+    danger: '#ef4444',
+    warning: '#f59e0b',
+    chip: '#1f2937',
+  },
+  radius: '12px',
+  shadow: '0 8px 16px rgba(0,0,0,0.12)',
+};
+
+// Tipos fuera del componente
 interface Player {
   id: number;
   name: string;
   lastName?: string;
 }
+
 interface PlayerEvent {
   playerId: number;
   name: string;
@@ -40,10 +61,106 @@ interface Match {
   status: 'scheduled' | 'finished';
 }
 
+// Utilidad para parsear JSON seguro
+function parseJSONSafe<T>(raw: string | undefined, fallback: T): T {
+  if (!raw) return fallback;
+  try {
+    const data = JSON.parse(raw);
+    return data as T;
+  } catch {
+    return fallback;
+  }
+}
+
+// Item con iconos para listas de eventos (goles/faltas)
+function formatEventItem(
+  item: { playerId?: number; name?: string; goals?: number; fouls?: number; yellow?: boolean; red?: boolean },
+  type: 'goal' | 'foul'
+) {
+  const icon = type === 'goal' ? '⚽' : '🚫';
+  const yellowBadge = item.yellow ? '🟨' : '';
+  const redBadge = item.red ? '🟥' : '';
+  const qty = type === 'goal' ? (item.goals ?? 0) : (item.fouls ?? 0);
+
+  return (
+    <span
+      key={`${type}-${item.playerId ?? item.name}-${qty}-${yellowBadge}-${redBadge}`}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '0.5rem',
+        padding: '0.35rem 0.6rem',
+        margin: '0.25rem',
+        borderRadius: '999px',
+        background: ui.color.chip,
+        color: ui.color.text,
+        fontSize: '0.9rem',
+      }}
+      title={`${type === 'goal' ? 'Goles' : 'Faltas'}: ${qty}`}
+    >
+      <span style={{ fontSize: '1rem' }}>{icon}</span>
+      <span>{item.name || 'Jugador'}</span>
+      <span style={{ fontWeight: 700 }}>{qty}</span>
+      {yellowBadge && <span>{yellowBadge}</span>}
+      {redBadge && <span>{redBadge}</span>}
+    </span>
+  );
+}
+
+// Bloque reutilizable para mostrar eventos por lado
+function RenderEventBlock(props: {
+  label: 'Goles' | 'Faltas';
+  data: { home?: any[]; away?: any[] };
+  homeName: string;
+  awayName: string;
+}) {
+  const { label, data, homeName, awayName } = props;
+  const type = label === 'Goles' ? 'goal' : 'foul';
+
+  return (
+    <div style={{ marginTop: '1rem' }}>
+      <div style={{ fontWeight: 700, marginBottom: '0.5rem', color: ui.color.text }}>{label}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
+        <div
+          style={{
+            background: ui.color.surfaceAlt,
+            border: `1px solid ${ui.color.border}`,
+            borderRadius: ui.radius,
+            padding: '0.6rem',
+          }}
+        >
+          <div style={{ color: ui.color.muted, marginBottom: '0.4rem' }}>{homeName}</div>
+          <div>
+            {(data.home || []).map((item, idx) => (
+              <div key={`home-${label}-${idx}`}>{formatEventItem(item, type)}</div>
+            ))}
+            {(!data.home || data.home.length === 0) && <span style={{ color: ui.color.muted }}>Sin datos</span>}
+          </div>
+        </div>
+        <div
+          style={{
+            background: ui.color.surfaceAlt,
+            border: `1px solid ${ui.color.border}`,
+            borderRadius: ui.radius,
+            padding: '0.6rem',
+          }}
+        >
+          <div style={{ color: ui.color.muted, marginBottom: '0.4rem' }}>{awayName}</div>
+          <div>
+            {(data.away || []).map((item, idx) => (
+              <div key={`away-${label}-${idx}`}>{formatEventItem(item, type)}</div>
+            ))}
+            {(!data.away || data.away.length === 0) && <span style={{ color: ui.color.muted }}>Sin datos</span>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminTournamentUpdatePage() {
   // Selección de torneo
-  const [selectedTournament, setSelectedTournament] =
-    useState<{ id: number; name: string } | null>(null);
+  const [selectedTournament, setSelectedTournament] = useState<{ id: number; name: string } | null>(null);
 
   // Listado de torneos (vista inicial con logos)
   interface TournamentSummary {
@@ -56,9 +173,7 @@ export default function AdminTournamentUpdatePage() {
   const [isLoadingTournaments, setIsLoadingTournaments] = useState<boolean>(false);
 
   // Equipos y jugadores por equipo
-  const [teamsById, setTeamsById] = useState<
-    Record<number, { id: number; name: string; players: Player[] }>
-  >({});
+  const [teamsById, setTeamsById] = useState<Record<number, { id: number; name: string; players: Player[] }>>({});
 
   // Estado de edición por partido
   const [editState, setEditState] = useState<
@@ -75,9 +190,23 @@ export default function AdminTournamentUpdatePage() {
   >({});
 
   // Partidos agrupados por fase
-  const [scheduledMatches, setScheduledMatches] = useState<
-    Record<string, Match[]>
-  >({});
+  const [scheduledMatches, setScheduledMatches] = useState<Record<string, Match[]>>({});
+  const [isLoadingMatches, setIsLoadingMatches] = useState<boolean>(false);
+
+  // Restaurar torneo seleccionado desde localStorage al montar
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('admin_update_selected_tournament');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed.id === 'number' && parsed.name) {
+          setSelectedTournament({ id: parsed.id, name: parsed.name });
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
 
   // Cargar torneos y mostrar cuadrícula de logos
   useEffect(() => {
@@ -92,6 +221,7 @@ export default function AdminTournamentUpdatePage() {
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
           credentials: 'include',
+          cache: 'no-store',
         });
         const list = await res.json();
         if (Array.isArray(list)) {
@@ -116,13 +246,15 @@ export default function AdminTournamentUpdatePage() {
     })();
   }, []);
 
-  // Cargar partidos del torneo seleccionado y agrupar por fase
+  // Cargar partidos del torneo seleccionado y agrupar por fase (con AbortController y no-store)
   useEffect(() => {
+    const controller = new AbortController();
     (async () => {
       if (!selectedTournament) {
         setScheduledMatches({});
         return;
       }
+      setIsLoadingMatches(true);
       try {
         const token = apiService.getAccessToken();
         const res = await fetch(`/api/tournaments/${selectedTournament.id}/matches`, {
@@ -132,7 +264,10 @@ export default function AdminTournamentUpdatePage() {
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
           credentials: 'include',
+          cache: 'no-store',
+          signal: controller.signal,
         });
+        if (!res.ok) throw new Error('Error al cargar partidos');
         const matches = await res.json();
 
         const grouped: Record<string, Match[]> = {};
@@ -158,12 +293,17 @@ export default function AdminTournamentUpdatePage() {
         });
 
         setScheduledMatches(grouped);
-      } catch (err) {
-        console.error(err);
-        toast.error('Error cargando partidos');
-        setScheduledMatches({});
+      } catch (err: any) {
+        if (err?.name !== 'AbortError') {
+          console.error(err);
+          toast.error('Error cargando partidos');
+          setScheduledMatches({});
+        }
+      } finally {
+        setIsLoadingMatches(false);
       }
     })();
+    return () => controller.abort();
   }, [selectedTournament]);
 
   // Cargar equipos y jugadores cuando haya torneo seleccionado
@@ -175,17 +315,15 @@ export default function AdminTournamentUpdatePage() {
       }
       try {
         const token = apiService.getAccessToken();
-        const res = await fetch(
-          `/api/tournaments/admin/tournaments/${selectedTournament.id}/teams`,
-          {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
-            credentials: 'include',
-          }
-        );
+        const res = await fetch(`/api/tournaments/admin/tournaments/${selectedTournament.id}/teams`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          credentials: 'include',
+          cache: 'no-store',
+        });
 
         const teams: Array<{
           id: number;
@@ -194,7 +332,7 @@ export default function AdminTournamentUpdatePage() {
         }> = await res.json();
 
         const map: Record<number, { id: number; name: string; players: Player[] }> = {};
-        teams.forEach((t) => {
+        (teams || []).forEach((t) => {
           map[t.id] = {
             id: t.id,
             name: t.name,
@@ -213,20 +351,10 @@ export default function AdminTournamentUpdatePage() {
     })();
   }, [selectedTournament]);
 
-  // Inicializar eventos por jugador para un partido si no existen aún en el estado
-  const ensureEventsForMatch = (
-    m: Match
-  ): { home: PlayerEvent[]; away: PlayerEvent[] } => {
-    const current = editState[m.id]?.events;
-    if (current) return current;
-
-    const homePlayers = m.homeTeam?.id
-      ? teamsById[Number(m.homeTeam.id)]?.players || []
-      : [];
-    const awayPlayers = m.awayTeam?.id
-      ? teamsById[Number(m.awayTeam.id)]?.players || []
-      : [];
-
+  // Deriva eventos por jugador a partir de teamsById SIN setState (para render seguro)
+  const deriveEventsForMatch = (m: Match): { home: PlayerEvent[]; away: PlayerEvent[] } => {
+    const homePlayers = m.homeTeam?.id ? teamsById[Number(m.homeTeam.id)]?.players || [] : [];
+    const awayPlayers = m.awayTeam?.id ? teamsById[Number(m.awayTeam.id)]?.players || [] : [];
     const home: PlayerEvent[] = homePlayers.map((p: Player) => ({
       playerId: p.id,
       name: [p.name, p.lastName].filter(Boolean).join(' '),
@@ -243,27 +371,17 @@ export default function AdminTournamentUpdatePage() {
       yellow: false,
       red: false,
     }));
-
-    setEditState((prev) => ({
-      ...prev,
-      [m.id]: {
-        ...(prev[m.id] || {
-          homeScore:
-            typeof m.homeScore === 'number' ? m.homeScore : 0,
-          awayScore:
-            typeof m.awayScore === 'number' ? m.awayScore : 0,
-        }),
-        events: { home, away },
-      },
-    }));
-
     return { home, away };
   };
 
   // Guardar resultado y eventos por jugador
-  const saveMatchResult = async (matchId: string, phase: string) => {
-    const edit = editState[matchId] || { homeScore: 0, awayScore: 0 };
-    const events = edit.events || { home: [], away: [] };
+  const saveMatchResult = async (matchId: string, phase: string, m: Match) => {
+    const edit = editState[matchId] || {
+      homeScore: typeof m.homeScore === 'number' ? m.homeScore : 0,
+      awayScore: typeof m.awayScore === 'number' ? m.awayScore : 0,
+    };
+
+    const events = edit.events ?? deriveEventsForMatch(m);
 
     const goalsPayload = JSON.stringify({
       home: events.home.map((p: PlayerEvent) => ({
@@ -301,7 +419,7 @@ export default function AdminTournamentUpdatePage() {
 
     try {
       const token = apiService.getAccessToken();
-      await fetch(`/api/matches/${matchId}`, {
+      const res = await fetch(`/api/matches/${matchId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -316,16 +434,34 @@ export default function AdminTournamentUpdatePage() {
           fouls: foulsPayload,
         }),
       });
+      if (!res.ok) throw new Error('Error guardando resultado');
 
       setScheduledMatches((prev) => {
         const phaseMatches = prev[phase] || [];
-        const newPhase: Match[] = phaseMatches.map((m) =>
-          m.id === matchId
-            ? { ...m, status: 'finished', homeScore: edit.homeScore, awayScore: edit.awayScore }
-            : m
+        const newPhase: Match[] = phaseMatches.map((mm) =>
+          mm.id === matchId
+            ? {
+                ...mm,
+                status: 'finished',
+                homeScore: edit.homeScore,
+                awayScore: edit.awayScore,
+                goals: goalsPayload,
+                fouls: foulsPayload,
+              }
+            : mm
         );
         return { ...prev, [phase]: newPhase };
       });
+
+      setEditState((prev) => ({
+        ...prev,
+        [matchId]: {
+          ...edit,
+          goals: goalsPayload,
+          fouls: foulsPayload,
+          events,
+        },
+      }));
 
       toast.success('Resultado actualizado');
     } catch (err) {
@@ -334,118 +470,20 @@ export default function AdminTournamentUpdatePage() {
     }
   };
 
-  // Paleta y sombras (solo estilos)
-  const ui = {
-    color: {
-      primary: '#c8102e',       // rojo del header
-      surface: '#ffffff',
-      text: '#222',
-      muted: '#6b7280',
-      border: '#e5e7eb',
-      successBg: '#e8fff0',
-      successText: '#0f5132',
-      scheduledBg: '#f8fafc',
-    },
-    shadow: '0 6px 16px rgba(0,0,0,0.08)',
-    radius: '12px',
-  };
-
-  // Helpers de presentación (solo visuales)
-  const parseEvents = (
-    input?: string
-  ): { home: any[]; away: any[] } => {
-    if (!input) return { home: [], away: [] };
-    try {
-      const obj = JSON.parse(input);
-      const home = Array.isArray(obj?.home) ? obj.home : [];
-      const away = Array.isArray(obj?.away) ? obj.away : [];
-      return { home, away };
-    } catch {
-      return { home: [], away: [] };
-    }
-  };
-
-  const formatEventItem = (ev: any): string => {
-    const name =
-      ev?.name ??
-      ev?.playerName ??
-      (ev?.playerId != null ? `Jugador ${ev.playerId}` : 'Jugador');
-    const parts: string[] = [];
-    if (typeof ev?.goals === 'number' && ev.goals > 0) parts.push(`⚽ ${ev.goals} gol(es)`);
-    if (typeof ev?.fouls === 'number' && ev.fouls > 0) parts.push(`⛔ ${ev.fouls} falta(s)`);
-    if (ev?.yellow) parts.push('🟨 TA');
-    if (ev?.red) parts.push('🟥 TR');
-    return parts.length ? `${name} — ${parts.join(' · ')}` : name;
-  };
-
-  function RenderEventBlock({
-    label,
-    data,
-    homeName,
-    awayName,
-  }: {
-    label: string;
-    data: { home: any[]; away: any[] };
-    homeName: string;
-    awayName: string;
-  }) {
-    return (
-      <div style={{ marginTop: '0.5rem' }}>
-        <strong>{label}:</strong>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '0.75rem',
-            marginTop: '0.25rem',
-          }}
-        >
-          <div>
-            <em style={{ color: '#555' }}>{homeName}</em>
-            {data.home.length === 0 ? (
-              <div>Ninguno</div>
-            ) : (
-              <ul style={{ margin: '0.25rem 0', paddingLeft: '1rem' }}>
-                {data.home.map((ev, i) => (
-                  <li key={`h-${i}`}>{formatEventItem(ev)}</li>
-                ))}
-              </ul>
-            )}
-          </div>
-          <div>
-            <em style={{ color: '#555' }}>{awayName}</em>
-            {data.away.length === 0 ? (
-              <div>Ninguno</div>
-            ) : (
-              <ul style={{ margin: '0.25rem 0', paddingLeft: '1rem' }}>
-                {data.away.map((ev, i) => (
-                  <li key={`a-${i}`}>{formatEventItem(ev)}</li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   // Actualiza eventos de un jugador en un match (parcial por patch)
-  const setPlayerEvent = (
-    matchId: string,
-    m: Match,
-    side: 'home' | 'away',
-    idx: number,
-    patch: Partial<PlayerEvent>
-  ) => {
-    setEditState(prev => {
-      const events = prev[matchId]?.events ?? ensureEventsForMatch(m);
-      const nextSide = events[side].slice();
+  const setPlayerEvent = (matchId: string, m: Match, side: 'home' | 'away', idx: number, patch: Partial<PlayerEvent>) => {
+    setEditState((prev) => {
+      const existing = prev[matchId];
+      const baseEvents = existing?.events ?? deriveEventsForMatch(m);
+      const nextSide = baseEvents[side].slice();
       nextSide[idx] = { ...nextSide[idx], ...patch };
+
       return {
         ...prev,
         [matchId]: {
-          ...(prev[matchId] || { homeScore: 0, awayScore: 0 }),
-          events: { ...events, [side]: nextSide },
+          homeScore: existing?.homeScore ?? (typeof m.homeScore === 'number' ? m.homeScore : 0),
+          awayScore: existing?.awayScore ?? (typeof m.awayScore === 'number' ? m.awayScore : 0),
+          events: { ...baseEvents, [side]: nextSide },
         },
       };
     });
@@ -453,28 +491,67 @@ export default function AdminTournamentUpdatePage() {
 
   // Suma goles por jugador y los pone en el marcador
   const autoCalcScore = (matchId: string, m: Match) => {
-    const events = editState[matchId]?.events ?? ensureEventsForMatch(m);
-    const homeScore = events.home.reduce((acc, p) => acc + (p.goals || 0), 0);
-    const awayScore = events.away.reduce((acc, p) => acc + (p.goals || 0), 0);
-    setEditState(prev => ({
-      ...prev,
-      [matchId]: {
-        ...(prev[matchId] || {}),
-        homeScore,
-        awayScore,
-        events,
-      },
-    }));
+    setEditState((prev) => {
+      const existing = prev[matchId];
+      const events = existing?.events ?? deriveEventsForMatch(m);
+      const homeScore = events.home.reduce((acc, p) => acc + (p.goals || 0), 0);
+      const awayScore = events.away.reduce((acc, p) => acc + (p.goals || 0), 0);
+      return {
+        ...prev,
+        [matchId]: {
+          ...(existing || {}),
+          homeScore,
+          awayScore,
+          events,
+        },
+      };
+    });
   };
 
+  // UI helpers
+  const scoreInput = (label: string, value: number, onChange: (v: number) => void) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+      <span style={{ color: ui.color.muted }}>{label}</span>
+      <button
+        onClick={() => onChange(Math.max(0, (value || 0) - 1))}
+        style={{ padding: '0.2rem 0.6rem' }}
+        title="Menos"
+      >
+        −
+      </button>
+      <input
+        type="number"
+        min={0}
+        step={1}
+        value={Number.isFinite(value) ? value : 0}
+        onChange={(e) => onChange(Math.max(0, parseInt(e.target.value || '0', 10)))}
+        style={{
+          width: '60px',
+          padding: '0.25rem 0.4rem',
+          borderRadius: '6px',
+          border: `1px solid ${ui.color.border}`,
+          background: ui.color.surfaceAlt,
+          color: ui.color.text,
+        }}
+      />
+      <button
+        onClick={() => onChange((value || 0) + 1)}
+        style={{ padding: '0.2rem 0.6rem' }}
+        title="Más"
+      >
+        +
+      </button>
+    </div>
+  );
+
   return (
-    <div>
+    <div style={{ padding: '1rem' }}>
       {/* Vista inicial: cuadrícula de logos de torneos */}
       {!selectedTournament && (
         <div>
-          <h3>Selecciona un torneo</h3>
+          <h3 style={{ color: ui.color.text }}>Selecciona un torneo</h3>
           {isLoadingTournaments ? (
-            <p>Cargando torneos...</p>
+            <p style={{ color: ui.color.muted }}>Cargando torneos...</p>
           ) : (
             <div
               className="tournaments-grid"
@@ -489,7 +566,15 @@ export default function AdminTournamentUpdatePage() {
                 <div
                   key={t.id}
                   className="tournament-card"
-                  onClick={() => setSelectedTournament({ id: t.id, name: t.name })}
+                  onClick={() => {
+                    const sel = { id: t.id, name: t.name };
+                    setSelectedTournament(sel);
+                    try {
+                      localStorage.setItem('admin_update_selected_tournament', JSON.stringify(sel));
+                    } catch {
+                      // ignore
+                    }
+                  }}
                   style={{
                     cursor: 'pointer',
                     border: `1px solid ${ui.color.border}`,
@@ -539,9 +624,7 @@ export default function AdminTournamentUpdatePage() {
                   </div>
                 </div>
               ))}
-              {tournaments.length === 0 && (
-                <p>No hay torneos creados aún.</p>
-              )}
+              {tournaments.length === 0 && <p style={{ color: ui.color.muted }}>No hay torneos creados aún.</p>}
             </div>
           )}
         </div>
@@ -551,526 +634,402 @@ export default function AdminTournamentUpdatePage() {
       {selectedTournament && (
         <div className="matches-by-phase">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-            <button onClick={() => setSelectedTournament(null)} style={{ padding: '0.4rem 0.8rem' }}>
+            <button
+              onClick={() => {
+                setSelectedTournament(null);
+                try {
+                  localStorage.removeItem('admin_update_selected_tournament');
+                } catch {
+                  // ignore
+                }
+              }}
+              style={{ padding: '0.4rem 0.8rem' }}
+            >
               ← Volver a torneos
             </button>
-            <h3 style={{ margin: 0 }}>{selectedTournament.name}</h3>
+            <h3 style={{ margin: 0, color: ui.color.text }}>{selectedTournament.name}</h3>
           </div>
+
+          {isLoadingMatches && <p style={{ color: ui.color.muted }}>Cargando partidos...</p>}
+          {!isLoadingMatches && Object.keys(scheduledMatches).length === 0 && (
+            <p style={{ color: ui.color.muted }}>No hay partidos programados para este torneo.</p>
+          )}
 
           {Object.entries(scheduledMatches).map(([phase, phaseMatches]) => (
             <div key={phase} style={{ marginBottom: '2rem' }}>
-              <h4 style={{ marginBottom: '1rem' }}>Fase: {phase}</h4>
+              <h4 style={{ marginBottom: '1rem', color: ui.color.text }}>Fase: {phase}</h4>
 
               {/* Programados */}
-              <div className="matches-block">
-                <h6>Programados</h6>
+              <div className="matches-block" style={{ marginBottom: '1.5rem' }}>
+                <h6 style={{ color: ui.color.text, marginBottom: '0.5rem' }}>Programados</h6>
                 {(phaseMatches || [])
                   .filter((m) => m.status === 'scheduled')
-                  .map((m) => (
-                    <div
-                      key={m.id}
-                      className="match-card scheduled"
-                      style={{
-                        marginBottom: '1rem',
-                        border: `1px solid ${ui.color.border}`,
-                        borderRadius: ui.radius,
-                        background: ui.color.scheduledBg,
-                        boxShadow: ui.shadow,
-                        padding: '1rem',
-                      }}
-                    >
+                  .map((m) => {
+                    const edit = editState[m.id] || {
+                      homeScore: typeof m.homeScore === 'number' ? m.homeScore : 0,
+                      awayScore: typeof m.awayScore === 'number' ? m.awayScore : 0,
+                    };
+                    const events = edit.events ?? deriveEventsForMatch(m);
+
+                    return (
                       <div
-                        className="match-header"
+                        key={`scheduled-${m.id}`}
                         style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          marginBottom: '0.5rem',
+                          border: `1px solid ${ui.color.border}`,
+                          borderRadius: ui.radius,
+                          padding: '0.75rem',
+                          background: ui.color.surface,
+                          boxShadow: ui.shadow,
+                          marginBottom: '0.75rem',
                         }}
                       >
-                        <span style={{ color: ui.color.muted }}>
-                          {m.group || (m.round ? `Ronda ${m.round}` : '')}
-                        </span>
-                        <span
-                          className="status-indicator complete"
-                          style={{
-                            background: '#eef2ff',
-                            color: '#3730a3',
-                            borderRadius: '999px',
-                            padding: '0.15rem 0.5rem',
-                            fontSize: '0.85rem',
-                          }}
-                        >
-                          ✔ Programado
-                        </span>
-                      </div>
-
-                      <div
-                        className="match-teams"
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '1rem',
-                          fontWeight: 600,
-                          color: ui.color.text,
-                        }}
-                      >
-                        <div className="team-slot home">
-                          <span>{m.homeTeam?.name || 'Local'}</span>
-                        </div>
-                        <span
-                          className="vs-separator"
-                          style={{
-                            background: '#f1f5f9',
-                            border: `1px solid ${ui.color.border}`,
-                            borderRadius: '999px',
-                            padding: '0.1rem 0.5rem',
-                            fontSize: '0.85rem',
-                          }}
-                        >
-                          VS
-                        </span>
-                        <div className="team-slot away">
-                          <span>{m.awayTeam?.name || 'Visitante'}</span>
-                        </div>
-                      </div>
-
-                      <div
-                        className="match-details"
-                        style={{
-                          display: 'flex',
-                          gap: '0.75rem',
-                          alignItems: 'center',
-                          marginTop: '0.5rem',
-                          color: ui.color.muted,
-                          fontSize: '0.9rem',
-                        }}
-                      >
-                        <span>Cancha: {m.venue || '-'}</span>
-                        <span>Fecha: {m.date || '-'}</span>
-                        <span>Hora: {m.time || '-'}</span>
-                      </div>
-
-                      {/* Sección de edición: resultado y eventos por jugador */}
-                      <div className="match-edit" style={{ marginTop: '0.75rem' }}>
-                        {/* Resultado simple */}
-                        <div className="form-grid">
-                          <div className="form-group">
-                            <label>Goles Local</label>
-                            <input
-                              type="number"
-                              min={0}
-                              value={editState[m.id]?.homeScore ?? 0}
-                              onChange={(e) =>
-                                setEditState((prev) => ({
-                                  ...prev,
-                                  [m.id]: {
-                                    ...(prev[m.id] || { awayScore: 0 }),
-                                    homeScore: Number(e.target.value),
-                                    events:
-                                      prev[m.id]?.events ?? ensureEventsForMatch(m),
-                                  },
-                                }))
-                              }
-                            />
-                          </div>
-                          <div className="form-group">
-                            <label>Goles Visitante</label>
-                            <input
-                              type="number"
-                              min={0}
-                              value={editState[m.id]?.awayScore ?? 0}
-                              onChange={(e) =>
-                                setEditState((prev) => ({
-                                  ...prev,
-                                  [m.id]: {
-                                    ...(prev[m.id] || { homeScore: 0 }),
-                                    awayScore: Number(e.target.value),
-                                    events:
-                                      prev[m.id]?.events ?? ensureEventsForMatch(m),
-                                  },
-                                }))
-                              }
-                            />
-                          </div>
-                        </div>
-
-                        <div style={{ marginTop: '0.5rem' }}>
-                          <button
-                            onClick={() => autoCalcScore(m.id, m)}
-                            style={{
-                              padding: '0.35rem 0.8rem',
-                              borderRadius: '10px',
-                              background: '#111827',
-                              color: '#f9fafb',
-                              border: '1px solid #334155'
-                            }}
-                          >
-                            Auto calcular goles ⚙️
-                          </button>
-                        </div>
-
-                        {/* Eventos por jugador - Estilo “videojuego” */}
                         <div
-                          className="team-events"
                           style={{
                             display: 'grid',
-                            gridTemplateColumns: '1fr 1fr',
-                            gap: '1rem',
-                            marginTop: '1rem',
+                            gridTemplateColumns: '1fr auto 1fr',
+                            alignItems: 'center',
+                            gap: '0.75rem',
+                            marginBottom: '0.75rem',
                           }}
                         >
-                          {/* Local */}
-                          <div>
-                            <h5 style={{ marginBottom: '0.5rem' }}>
-                              Local: {m.homeTeam?.name || '-'}
-                            </h5>
-                            {(
-                              editState[m.id]?.events ??
-                              ensureEventsForMatch(m)
-                            ).home.map((p, idx) => (
-                              <div
-                                key={`home-${p.playerId}`}
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                  gap: '0.75rem',
-                                  marginBottom: '0.6rem',
-                                  padding: '0.6rem 0.7rem',
-                                  borderRadius: '12px',
-                                  background:
-                                    'linear-gradient(135deg, #0f172a 0%, #111827 60%, #1f2937 100%)',
-                                  boxShadow: '0 8px 18px rgba(0,0,0,0.25)',
-                                  border: '1px solid #374151',
-                                }}
-                              >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', minWidth: 0 }}>
-                                  <div
-                                    style={{
-                                      width: '38px',
-                                      height: '38px',
-                                      borderRadius: '50%',
-                                      background:
-                                        'radial-gradient(circle, rgba(200,16,46,0.9) 0%, rgba(200,16,46,0.6) 60%, rgba(200,16,46,0.3) 100%)',
-                                      border: '1px solid #c8102e',
-                                      boxShadow: '0 0 10px rgba(200,16,46,0.5)',
-                                    }}
-                                  />
-                                  <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                                    <strong style={{ color: '#e5e7eb', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                      {p.name}
-                                    </strong>
-                                    <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
-                                      <span style={{ background: '#1f2937', color: '#93c5fd', border: '1px solid #334155', borderRadius: '999px', padding: '0.1rem 0.5rem' }}>
-                                        ⚽ {p.goals}
-                                      </span>
-                                      <span style={{ background: '#1f2937', color: '#fca5a5', border: '1px solid #334155', borderRadius: '999px', padding: '0.1rem 0.5rem' }}>
-                                        ⛔ {p.fouls}
-                                      </span>
-                                      {p.yellow && (
-                                        <span style={{ background: '#1f2937', color: '#fde68a', border: '1px solid #334155', borderRadius: '999px', padding: '0.1rem 0.5rem' }}>
-                                          🟨 TA
-                                        </span>
-                                      )}
-                                      {p.red && (
-                                        <span style={{ background: '#1f2937', color: '#fecaca', border: '1px solid #334155', borderRadius: '999px', padding: '0.1rem 0.5rem' }}>
-                                          🟥 TR
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-                                  <button
-                                    onClick={() => setPlayerEvent(m.id, m, 'home', idx, { goals: Math.max(0, p.goals + 1) })}
-                                    style={{ padding: '0.35rem 0.5rem', background: '#0b1020', color: '#93c5fd', border: '1px solid #334155', borderRadius: '10px' }}
-                                    title="Añadir gol"
-                                  >
-                                    +⚽
-                                  </button>
-                                  <button
-                                    onClick={() => setPlayerEvent(m.id, m, 'home', idx, { goals: Math.max(0, p.goals - 1) })}
-                                    style={{ padding: '0.35rem 0.5rem', background: '#0b1020', color: '#93c5fd', border: '1px solid #334155', borderRadius: '10px' }}
-                                    title="Quitar gol"
-                                  >
-                                    −⚽
-                                  </button>
-                                  <button
-                                    onClick={() => setPlayerEvent(m.id, m, 'home', idx, { fouls: Math.max(0, p.fouls + 1) })}
-                                    style={{ padding: '0.35rem 0.5rem', background: '#110f20', color: '#fca5a5', border: '1px solid #334155', borderRadius: '10px' }}
-                                    title="Añadir falta"
-                                  >
-                                    +⛔
-                                  </button>
-                                  <button
-                                    onClick={() => setPlayerEvent(m.id, m, 'home', idx, { fouls: Math.max(0, p.fouls - 1) })}
-                                    style={{ padding: '0.35rem 0.5rem', background: '#110f20', color: '#fca5a5', border: '1px solid #334155', borderRadius: '10px' }}
-                                    title="Quitar falta"
-                                  >
-                                    −⛔
-                                  </button>
-                                  <button
-                                    onClick={() => setPlayerEvent(m.id, m, 'home', idx, { yellow: !p.yellow })}
-                                    style={{ padding: '0.35rem 0.5rem', background: '#1f2937', color: '#fde68a', border: '1px solid #334155', borderRadius: '10px' }}
-                                    title="Toggle TA"
-                                  >
-                                    🟨
-                                  </button>
-                                  <button
-                                    onClick={() => setPlayerEvent(m.id, m, 'home', idx, { red: !p.red })}
-                                    style={{ padding: '0.35rem 0.5rem', background: '#1f2937', color: '#fecaca', border: '1px solid #334155', borderRadius: '10px' }}
-                                    title="Toggle TR"
-                                  >
-                                    🟥
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
-
-                            <div style={{ marginTop: '0.75rem' }}>
-                              <button
-                                onClick={() => saveMatchResult(m.id, phase)}
-                                style={{ padding: '0.5rem 1rem' }}
-                              >
-                                Guardar resultado
-                              </button>
-                            </div>
+                          <div style={{ color: ui.color.text, textAlign: 'right', fontWeight: 700 }}>
+                            {m.homeTeam?.name || 'Local'}
                           </div>
-
-                          {/* Visitante */}
-                          <div>
-                            <h5 style={{ marginBottom: '0.5rem' }}>
-                              Visitante: {m.awayTeam?.name || '-'}
-                            </h5>
-                            {(
-                              editState[m.id]?.events ??
-                              ensureEventsForMatch(m)
-                            ).away.map((p, idx) => (
-                              <div
-                                key={`away-${p.playerId}`}
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                  gap: '0.75rem',
-                                  marginBottom: '0.6rem',
-                                  padding: '0.6rem 0.7rem',
-                                  borderRadius: '12px',
-                                  background:
-                                    'linear-gradient(135deg, #0f172a 0%, #111827 60%, #1f2937 100%)',
-                                  boxShadow: '0 8px 18px rgba(0,0,0,0.25)',
-                                  border: '1px solid #374151',
-                                }}
-                              >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', minWidth: 0 }}>
-                                  <div
-                                    style={{
-                                      width: '38px',
-                                      height: '38px',
-                                      borderRadius: '50%',
-                                      background:
-                                        'radial-gradient(circle, rgba(200,16,46,0.9) 0%, rgba(200,16,46,0.6) 60%, rgba(200,16,46,0.3) 100%)',
-                                      border: '1px solid #c8102e',
-                                      boxShadow: '0 0 10px rgba(200,16,46,0.5)',
-                                    }}
-                                  />
-                                  <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                                    <strong style={{ color: '#e5e7eb', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                      {p.name}
-                                    </strong>
-                                    <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
-                                      <span style={{ background: '#1f2937', color: '#93c5fd', border: '1px solid #334155', borderRadius: '999px', padding: '0.1rem 0.5rem' }}>
-                                        ⚽ {p.goals}
-                                      </span>
-                                      <span style={{ background: '#1f2937', color: '#fca5a5', border: '1px solid #334155', borderRadius: '999px', padding: '0.1rem 0.5rem' }}>
-                                        ⛔ {p.fouls}
-                                      </span>
-                                      {p.yellow && (
-                                        <span style={{ background: '#1f2937', color: '#fde68a', border: '1px solid #334155', borderRadius: '999px', padding: '0.1rem 0.5rem' }}>
-                                          🟨 TA
-                                        </span>
-                                      )}
-                                      {p.red && (
-                                        <span style={{ background: '#1f2937', color: '#fecaca', border: '1px solid #334155', borderRadius: '999px', padding: '0.1rem 0.5rem' }}>
-                                          🟥 TR
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-                                  <button
-                                    onClick={() => setPlayerEvent(m.id, m, 'away', idx, { goals: Math.max(0, p.goals + 1) })}
-                                    style={{ padding: '0.35rem 0.5rem', background: '#0b1020', color: '#93c5fd', border: '1px solid #334155', borderRadius: '10px' }}
-                                    title="Añadir gol"
-                                  >
-                                    +⚽
-                                  </button>
-                                  <button
-                                    onClick={() => setPlayerEvent(m.id, m, 'away', idx, { goals: Math.max(0, p.goals - 1) })}
-                                    style={{ padding: '0.35rem 0.5rem', background: '#0b1020', color: '#93c5fd', border: '1px solid #334155', borderRadius: '10px' }}
-                                    title="Quitar gol"
-                                  >
-                                    −⚽
-                                  </button>
-                                  <button
-                                    onClick={() => setPlayerEvent(m.id, m, 'away', idx, { fouls: Math.max(0, p.fouls + 1) })}
-                                    style={{ padding: '0.35rem 0.5rem', background: '#110f20', color: '#fca5a5', border: '1px solid #334155', borderRadius: '10px' }}
-                                    title="Añadir falta"
-                                  >
-                                    +⛔
-                                  </button>
-                                  <button
-                                    onClick={() => setPlayerEvent(m.id, m, 'away', idx, { fouls: Math.max(0, p.fouls - 1) })}
-                                    style={{ padding: '0.35rem 0.5rem', background: '#110f20', color: '#fca5a5', border: '1px solid #334155', borderRadius: '10px' }}
-                                    title="Quitar falta"
-                                  >
-                                    −⛔
-                                  </button>
-                                  <button
-                                    onClick={() => setPlayerEvent(m.id, m, 'away', idx, { yellow: !p.yellow })}
-                                    style={{ padding: '0.35rem 0.5rem', background: '#1f2937', color: '#fde68a', border: '1px solid #334155', borderRadius: '10px' }}
-                                    title="Toggle TA"
-                                  >
-                                    🟨
-                                  </button>
-                                  <button
-                                    onClick={() => setPlayerEvent(m.id, m, 'away', idx, { red: !p.red })}
-                                    style={{ padding: '0.35rem 0.5rem', background: '#1f2937', color: '#fecaca', border: '1px solid #334155', borderRadius: '10px' }}
-                                    title="Toggle TR"
-                                  >
-                                    🟥
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
-
-                            <div style={{ marginTop: '0.75rem' }}>
-                              <button
-                                onClick={() => saveMatchResult(m.id, phase)}
-                                style={{ padding: '0.5rem 1rem' }}
-                              >
-                                Guardar resultado
-                              </button>
-                            </div>
+                          <div
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              gap: '0.75rem',
+                              justifyContent: 'center',
+                              color: ui.color.text,
+                            }}
+                          >
+                            {scoreInput('Local', edit.homeScore, (v) =>
+                              setEditState((prev) => ({
+                                ...prev,
+                                [m.id]: { ...(prev[m.id] || { awayScore: edit.awayScore }), homeScore: v, events: prev[m.id]?.events },
+                              }))
+                            )}
+                            <span style={{ color: ui.color.muted }}>|</span>
+                            {scoreInput('Visitante', edit.awayScore, (v) =>
+                              setEditState((prev) => ({
+                                ...prev,
+                                [m.id]: { ...(prev[m.id] || { homeScore: edit.homeScore }), awayScore: v, events: prev[m.id]?.events },
+                              }))
+                            )}
+                          </div>
+                          <div style={{ color: ui.color.text, textAlign: 'left', fontWeight: 700 }}>
+                            {m.awayTeam?.name || 'Visitante'}
                           </div>
                         </div>
-                      </div>
-                    </div>
-                  ))}
 
-                {/* Finalizados */}
+                        {/* Controles "tipo videojuego" de eventos por jugador */}
+                        {(m.homeTeam?.id && m.awayTeam?.id) ? (
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                            {/* Home side */}
+                            <div
+                              style={{
+                                background: ui.color.surfaceAlt,
+                                border: `1px solid ${ui.color.border}`,
+                                borderRadius: ui.radius,
+                                padding: '0.6rem',
+                              }}
+                            >
+                              <div style={{ marginBottom: '0.5rem', color: ui.color.muted }}>{m.homeTeam?.name || 'Local'}</div>
+                              <div>
+                                {events.home.map((p, idx) => (
+                                  <div
+                                    key={`home-${m.id}-${p.playerId}-${idx}`}
+                                    style={{
+                                      display: 'grid',
+                                      gridTemplateColumns: '1fr auto',
+                                      gap: '0.5rem',
+                                      alignItems: 'center',
+                                      padding: '0.35rem 0.25rem',
+                                    }}
+                                  >
+                                    <div style={{ color: ui.color.text }}>{p.name}</div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                      {/* Goles */}
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }} title="Goles">
+                                        <button
+                                          onClick={() =>
+                                            setPlayerEvent(m.id, m, 'home', idx, { goals: Math.max(0, (p.goals || 0) - 1) })
+                                          }
+                                          style={{ padding: '0.2rem 0.5rem' }}
+                                        >
+                                          ⚽−
+                                        </button>
+                                        <span style={{ color: ui.color.text, minWidth: '1ch', textAlign: 'center' }}>
+                                          {p.goals || 0}
+                                        </span>
+                                        <button
+                                          onClick={() => setPlayerEvent(m.id, m, 'home', idx, { goals: (p.goals || 0) + 1 })}
+                                          style={{ padding: '0.2rem 0.5rem' }}
+                                        >
+                                          ⚽+
+                                        </button>
+                                      </div>
+                                      {/* Faltas */}
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }} title="Faltas">
+                                        <button
+                                          onClick={() =>
+                                            setPlayerEvent(m.id, m, 'home', idx, { fouls: Math.max(0, (p.fouls || 0) - 1) })
+                                          }
+                                          style={{ padding: '0.2rem 0.5rem' }}
+                                        >
+                                          🚫−
+                                        </button>
+                                        <span style={{ color: ui.color.text, minWidth: '1ch', textAlign: 'center' }}>
+                                          {p.fouls || 0}
+                                        </span>
+                                        <button
+                                          onClick={() => setPlayerEvent(m.id, m, 'home', idx, { fouls: (p.fouls || 0) + 1 })}
+                                          style={{ padding: '0.2rem 0.5rem' }}
+                                        >
+                                          🚫+
+                                        </button>
+                                      </div>
+                                      {/* Amarilla */}
+                                      <button
+                                        onClick={() => setPlayerEvent(m.id, m, 'home', idx, { yellow: !p.yellow })}
+                                        style={{
+                                          padding: '0.2rem 0.5rem',
+                                          background: p.yellow ? ui.color.warning : 'transparent',
+                                          color: p.yellow ? '#000' : ui.color.text,
+                                          borderRadius: '6px',
+                                          border: `1px solid ${ui.color.border}`,
+                                        }}
+                                        title="Tarjeta amarilla"
+                                      >
+                                        🟨
+                                      </button>
+                                      {/* Roja */}
+                                      <button
+                                        onClick={() => setPlayerEvent(m.id, m, 'home', idx, { red: !p.red })}
+                                        style={{
+                                          padding: '0.2rem 0.5rem',
+                                          background: p.red ? ui.color.danger : 'transparent',
+                                          color: ui.color.text,
+                                          borderRadius: '6px',
+                                          border: `1px solid ${ui.color.border}`,
+                                        }}
+                                        title="Tarjeta roja"
+                                      >
+                                        🟥
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                                {events.home.length === 0 && (
+                                  <div style={{ color: ui.color.muted }}>Sin jugadores para el equipo local.</div>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Away side */}
+                            <div
+                              style={{
+                                background: ui.color.surfaceAlt,
+                                border: `1px solid ${ui.color.border}`,
+                                borderRadius: ui.radius,
+                                padding: '0.6rem',
+                              }}
+                            >
+                              <div style={{ marginBottom: '0.5rem', color: ui.color.muted }}>{m.awayTeam?.name || 'Visitante'}</div>
+                              <div>
+                                {events.away.map((p, idx) => (
+                                  <div
+                                    key={`away-${m.id}-${p.playerId}-${idx}`}
+                                    style={{
+                                      display: 'grid',
+                                      gridTemplateColumns: '1fr auto',
+                                      gap: '0.5rem',
+                                      alignItems: 'center',
+                                      padding: '0.35rem 0.25rem',
+                                    }}
+                                  >
+                                    <div style={{ color: ui.color.text }}>{p.name}</div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                      {/* Goles */}
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }} title="Goles">
+                                        <button
+                                          onClick={() =>
+                                            setPlayerEvent(m.id, m, 'away', idx, { goals: Math.max(0, (p.goals || 0) - 1) })
+                                          }
+                                          style={{ padding: '0.2rem 0.5rem' }}
+                                        >
+                                          ⚽−
+                                        </button>
+                                        <span style={{ color: ui.color.text, minWidth: '1ch', textAlign: 'center' }}>
+                                          {p.goals || 0}
+                                        </span>
+                                        <button
+                                          onClick={() => setPlayerEvent(m.id, m, 'away', idx, { goals: (p.goals || 0) + 1 })}
+                                          style={{ padding: '0.2rem 0.5rem' }}
+                                        >
+                                          ⚽+
+                                        </button>
+                                      </div>
+                                      {/* Faltas */}
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }} title="Faltas">
+                                        <button
+                                          onClick={() =>
+                                            setPlayerEvent(m.id, m, 'away', idx, { fouls: Math.max(0, (p.fouls || 0) - 1) })
+                                          }
+                                          style={{ padding: '0.2rem 0.5rem' }}
+                                        >
+                                          🚫−
+                                        </button>
+                                        <span style={{ color: ui.color.text, minWidth: '1ch', textAlign: 'center' }}>
+                                          {p.fouls || 0}
+                                        </span>
+                                        <button
+                                          onClick={() => setPlayerEvent(m.id, m, 'away', idx, { fouls: (p.fouls || 0) + 1 })}
+                                          style={{ padding: '0.2rem 0.5rem' }}
+                                        >
+                                          🚫+
+                                        </button>
+                                      </div>
+                                      {/* Amarilla */}
+                                      <button
+                                        onClick={() => setPlayerEvent(m.id, m, 'away', idx, { yellow: !p.yellow })}
+                                        style={{
+                                          padding: '0.2rem 0.5rem',
+                                          background: p.yellow ? ui.color.warning : 'transparent',
+                                          color: p.yellow ? '#000' : ui.color.text,
+                                          borderRadius: '6px',
+                                          border: `1px solid ${ui.color.border}`,
+                                        }}
+                                        title="Tarjeta amarilla"
+                                      >
+                                        🟨
+                                      </button>
+                                      {/* Roja */}
+                                      <button
+                                        onClick={() => setPlayerEvent(m.id, m, 'away', idx, { red: !p.red })}
+                                        style={{
+                                          padding: '0.2rem 0.5rem',
+                                          background: p.red ? ui.color.danger : 'transparent',
+                                          color: ui.color.text,
+                                          borderRadius: '6px',
+                                          border: `1px solid ${ui.color.border}`,
+                                        }}
+                                        title="Tarjeta roja"
+                                      >
+                                        🟥
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                                {events.away.length === 0 && (
+                                  <div style={{ color: ui.color.muted }}>Sin jugadores para el equipo visitante.</div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div style={{ color: ui.color.muted, marginTop: '0.5rem' }}>
+                            Equipos no asignados completamente para este partido.
+                          </div>
+                        )}
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.75rem' }}>
+                          <button
+                            onClick={() => autoCalcScore(m.id, m)}
+                            style={{ padding: '0.4rem 0.8rem', borderRadius: '8px' }}
+                            title="Sumar goles y actualizar marcador"
+                          >
+                            Calcular marcador automático
+                          </button>
+                          <button
+                            onClick={() => saveMatchResult(m.id, phase, m)}
+                            style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', background: ui.color.success, color: '#000' }}
+                            title="Guardar resultado y eventos"
+                          >
+                            Guardar resultado
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                {phaseMatches.filter((m) => m.status === 'scheduled').length === 0 && (
+                  <div style={{ color: ui.color.muted }}>No hay partidos programados en esta fase.</div>
+                )}
+              </div>
+
+              {/* Finalizados */}
+              <div className="matches-block">
+                <h6 style={{ color: ui.color.text, marginBottom: '0.5rem' }}>Finalizados</h6>
                 {(phaseMatches || [])
                   .filter((m) => m.status === 'finished')
                   .map((m) => {
-                    const goalsData = parseEvents(m.goals);
-                    const foulsData = parseEvents(m.fouls);
+                    const goals = parseJSONSafe<{ home?: any[]; away?: any[] }>(m.goals, { home: [], away: [] });
+                    const fouls = parseJSONSafe<{ home?: any[]; away?: any[] }>(m.fouls, { home: [], away: [] });
+
                     return (
                       <div
-                        key={m.id}
-                        className="match-card finished"
+                        key={`finished-${m.id}`}
                         style={{
-                          marginBottom: '1rem',
                           border: `1px solid ${ui.color.border}`,
                           borderRadius: ui.radius,
+                          padding: '0.75rem',
                           background: ui.color.surface,
                           boxShadow: ui.shadow,
-                          padding: '1rem',
+                          marginBottom: '0.75rem',
                         }}
                       >
                         <div
-                          className="match-header"
                           style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
+                            display: 'grid',
+                            gridTemplateColumns: '1fr auto 1fr',
                             alignItems: 'center',
-                            marginBottom: '0.5rem',
-                          }}
-                        >
-                          <span style={{ color: ui.color.muted }}>
-                            {m.group || (m.round ? `Ronda ${m.round}` : '')}
-                          </span>
-                          <span
-                            className="status-indicator complete"
-                            style={{
-                              background: ui.color.successBg,
-                              color: ui.color.successText,
-                              borderRadius: '999px',
-                              padding: '0.15rem 0.5rem',
-                              fontSize: '0.85rem',
-                            }}
-                          >
-                            ✔ Finalizado
-                          </span>
-                        </div>
-
-                        <div
-                          className="match-teams"
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '1rem',
-                            fontWeight: 600,
-                            color: ui.color.text,
-                          }}
-                        >
-                          <div className="team-slot home">
-                            <span>{m.homeTeam?.name || 'Local'}</span>
-                          </div>
-                          <span
-                            className="vs-separator"
-                            style={{
-                              background: '#f1f5f9',
-                              border: `1px solid ${ui.color.border}`,
-                              borderRadius: '999px',
-                              padding: '0.1rem 0.5rem',
-                              fontSize: '0.85rem',
-                            }}
-                          >
-                            VS
-                          </span>
-                          <div className="team-slot away">
-                            <span>{m.awayTeam?.name || 'Visitante'}</span>
-                          </div>
-                        </div>
-
-                        <div
-                          className="match-details"
-                          style={{
-                            display: 'flex',
                             gap: '0.75rem',
-                            alignItems: 'center',
-                            marginTop: '0.5rem',
-                            color: ui.color.muted,
-                            fontSize: '0.9rem',
                           }}
                         >
-                          <span>Cancha: {m.venue || '-'}</span>
-                          <span>Fecha: {m.date || '-'}</span>
-                          <span>Hora: {m.time || '-'}</span>
-                          <span style={{ fontWeight: 700, color: ui.color.text }}>
-                            Resultado: {typeof m.homeScore === 'number' ? m.homeScore : 0} - {typeof m.awayScore === 'number' ? m.awayScore : 0}
-                          </span>
+                          <div style={{ color: ui.color.text, textAlign: 'right', fontWeight: 700 }}>
+                            {m.homeTeam?.name || 'Local'}
+                          </div>
+                          <div
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              gap: '0.75rem',
+                              justifyContent: 'center',
+                              color: ui.color.text,
+                              fontWeight: 700,
+                            }}
+                          >
+                            <span>{Number.isFinite(m.homeScore) ? m.homeScore : 0}</span>
+                            <span>-</span>
+                            <span>{Number.isFinite(m.awayScore) ? m.awayScore : 0}</span>
+                          </div>
+                          <div style={{ color: ui.color.text, textAlign: 'left', fontWeight: 700 }}>
+                            {m.awayTeam?.name || 'Visitante'}
+                          </div>
                         </div>
 
                         <RenderEventBlock
                           label="Goles"
-                          data={goalsData}
+                          data={goals}
                           homeName={m.homeTeam?.name || 'Local'}
                           awayName={m.awayTeam?.name || 'Visitante'}
                         />
+
                         <RenderEventBlock
                           label="Faltas"
-                          data={foulsData}
+                          data={fouls}
                           homeName={m.homeTeam?.name || 'Local'}
                           awayName={m.awayTeam?.name || 'Visitante'}
                         />
                       </div>
                     );
                   })}
+                {phaseMatches.filter((m) => m.status === 'finished').length === 0 && (
+                  <div style={{ color: ui.color.muted }}>No hay partidos finalizados en esta fase.</div>
+                )}
               </div>
             </div>
           ))}
