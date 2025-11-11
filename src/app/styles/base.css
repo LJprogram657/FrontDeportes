@@ -6,6 +6,9 @@
     --dark-text: #333;
     --white: #fff;
     --border-color: #444;
+    /* Aliases usados por otras hojas */
+    --primary-color: var(--primary-red);
+    --background-color: var(--dark-bg);
 }
 
 body {

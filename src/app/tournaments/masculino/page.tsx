@@ -44,19 +44,16 @@ interface Standing {
 
 function computeStandings(matches: Match[]): Standing[] {
   const teams = new Map<string, { name: string; logo?: string | null }>();
-  const stats = new Map<
-    string,
-    {
-      played: number;
-      wins: number;
-      draws: number;
-      losses: number;
-      goalsFor: number;
-      goalsAgainst: number;
-      points: number;
-      logo?: string | null;
-    }
-  >();
+  const stats = new Map<string, {
+    played: number;
+    wins: number;
+    draws: number;
+    losses: number;
+    goalsFor: number;
+    goalsAgainst: number;
+    points: number;
+    logo?: string | null;
+  }>();
 
   for (const m of matches) {
     const homeName = m.homeTeam?.name;
@@ -67,31 +64,13 @@ function computeStandings(matches: Match[]): Standing[] {
     if (homeName) {
       teams.set(homeName, { name: homeName, logo: homeLogo });
       if (!stats.has(homeName)) {
-        stats.set(homeName, {
-          played: 0,
-          wins: 0,
-          draws: 0,
-          losses: 0,
-          goalsFor: 0,
-          goalsAgainst: 0,
-          points: 0,
-          logo: homeLogo,
-        });
+        stats.set(homeName, { played: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, points: 0, logo: homeLogo });
       }
     }
     if (awayName) {
       teams.set(awayName, { name: awayName, logo: awayLogo });
       if (!stats.has(awayName)) {
-        stats.set(awayName, {
-          played: 0,
-          wins: 0,
-          draws: 0,
-          losses: 0,
-          goalsFor: 0,
-          goalsAgainst: 0,
-          points: 0,
-          logo: awayLogo,
-        });
+        stats.set(awayName, { played: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, points: 0, logo: awayLogo });
       }
     }
 
@@ -101,39 +80,27 @@ function computeStandings(matches: Match[]): Standing[] {
         s.played += 1;
         s.goalsFor += m.homeScore;
         s.goalsAgainst += m.awayScore;
-        if (m.homeScore > m.awayScore) {
-          s.wins += 1;
-          s.points += 3;
-        } else if (m.homeScore === m.awayScore) {
-          s.draws += 1;
-          s.points += 1;
-        } else {
-          s.losses += 1;
-        }
+        if (m.homeScore > m.awayScore) { s.wins += 1; s.points += 3; }
+        else if (m.homeScore === m.awayScore) { s.draws += 1; s.points += 1; }
+        else { s.losses += 1; }
       }
       if (awayName) {
         const s = stats.get(awayName)!;
         s.played += 1;
         s.goalsFor += m.awayScore;
         s.goalsAgainst += m.homeScore;
-        if (m.awayScore > m.homeScore) {
-          s.wins += 1;
-          s.points += 3;
-        } else if (m.awayScore === m.homeScore) {
-          s.draws += 1;
-          s.points += 1;
-        } else {
-          s.losses += 1;
-        }
+        if (m.awayScore > m.homeScore) { s.wins += 1; s.points += 3; }
+        else if (m.awayScore === m.homeScore) { s.draws += 1; s.points += 1; }
+        else { s.losses += 1; }
       }
     }
   }
 
-  const table = Array.from(teams.values()).map((t) => {
+  const table = Array.from(teams.values()).map((t, idx) => {
     const s = stats.get(t.name)!;
     const goalDiff = s.goalsFor - s.goalsAgainst;
     return {
-      id: 0,
+      id: idx + 1,
       team: { name: t.name, logo: s.logo },
       played: s.played,
       wins: s.wins,
@@ -152,7 +119,7 @@ function computeStandings(matches: Match[]): Standing[] {
     return b.goalsFor - a.goalsFor;
   });
 
-  return table.map((row, idx) => ({ ...row, id: idx + 1 }));
+  return table;
 }
 
 const MasculinoPage = () => {
@@ -259,7 +226,7 @@ const MasculinoPage = () => {
                 </thead>
                 <tbody>
                   {standings.map((s, idx) => (
-                    <tr key={s.id}>
+                    <tr key={`${s.team.name}-${idx}`}>
                       <td>{idx + 1}</td>
                       <td>{s.team.name}</td>
                       <td>{s.played}</td>
