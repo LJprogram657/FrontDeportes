@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import BackButton from '@/components/BackButton';
 
@@ -42,12 +42,125 @@ interface Standing {
   points: number;
 }
 
+function computeStandings(matches: Match[]): Standing[] {
+  const teams = new Map<string, { name: string; logo?: string | null }>();
+  const stats = new Map<
+    string,
+    {
+      played: number;
+      wins: number;
+      draws: number;
+      losses: number;
+      goalsFor: number;
+      goalsAgainst: number;
+      points: number;
+      logo?: string | null;
+    }
+  >();
+
+  for (const m of matches) {
+    const homeName = m.homeTeam?.name;
+    const awayName = m.awayTeam?.name;
+    const homeLogo = m.homeTeam?.logo ?? null;
+    const awayLogo = m.awayTeam?.logo ?? null;
+
+    if (homeName) {
+      teams.set(homeName, { name: homeName, logo: homeLogo });
+      if (!stats.has(homeName)) {
+        stats.set(homeName, {
+          played: 0,
+          wins: 0,
+          draws: 0,
+          losses: 0,
+          goalsFor: 0,
+          goalsAgainst: 0,
+          points: 0,
+          logo: homeLogo,
+        });
+      }
+    }
+    if (awayName) {
+      teams.set(awayName, { name: awayName, logo: awayLogo });
+      if (!stats.has(awayName)) {
+        stats.set(awayName, {
+          played: 0,
+          wins: 0,
+          draws: 0,
+          losses: 0,
+          goalsFor: 0,
+          goalsAgainst: 0,
+          points: 0,
+          logo: awayLogo,
+        });
+      }
+    }
+
+    if (m.status === 'finished' && typeof m.homeScore === 'number' && typeof m.awayScore === 'number') {
+      if (homeName) {
+        const s = stats.get(homeName)!;
+        s.played += 1;
+        s.goalsFor += m.homeScore;
+        s.goalsAgainst += m.awayScore;
+        if (m.homeScore > m.awayScore) {
+          s.wins += 1;
+          s.points += 3;
+        } else if (m.homeScore === m.awayScore) {
+          s.draws += 1;
+          s.points += 1;
+        } else {
+          s.losses += 1;
+        }
+      }
+      if (awayName) {
+        const s = stats.get(awayName)!;
+        s.played += 1;
+        s.goalsFor += m.awayScore;
+        s.goalsAgainst += m.homeScore;
+        if (m.awayScore > m.homeScore) {
+          s.wins += 1;
+          s.points += 3;
+        } else if (m.awayScore === m.homeScore) {
+          s.draws += 1;
+          s.points += 1;
+        } else {
+          s.losses += 1;
+        }
+      }
+    }
+  }
+
+  const table = Array.from(teams.values()).map((t) => {
+    const s = stats.get(t.name)!;
+    const goalDiff = s.goalsFor - s.goalsAgainst;
+    return {
+      id: 0,
+      team: { name: t.name, logo: s.logo },
+      played: s.played,
+      wins: s.wins,
+      draws: s.draws,
+      losses: s.losses,
+      goalsFor: s.goalsFor,
+      goalsAgainst: s.goalsAgainst,
+      goalDiff,
+      points: s.points,
+    } as Standing;
+  });
+
+  table.sort((a, b) => {
+    if (b.points !== a.points) return b.points - a.points;
+    if (b.goalDiff !== a.goalDiff) return b.goalDiff - a.goalDiff;
+    return b.goalsFor - a.goalsFor;
+  });
+
+  return table.map((row, idx) => ({ ...row, id: idx + 1 }));
+}
+
 const MasculinoPage = () => {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const standings: Standing[] = [];
+  const standings = useMemo<Standing[]>(() => computeStandings(matches), [matches]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -69,24 +182,23 @@ const MasculinoPage = () => {
         }));
         setTournaments(masculineTournaments);
 
-        // Cargar próximos partidos por torneo (público)
         const allMatches: Match[] = [];
         for (const t of masculineTournaments) {
           const mRes = await fetch(`/api/tournaments/${t.id}/matches`, { cache: 'no-store' });
           if (!mRes.ok) continue;
           const mList = await mRes.json();
-          const mapped: Match[] = (Array.isArray(mList) ? mList : [])
-            .filter((m: any) => m.status === 'scheduled')
-            .map((m: any) => ({
-              id: String(m.id),
-              phase: m.phase || 'Sin Fase',
-              homeTeam: m.homeTeam ? { name: m.homeTeam.name, logo: m.homeTeam.logo } : null,
-              awayTeam: m.awayTeam ? { name: m.awayTeam.name, logo: m.awayTeam.logo } : null,
-              date: m.date ? new Date(m.date).toISOString().slice(0, 10) : undefined,
-              time: m.time ?? undefined,
-              venue: m.venue ?? undefined,
-              status: 'scheduled',
-            }));
+          const mapped: Match[] = (Array.isArray(mList) ? mList : []).map((m: any) => ({
+            id: String(m.id),
+            phase: m.phase || 'Sin Fase',
+            homeTeam: m.homeTeam ? { name: m.homeTeam.name, logo: m.homeTeam.logo } : null,
+            awayTeam: m.awayTeam ? { name: m.awayTeam.name, logo: m.awayTeam.logo } : null,
+            date: m.date ? new Date(m.date).toISOString().slice(0, 10) : undefined,
+            time: m.time ?? undefined,
+            venue: m.venue ?? undefined,
+            homeScore: typeof m.homeScore === 'number' ? m.homeScore : undefined,
+            awayScore: typeof m.awayScore === 'number' ? m.awayScore : undefined,
+            status: m.status === 'finished' ? 'finished' : 'scheduled',
+          }));
           allMatches.push(...mapped);
         }
         setMatches(allMatches);
