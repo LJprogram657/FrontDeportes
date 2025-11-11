@@ -162,54 +162,13 @@ export default function CreateTeamPage() {
     setCurrentStep(2);
   };
 
-  // Validación de jugadores (mínimo 5, campos completos y cédulas únicas)
-  const validatePlayers = (): boolean => {
-    const players = (formData.players || []).map((p) => ({
-      name: (p.name || '').trim(),
-      lastName: (p.lastName || '').trim(),
-      cedula: (p.cedula || '').trim(),
-    }));
-
-    if (players.length < 5) {
-      toast.error('Añade al menos 5 jugadores');
-      return false;
-    }
-
-    const missingIndices = players
-      .map((p, i) => (!p.name || !p.lastName || !p.cedula ? i + 1 : null))
-      .filter(Boolean) as number[];
-    if (missingIndices.length) {
-      toast.error(`Completa nombre, apellidos y cédula de jugadores #${missingIndices.join(', ')}`);
-      return false;
-    }
-
-    const cedulas = players.map((p) => p.cedula);
-    const seen = new Set<string>();
-    const duplicates = new Set<string>();
-    for (const c of cedulas) {
-      if (seen.has(c)) duplicates.add(c);
-      else seen.add(c);
-    }
-    if (duplicates.size) {
-      toast.error(`Cédulas duplicadas: ${Array.from(duplicates).join(', ')}`);
-      return false;
-    }
-
-    return true;
-  };
-
-  // Enviar formulario
+  // Enviar formulario (flujo original: sin validación adicional de jugadores)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
       if (!formData.selectedTournament) {
         toast.error('Selecciona un torneo');
-        setIsSubmitting(false);
-        return;
-      }
-      // Validar jugadores antes de enviar (evita que el backend descarte y cambie el conteo)
-      if (!validatePlayers()) {
         setIsSubmitting(false);
         return;
       }
@@ -535,7 +494,6 @@ export default function CreateTeamPage() {
                 onClick={handleSubmit}
                 disabled={
                   formData.players.length < 5 ||
-                  formData.players.some(p => !p.name || !p.lastName || !p.cedula) ||
                   isSubmitting
                 }
               >
