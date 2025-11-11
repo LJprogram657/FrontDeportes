@@ -217,6 +217,10 @@ export default function CreateTeamPage() {
     }
   };
 
+  // Helpers para separar torneos por categoría
+  const maleTournaments = availableTournaments.filter(t => t.category === 'masculino');
+  const femaleTournaments = availableTournaments.filter(t => t.category === 'femenino');
+
   return (
     <div className="container">
       <div className="back-button-container">
@@ -248,27 +252,61 @@ export default function CreateTeamPage() {
         {currentStep === 1 && (
           <div className="step-content">
             <h2>🏆 Selecciona un Torneo</h2>
-            <div className="tournaments-grid">
-              {availableTournaments.map((t) => (
-                <div
-                  key={t.id}
-                  className="tournament-card"
-                  onClick={() => selectTournament(t)}
-                  role="button"
-                  tabIndex={0}
-                >
-                  <img className="tournament-logo" src={t.logo} alt={t.name} />
-                  <div className="tournament-info">
-                    <strong>{t.name}</strong>
-                    <span className="tournament-code">{t.code}</span>
+
+            {/* Bloque Masculino */}
+            <div className="tournaments-section">
+              <h3>Masculino</h3>
+              <div className="tournaments-grid">
+                {maleTournaments.map((t) => (
+                  <div
+                    key={t.id}
+                    className="tournament-card"
+                    onClick={() => selectTournament(t)}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <img className="tournament-logo" src={t.logo} alt={t.name} />
+                    <div className="tournament-info">
+                      <strong>{t.name}</strong>
+                      <span className="tournament-code">{t.code}</span>
+                    </div>
+                    <span className={`tournament-badge ${t.category}`}>{t.category}</span>
                   </div>
-                  <span className={`tournament-badge ${t.category}`}>{t.category}</span>
-                </div>
-              ))}
+                ))}
+              </div>
+              {maleTournaments.length === 0 && (
+                <div className="empty-state">No hay torneos masculinos activos.</div>
+              )}
+            </div>
+
+            {/* Bloque Femenino */}
+            <div className="tournaments-section" style={{ marginTop: '1rem' }}>
+              <h3>Femenino</h3>
+              <div className="tournaments-grid">
+                {femaleTournaments.map((t) => (
+                  <div
+                    key={t.id}
+                    className="tournament-card"
+                    onClick={() => selectTournament(t)}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <img className="tournament-logo" src={t.logo} alt={t.name} />
+                    <div className="tournament-info">
+                      <strong>{t.name}</strong>
+                      <span className="tournament-code">{t.code}</span>
+                    </div>
+                    <span className={`tournament-badge ${t.category}`}>{t.category}</span>
+                  </div>
+                ))}
+              </div>
+              {femaleTournaments.length === 0 && (
+                <div className="empty-state">No hay torneos femeninos activos.</div>
+              )}
             </div>
 
             {availableTournaments.length === 0 && (
-              <div className="empty-state">
+              <div className="empty-state" style={{ marginTop: '1rem' }}>
                 No hay torneos activos disponibles en este momento.
               </div>
             )}
@@ -329,9 +367,24 @@ export default function CreateTeamPage() {
                 </div>
                 <div className="form-group">
                   <label>Logo del Equipo (opcional)</label>
-                  <div className="logo-upload">
+                  <div
+                    className="logo-upload"
+                    style={{
+                      border: '2px solid #1f2937',
+                      borderRadius: '12px',
+                      padding: '0.6rem',
+                    }}
+                  >
                     {formData.teamLogoPreview ? (
-                      <div className="team-logo-preview">
+                      <div
+                        className="team-logo-preview"
+                        style={{
+                          border: '2px dashed #374151',
+                          borderRadius: '12px',
+                          padding: '0.6rem',
+                          display: 'inline-block',
+                        }}
+                      >
                         <img src={formData.teamLogoPreview} alt="Logo equipo" />
                         <button
                           type="button"
@@ -343,16 +396,25 @@ export default function CreateTeamPage() {
                         </button>
                       </div>
                     ) : (
-                      <label className="file-upload">
-                        <span>Subir logo</span>
-                        <input
-                          type="file"
-                          id="teamLogo"
-                          accept="image/*"
-                          onChange={(e) => handleTeamLogo(e.target.files?.[0] || null)}
-                          style={{ display: 'none' }}
-                        />
-                      </label>
+                      <div
+                        style={{
+                          border: '2px dashed #374151',
+                          borderRadius: '12px',
+                          padding: '0.75rem',
+                          display: 'inline-block',
+                        }}
+                      >
+                        <label className="file-upload">
+                          <span>Subir logo</span>
+                          <input
+                            type="file"
+                            id="teamLogo"
+                            accept="image/*"
+                            onChange={(e) => handleTeamLogo(e.target.files?.[0] || null)}
+                            style={{ display: 'none' }}
+                          />
+                        </label>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -437,30 +499,56 @@ export default function CreateTeamPage() {
 
                     <div className="form-group">
                       <label>Foto (opcional)</label>
-                      <div className="player-photo-preview">
+                      <div
+                        className="player-photo-preview"
+                        style={{
+                          border: '2px solid #1f2937',
+                          borderRadius: '12px',
+                          padding: '0.6rem',
+                          display: 'inline-block',
+                        }}
+                      >
                         {player.photoPreview ? (
                           <>
-                            <img src={player.photoPreview} alt={player.name || 'Foto del jugador'} />
-                            <button
-                              type="button"
-                              className="btn-remove-photo"
-                              onClick={() => handlePlayerPhoto(player.id, null)}
-                              aria-label="Remover foto"
+                            <div
+                              style={{
+                                border: '2px dashed #374151',
+                                borderRadius: '12px',
+                                padding: '0.6rem',
+                                display: 'inline-block',
+                              }}
                             >
-                              ✕
-                            </button>
+                              <img src={player.photoPreview} alt={player.name || 'Foto del jugador'} />
+                              <button
+                                type="button"
+                                className="btn-remove-photo"
+                                onClick={() => handlePlayerPhoto(player.id, null)}
+                                aria-label="Remover foto"
+                              >
+                                ✕
+                              </button>
+                            </div>
                           </>
                         ) : (
-                          <label className="file-upload">
-                            <span>Subir foto</span>
-                            <span className="file-info">PNG, JPG (máx. 2MB)</span>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={(e) => handlePlayerPhoto(player.id, e.target.files?.[0] || null)}
-                              style={{ display: 'none' }}
-                            />
-                          </label>
+                          <div
+                            style={{
+                              border: '2px dashed #374151',
+                              borderRadius: '12px',
+                              padding: '0.75rem',
+                              display: 'inline-block',
+                            }}
+                          >
+                            <label className="file-upload">
+                              <span>Subir foto</span>
+                              <span className="file-info">PNG, JPG (máx. 2MB)</span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => handlePlayerPhoto(player.id, e.target.files?.[0] || null)}
+                                style={{ display: 'none' }}
+                              />
+                            </label>
+                          </div>
                         )}
                       </div>
                     </div>
