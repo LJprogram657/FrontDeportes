@@ -194,7 +194,7 @@ const TeamsTable: React.FC<TeamsTableProps> = ({ teams, onDragStart }) => {
             >
               <img src={team.logo} alt={team.name} />
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontWeight: 700 }}>{team.name}</span>
+                <span className="team-name" style={{ fontWeight: 700 }}>{team.name}</span>
                 <span style={{ fontSize: 12, color: '#6c757d' }}>Arrastra a un partido</span>
               </div>
             </div>
@@ -541,14 +541,12 @@ const MatchCard: React.FC<MatchCardProps> = ({
   onRemoveTeam,
   onUpdateVenue,
   onUpdateDateTime,
-  onUpdateResult,
+  // onUpdateResult, // eliminado del destructuring para evitar variable sin uso
   onSave,
   onDelete
 }) => {
   const [showPreview, setShowPreview] = useState<boolean>(false);
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
-  const [homeScore, setHomeScore] = useState<number | ''>(typeof match.homeScore === 'number' ? match.homeScore : '');
-  const [awayScore, setAwayScore] = useState<number | ''>(typeof match.awayScore === 'number' ? match.awayScore : '');
 
   const handleVenueHover = (venueId: string) => {
     const venue = venues.find((v: Venue) => v.id === venueId);
@@ -565,17 +563,6 @@ const MatchCard: React.FC<MatchCardProps> = ({
 
   const isComplete = match.homeTeam && match.awayTeam && match.venue && match.date && match.time;
 
-  const handleResultSubmit = () => {
-    const hs = typeof homeScore === 'number' ? homeScore : NaN;
-    const as = typeof awayScore === 'number' ? awayScore : NaN;
-    if (Number.isFinite(hs) && Number.isFinite(as)) {
-      onUpdateResult(match.id, hs, as);
-      toast.success('Resultado actualizado');
-    } else {
-      toast.error('Ingresa marcadores válidos');
-    }
-  };
-
   return (
     <div className={`match-card ${isComplete ? 'complete' : 'incomplete'}`}>
       <div className="match-teams" onDragOver={onDragOver}>
@@ -586,7 +573,7 @@ const MatchCard: React.FC<MatchCardProps> = ({
           {match.homeTeam ? (
             <div className="team-info">
               <img src={match.homeTeam.logo} alt={match.homeTeam.name} />
-              <span>{match.homeTeam.name}</span>
+              <span className="team-name">{match.homeTeam.name}</span>
               <button className="btn-small btn-danger" onClick={() => onRemoveTeam(match.id, 'home')}>✖</button>
             </div>
           ) : (
@@ -603,7 +590,7 @@ const MatchCard: React.FC<MatchCardProps> = ({
           {match.awayTeam ? (
             <div className="team-info">
               <img src={match.awayTeam.logo} alt={match.awayTeam.name} />
-              <span>{match.awayTeam.name}</span>
+              <span className="team-name">{match.awayTeam.name}</span>
               <button className="btn-small btn-danger" onClick={() => onRemoveTeam(match.id, 'away')}>✖</button>
             </div>
           ) : (
@@ -650,33 +637,7 @@ const MatchCard: React.FC<MatchCardProps> = ({
           />
         </div>
 
-        <div className="detail-row">
-          <label>Marcador</label>
-          <div className="score-inputs">
-            <input
-              type="number"
-              placeholder="Local"
-              value={homeScore}
-              onChange={(e) => {
-                const val = e.target.value;
-                setHomeScore(val === '' ? '' : Number(val));
-              }}
-              style={{ width: 70 }}
-            />
-            <span>-</span>
-            <input
-              type="number"
-              placeholder="Visitante"
-              value={awayScore}
-              onChange={(e) => {
-                const val = e.target.value;
-                setAwayScore(val === '' ? '' : Number(val));
-              }}
-              style={{ width: 70 }}
-            />
-            <button className="btn-secondary btn-small" onClick={handleResultSubmit}>Guardar resultado</button>
-          </div>
-        </div>
+        {/* Se eliminó el apartado "Marcador" para mantener el formulario limpio */}
       </div>
 
       <div className="match-actions">
