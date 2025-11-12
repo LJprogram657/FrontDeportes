@@ -177,49 +177,30 @@ interface TeamsTableProps {
 
 const TeamsTable: React.FC<TeamsTableProps> = ({ teams, onDragStart }) => {
   return (
-    <div style={{ overflowX: 'auto', marginBottom: '1rem' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead>
-          <tr style={{ background: '#f5f6f8' }}>
-            <th style={{ textAlign: 'left', padding: '0.75rem' }}>Logo</th>
-            <th style={{ textAlign: 'left', padding: '0.75rem' }}>Equipo</th>
-            <th style={{ textAlign: 'left', padding: '0.75rem' }}>Acción</th>
-          </tr>
-        </thead>
-        <tbody>
-          {teams.length === 0 ? (
-            <tr>
-              <td colSpan={3} style={{ padding: '1rem', textAlign: 'center', color: '#6c757d' }}>
-                No hay equipos registrados para este torneo todavía.
-              </td>
-            </tr>
-          ) : (
-            teams.map(team => (
-              <tr
-                key={team.id}
-                draggable
-                onDragStart={() => onDragStart(team)}
-                style={{ borderTop: '1px solid #e9ecef', cursor: 'grab' }}
-                title="Arrastra esta fila hacia un partido"
-              >
-                <td style={{ padding: '0.75rem' }}>
-                  <img
-                    src={team.logo}
-                    alt={team.name}
-                    style={{ width: 28, height: 28, borderRadius: 4, objectFit: 'cover' }}
-                  />
-                </td>
-                <td style={{ padding: '0.75rem', fontWeight: 600 }}>
-                  {team.name}
-                </td>
-                <td style={{ padding: '0.75rem', fontSize: 12, color: '#6c757d' }}>
-                  Arrastra a un partido
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+    <div style={{ marginBottom: '1rem' }}>
+      {teams.length === 0 ? (
+        <div style={{ padding: '1rem', textAlign: 'center', color: '#6c757d', background: '#fff', borderRadius: 6, border: '1px dashed #e0e0e0' }}>
+          No hay equipos registrados para este torneo todavía.
+        </div>
+      ) : (
+        <div className="teams-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '12px' }}>
+          {teams.map(team => (
+            <div
+              key={team.id}
+              className="team-item"
+              draggable
+              onDragStart={() => onDragStart(team)}
+              title="Arrastra esta tarjeta hacia un partido"
+            >
+              <img src={team.logo} alt={team.name} />
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontWeight: 700 }}>{team.name}</span>
+                <span style={{ fontSize: 12, color: '#6c757d' }}>Arrastra a un partido</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

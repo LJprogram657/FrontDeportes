@@ -326,6 +326,218 @@
   border-radius: 4px;
 }
 
+.scheduler-layout {
+  /* Antes: grid-template-columns: 280px 1fr; */
+  grid-template-columns: 1fr 1fr;
+}
+
+/* Nuevo: grid para Equipos Disponibles */
+.teams-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+/* .team-item ya existe y se reutiliza como tarjeta arrastrable */
+.team-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background-color: #fff;
+  padding: 10px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  cursor: grab;
+  border: 1px solid #eee;
+}
+
+.team-item img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  border-radius: 50%;
+}
+
+/* Zona de partidos */
+.matches-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.match-card {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  border: 1px solid #e0e0e0;
+  padding: 16px;
+}
+
+.match-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.match-header span {
+  font-weight: 600;
+  color: #555;
+}
+
+.match-teams {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.team-slot {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  border: 2px dashed #d0d0d0;
+  border-radius: 6px;
+  min-height: 100px;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+/* NUEVO: contenedor de equipo dentro del partido */
+.team-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+/* NUEVO: tamaño adaptable del logo dentro del partido */
+.match-teams .team-info img {
+  width: clamp(32px, 5vw, 56px);
+  height: clamp(32px, 5vw, 56px);
+  border-radius: 50%;
+  object-fit: contain;
+  background: #fff;
+  padding: 4px;
+  border: 1px solid #eee;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+.team-slot.is-dragging-over {
+  background-color: #e8f4ff;
+  border-color: #8ec9ff;
+}
+
+.team-slot p {
+  color: #999;
+  margin: 0;
+}
+
+.vs-separator {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #aaa;
+}
+
+.match-details {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+  align-items: center;
+}
+
+.match-details select,
+.match-details input {
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background-color: #f8f9fa;
+  font-size: 0.9rem;
+  flex-grow: 1;
+}
+
+.match-details select:disabled,
+.match-details input:disabled {
+  background-color: #e9ecef;
+  cursor: not-allowed;
+}
+
+.match-card.finished {
+  background-color: #f0f9f4;
+  border-color: #a7d7b9;
+}
+
+.match-result-form {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.match-result-form input {
+  width: 100px;
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+.match-result-form button {
+  padding: 8px 12px;
+  border: none;
+  background-color: var(--primary-red);
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.match-result-display {
+  margin-top: 15px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  text-align: center;
+}
+
+/* Estilos para la previsualización de la sede */
+.venue-preview-card {
+  position: absolute;
+  background-color: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 16px;
+  width: 300px;
+  z-index: 10;
+  transition: opacity 0.2s, transform 0.2s;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.venue-preview-card h4 {
+  margin: 0 0 8px 0;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.venue-preview-card p {
+  margin: 0 0 12px 0;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.venue-preview-images {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 8px;
+}
+
+.venue-preview-images img {
+  width: 100%;
+  height: 70px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
 @media (max-width: 768px) {
   .scheduler-layout {
     grid-template-columns: 1fr;
