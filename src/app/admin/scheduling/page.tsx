@@ -203,7 +203,7 @@ const TeamsTable: React.FC<TeamsTableProps> = ({ teams, onDragStart }) => {
       )}
     </div>
   );
-};
+}
 
 // Panel principal de programación para un torneo seleccionado
 interface SchedulingPanelProps {
@@ -541,7 +541,7 @@ const MatchCard: React.FC<MatchCardProps> = ({
   onRemoveTeam,
   onUpdateVenue,
   onUpdateDateTime,
-  // onUpdateResult, // eliminado del destructuring para evitar variable sin uso
+  onUpdateResult, // no lo usamos porque se eliminó el marcador
   onSave,
   onDelete
 }) => {
@@ -637,7 +637,7 @@ const MatchCard: React.FC<MatchCardProps> = ({
           />
         </div>
 
-        {/* Se eliminó el apartado "Marcador" para mantener el formulario limpio */}
+        {/* Marcador eliminado */}
       </div>
 
       <div className="match-actions">
