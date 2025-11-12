@@ -391,9 +391,10 @@ const FemeninoPage = () => {
                       alt={topScorer.name}
                       style={{ width: '40px', height: '40px', borderRadius: '9999px', objectFit: 'cover' }}
                     />
-                    <p style={{ margin: 0 }}>
-                      {topScorer.name} ({topScorer.team}) — {topScorer.goals} gol{topScorer.goals === 1 ? '' : 'es'}
-                    </p>
+                    <span style={{ fontWeight: 600 }}>{topScorer.name}</span>
+                    <span style={{ opacity: 0.85 }}>
+                      ({topScorer.team}) — {topScorer.goals} gol{topScorer.goals === 1 ? '' : 'es'}
+                    </span>
                   </div>
                 ) : (
                   <p style={{ margin: 0, opacity: 0.8 }}>No hay datos de goleadores disponibles aún.</p>
