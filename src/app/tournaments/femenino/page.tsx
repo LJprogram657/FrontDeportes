@@ -324,7 +324,7 @@ function FemeninoPage() {
       </div>
       <h1 className="main-title">Torneos Femeninos</h1>
 
-      <div style={{ maxWidth: '980px', margin: '0 auto', padding: '0 16px' }}>
+      <div style={{ maxWidth: '980px', margin: '0 auto', padding: '0 16px', marginBottom: '64px' }}>
         {tournaments.length === 0 ? (
           <div className="no-tournaments">
             <p>No hay torneos femeninos disponibles en este momento.</p>
@@ -393,7 +393,7 @@ function FemeninoPage() {
                     <img
                       src={(topScorer.playerId && playerPhotos[topScorer.playerId]) ? playerPhotos[topScorer.playerId] : '/images/default-avatar.png'}
                       alt={topScorer.name}
-                      style={{ width: '40px', height: '40px', borderRadius: '6px', objectFit: 'cover' }}
+                      style={{ width: '56px', height: '56px', borderRadius: '6px', objectFit: 'cover' }}
                     />
                   </div>
                 ) : (
@@ -406,7 +406,7 @@ function FemeninoPage() {
                 <h3 style={{ margin: 0, marginBottom: '8px' }}>Valla menos vencida</h3>
                 {bestDefense ? (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-                    <span style={{ fontWeight: 600 }}>{bestDefense.team.name}</span>
+                    <span style={{ fontWeight: 700, fontSize: '16px' }}>{bestDefense.team.name}</span>
                   </div>
                 ) : (
                   <p style={{ margin: 0, opacity: 0.8 }}>Aún no hay suficiente información.</p>
