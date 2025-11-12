@@ -122,7 +122,7 @@ const computeStandings = (matches: Match[]): Standing[] => {
   });
 };
 
-function MasculinoPage() {
+const MasculinoPage = () => {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [selectedTournamentId, setSelectedTournamentId] = useState<number | null>(null);
   const [matches, setMatches] = useState<Match[]>([]);
@@ -280,192 +280,202 @@ function MasculinoPage() {
 
   if (loading) {
     return (
-      <section className="tournaments-page">
-        <div className="container">
-          <div className="rounded-lg px-4 py-3 bg-black/30 text-white">
-            Cargando torneos...
-          </div>
-        </div>
-      </section>
+      <div className="min-h-screen grid place-items-center">
+        <div className="rounded-lg px-4 py-3 bg-black/30 text-white">Cargando torneos...</div>
+      </div>
     );
   }
 
   if (!tournaments.length || !selectedTournamentId) {
     return (
-      <section className="tournaments-page">
-        <div className="container">
-          <div className="rounded-lg px-4 py-3 bg-black/30 text-white">
-            No hay torneos masculinos activos.
-          </div>
-        </div>
-      </section>
+      <div className="min-h-screen grid place-items-center">
+        <div className="rounded-lg px-4 py-3 bg-black/30 text-white">No hay torneos masculinos activos.</div>
+      </div>
     );
   }
 
   const selectedTournament = tournaments.find(t => t.id === selectedTournamentId)!;
 
   return (
-    <section className="tournaments-page">
-      <div className="container">
-        <h1 className="main-title">Torneos Masculinos</h1>
+    <div className="min-h-screen px-4 md:px-0">
+      <h1 className="text-2xl md:text-3xl font-bold mb-4 text-white">Torneos Masculinos</h1>
 
-        <div className="mx-auto" style={{ maxWidth: '720px' }}>
-          <div className="rounded-lg border border-white/10 bg-black/30 backdrop-blur-sm shadow-[0_0_12px_rgba(147,51,234,0.15)] overflow-hidden">
-            {/* Encabezado */}
-            <div className="flex items-center gap-3 px-3 py-2 border-b border-white/10">
-              <div className="relative h-10 w-10 rounded-md overflow-hidden ring-1 ring-white/20">
-                {selectedTournament.logo ? (
-                  <Image src={selectedTournament.logo} alt={selectedTournament.name} fill className="object-cover" />
-                ) : (
-                  <div className="h-full w-full bg-white/10" />
-                )}
-              </div>
-              <div>
-                <div className="text-white font-semibold">{selectedTournament.name}</div>
-                <div className="text-xs text-gray-300">Tabla de Posiciones</div>
-              </div>
+      <div className="mx-auto max-w-2xl">
+        <div className="rounded-lg border border-white/10 bg-black/30 backdrop-blur-sm shadow-[0_0_12px_rgba(147,51,234,0.15)] overflow-hidden">
+          {/* Encabezado */}
+          <div className="flex items-center gap-3 px-3 py-2 border-b border-white/10">
+            <div className="relative h-10 w-10 rounded-md overflow-hidden ring-1 ring-white/20">
+              {selectedTournament.logo ? (
+                <Image src={selectedTournament.logo} alt={selectedTournament.name} fill className="object-cover" />
+              ) : (
+                <div className="h-full w-full bg-white/10" />
+              )}
             </div>
+            <div>
+              <div className="text-white font-semibold">{selectedTournament.name}</div>
+              <div className="text-xs text-gray-300">Tabla de Posiciones</div>
+            </div>
+          </div>
 
-            {/* Tabla de posiciones */}
-            <div className="px-3 py-2">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left">
-                  <thead className="text-gray-300">
-                    <tr>
-                      <th className="py-2">#</th>
-                      <th className="py-2">Equipo</th>
-                      <th className="py-2">J</th>
-                      <th className="py-2">G</th>
-                      <th className="py-2">E</th>
-                      <th className="py-2">P</th>
-                      <th className="py-2">GF</th>
-                      <th className="py-2">GC</th>
-                      <th className="py-2">DG</th>
-                      <th className="py-2">Pts</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-white/90">
-                    {standings.length ? (
-                      standings.map((s, idx) => (
-                        <tr key={s.teamId} className="border-t border-white/10">
-                          <td className="py-2">{idx + 1}</td>
-                          <td className="py-2">{s.teamName}</td>
-                          <td className="py-2">{s.played}</td>
-                          <td className="py-2">{s.wins}</td>
-                          <td className="py-2">{s.draws}</td>
-                          <td className="py-2">{s.losses}</td>
-                          <td className="py-2">{s.goalsFor}</td>
-                          <td className="py-2">{s.goalsAgainst}</td>
-                          <td className="py-2">{s.goalDiff}</td>
-                          <td className="py-2">{s.points}</td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td className="py-3 text-gray-400" colSpan={10}>
-                          No hay datos de posiciones aún.
-                        </td>
+          {/* Tabla de posiciones */}
+          <div className="px-3 py-2">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="text-gray-300">
+                  <tr>
+                    <th className="py-2">#</th>
+                    <th className="py-2">Equipo</th>
+                    <th className="py-2">J</th>
+                    <th className="py-2">G</th>
+                    <th className="py-2">E</th>
+                    <th className="py-2">P</th>
+                    <th className="py-2">GF</th>
+                    <th className="py-2">GC</th>
+                    <th className="py-2">DG</th>
+                    <th className="py-2">Pts</th>
+                  </tr>
+                </thead>
+                <tbody className="text-white/90">
+                  {standings.length ? (
+                    standings.map((s, idx) => (
+                      <tr key={s.teamId} className="border-t border-white/10">
+                        <td className="py-2">{idx + 1}</td>
+                        <td className="py-2">{s.teamName}</td>
+                        <td className="py-2">{s.played}</td>
+                        <td className="py-2">{s.wins}</td>
+                        <td className="py-2">{s.draws}</td>
+                        <td className="py-2">{s.losses}</td>
+                        <td className="py-2">{s.goalsFor}</td>
+                        <td className="py-2">{s.goalsAgainst}</td>
+                        <td className="py-2">{s.goalDiff}</td>
+                        <td className="py-2">{s.points}</td>
                       </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td className="py-3 text-gray-400" colSpan={10}>
+                        No hay datos de posiciones aún.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Máximo Goleador */}
+          <div className="px-3 py-2 border-t border-white/10">
+            <div className="rounded-md bg-white/5 p-2 ring-1 ring-white/10">
+              <div className="text-sm font-semibold mb-2 tracking-wide text-purple-300">Máximo Goleador</div>
+              {topScorer ? (
+                <div className="flex items-center gap-3">
+                  <div className="relative h-10 w-10 rounded-full overflow-hidden ring-1 ring-purple-400/60 shadow-[0_0_8px_rgba(168,85,247,0.3)]">
+                    {topScorer.photo ? (
+                      <Image src={topScorer.photo as string} alt={topScorer.name} fill className="object-cover" />
+                    ) : (
+                      <div className="h-full w-full grid place-items-center bg-gradient-to-br from-purple-700 to-blue-700 text-white">
+                        <span className="text-sm font-bold">
+                          {topScorer.name
+                            .split(' ')
+                            .slice(0, 2)
+                            .map((s: string) => s[0]?.toUpperCase())
+                            .join('')}
+                        </span>
+                      </div>
                     )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Máximo Goleador */}
-            <div className="px-3 py-2 border-t border-white/10">
-              <div className="rounded-md bg-white/5 p-2 ring-1 ring-white/10">
-                <div className="text-sm font-semibold mb-2 tracking-wide text-purple-300">Máximo Goleador</div>
-                {topScorer ? (
-                  <div className="flex items-center gap-3">
-                    <div className="relative h-10 w-10 rounded-full overflow-hidden ring-1 ring-purple-400/60 shadow-[0_0_8px_rgba(168,85,247,0.3)]">
-                      {topScorer.photo ? (
-                        <Image src={topScorer.photo as string} alt={topScorer.name} fill className="object-cover" />
-                      ) : (
-                        <div className="h-full w-full grid place-items-center bg-gradient-to-br from-purple-700 to-blue-700 text-white">
-                          <span className="text-sm font-bold">
-                            {topScorer.name.split(' ').slice(0, 2).map((s: string) => s[0]?.toUpperCase()).join('')}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="text-sm">
-                      <span className="font-semibold text-white">{topScorer.name}</span>
-                      <span className="text-gray-300"> ({topScorer.team})</span>
-                      <span className="ml-2 text-purple-300">
-                        — {topScorer.goals} gol{(topScorer.goals ?? 0) > 1 ? 'es' : ''}
-                      </span>
-                    </div>
                   </div>
-                ) : (
-                  <div className="text-gray-400 text-sm">Sin datos de goles todavía.</div>
-                )}
-              </div>
-            </div>
-
-            {/* Valla menos vencida — solo nombre */}
-            <div className="px-3 py-2 border-t border-white/10">
-              <div className="rounded-md bg-white/5 p-2 ring-1 ring-white/10">
-                <div className="text-sm font-semibold mb-2 tracking-wide text-blue-300">Valla menos vencida</div>
-                {bestDefense ? (
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="inline-block h-5 w-5 rounded-full bg-blue-600/40 ring-1 ring-blue-400/60 shadow-[0_0_6px_rgba(59,130,246,0.35)] grid place-items-center text-white">🛡️</span>
-                    <span className="font-semibold text-white">{bestDefense.teamName}</span>
+                  <div className="text-sm">
+                    <span className="font-semibold text-white">{topScorer.name}</span>
+                    <span className="text-gray-300"> ({topScorer.team})</span>
+                    <span className="ml-2 text-purple-300">
+                      — {topScorer.goals} gol{(topScorer.goals ?? 0) > 1 ? 'es' : ''}
+                    </span>
                   </div>
-                ) : (
-                  <div className="text-gray-400 text-sm">Sin datos suficientes.</div>
-                )}
-              </div>
+                </div>
+              ) : (
+                <div className="text-gray-400 text-sm">Sin datos de goles todavía.</div>
+              )}
             </div>
+          </div>
 
-            {/* Próximos Partidos */}
-            <div className="px-3 py-2 border-t border-white/10">
-              <div className="rounded-md bg-white/5 p-2 ring-1 ring-white/10">
-                <div className="text-sm font-semibold mb-2 tracking-wide text-rose-300">Próximos Partidos</div>
-                {upcomingMatches.length ? (
-                  <div className="grid gap-2">
-                    {upcomingMatches.slice(0, 6).map(m => (
-                      <div key={m.id} className="flex items-center justify-between rounded-md border border-white/10 bg-black/20 p-2 shadow-sm">
-                        <div className="flex items-center gap-2">
-                          <div className="relative h-6 w-6 rounded-md overflow-hidden ring-1 ring-white/20">
-                            {m.homeTeam?.logo ? (
-                              <Image src={m.homeTeam.logo as string} alt={m.homeTeam?.name ?? 'Local'} fill className="object-cover" />
-                            ) : (
-                              <div className="h-full w-full bg-white/10" />
-                            )}
-                          </div>
-                          <span className="text-sm text-white font-medium">{m.homeTeam?.name ?? 'Local'}</span>
+          {/* Valla menos vencida — solo nombre */}
+          <div className="px-3 py-2 border-t border-white/10">
+            <div className="rounded-md bg-white/5 p-2 ring-1 ring-white/10">
+              <div className="text-sm font-semibold mb-2 tracking-wide text-blue-300">Valla menos vencida</div>
+              {bestDefense ? (
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="inline-block h-5 w-5 rounded-full bg-blue-600/40 ring-1 ring-blue-400/60 shadow-[0_0_6px_rgba(59,130,246,0.35)] grid place-items-center text-white">
+                    🛡️
+                  </span>
+                  <span className="font-semibold text-white">{bestDefense.teamName}</span>
+                </div>
+              ) : (
+                <div className="text-gray-400 text-sm">Sin datos suficientes.</div>
+              )}
+            </div>
+          </div>
+
+          {/* Próximos Partidos */}
+          <div className="px-3 py-2 border-t border-white/10">
+            <div className="rounded-md bg-white/5 p-2 ring-1 ring-white/10">
+              <div className="text-sm font-semibold mb-2 tracking-wide text-rose-300">Próximos Partidos</div>
+              {upcomingMatches.length ? (
+                <div className="grid gap-2">
+                  {upcomingMatches.slice(0, 6).map(m => (
+                    <div
+                      key={m.id}
+                      className="flex items-center justify-between rounded-md border border-white/10 bg-black/20 p-2 shadow-sm"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="relative h-6 w-6 rounded-md overflow-hidden ring-1 ring-white/20">
+                          {m.homeTeam?.logo ? (
+                            <Image
+                              src={m.homeTeam.logo as string}
+                              alt={m.homeTeam?.name ?? 'Local'}
+                              fill
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div className="h-full w-full bg-white/10" />
+                          )}
                         </div>
+                        <span className="text-sm text-white font-medium">{m.homeTeam?.name ?? 'Local'}</span>
+                      </div>
 
-                        <span className="text-[10px] font-bold tracking-widest text-gray-200">VS</span>
+                      <span className="text-[10px] font-bold tracking-widest text-gray-200">VS</span>
 
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-white font-medium">{m.awayTeam?.name ?? 'Visitante'}</span>
-                          <div className="relative h-6 w-6 rounded-md overflow-hidden ring-1 ring-white/20">
-                            {m.awayTeam?.logo ? (
-                              <Image src={m.awayTeam.logo as string} alt={m.awayTeam?.name ?? 'Visitante'} fill className="object-cover" />
-                            ) : (
-                              <div className="h-full w-full bg-white/10" />
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="text-xs text-gray-300">
-                          {(m.date && new Date(m.date).toLocaleDateString()) || 'Fecha por definir'} {' • '} {m.time || 'Hora por definir'}
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-white font-medium">{m.awayTeam?.name ?? 'Visitante'}</span>
+                        <div className="relative h-6 w-6 rounded-md overflow-hidden ring-1 ring-white/20">
+                          {m.awayTeam?.logo ? (
+                            <Image
+                              src={m.awayTeam.logo as string}
+                              alt={m.awayTeam?.name ?? 'Visitante'}
+                              fill
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div className="h-full w-full bg-white/10" />
+                          )}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-gray-400 text-sm">No hay partidos programados próximos.</div>
-                )}
-              </div>
+
+                      <div className="text-xs text-gray-300">
+                        {(m.date && new Date(m.date).toLocaleDateString()) || 'Fecha por definir'} {' • '}
+                        {m.time || 'Hora por definir'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-gray-400 text-sm">No hay partidos programados próximos.</div>
+              )}
             </div>
           </div>
         </div>
       </div>
-    </section>
+    </div>
   );
-}
+};
 
 export default MasculinoPage;
