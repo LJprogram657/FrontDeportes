@@ -199,7 +199,7 @@ const MasculinoPage = () => {
       </div>
       <h1 className="main-title">Torneos Masculinos</h1>
 
-      {/* Contenedor centrado para tabla y carrusel */}
+      {/* Card centrada con logo + nombre + tabla */}
       <div style={{ maxWidth: '980px', margin: '0 auto', padding: '0 16px' }}>
         {tournaments.length === 0 ? (
           <div className="no-tournaments">
@@ -208,12 +208,24 @@ const MasculinoPage = () => {
           </div>
         ) : (
           <>
-            {/* Tabla de Posiciones */}
             <div
-              className="tournaments-section"
+              className="tournament-card"
               style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '16px' }}
             >
-              <h2 style={{ marginBottom: '12px' }}>Tabla de Posiciones</h2>
+              {/* Encabezado de la card: logo pequeño + nombre del torneo */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                <img
+                  src={tournaments[0]?.logo || '/images/default-tournament.png'}
+                  alt={tournaments[0]?.name || 'Torneo'}
+                  style={{ width: '48px', height: '48px', objectFit: 'contain', borderRadius: '8px' }}
+                />
+                <div>
+                  <h2 style={{ margin: 0 }}>{tournaments[0]?.name || 'Torneo'}</h2>
+                  <span style={{ fontSize: '0.9rem', opacity: 0.7 }}>Tabla de Posiciones</span>
+                </div>
+              </div>
+
+              {/* Tabla de posiciones dentro de la card */}
               {standings.length > 0 ? (
                 <table className="standings-table" style={{ width: '100%', fontSize: '0.95rem' }}>
                   <thead>
@@ -250,65 +262,6 @@ const MasculinoPage = () => {
               ) : (
                 <p style={{ margin: '12px 0' }}>No hay posiciones disponibles.</p>
               )}
-            </div>
-
-            {/* Otros Torneos (carrusel horizontal con scroll) */}
-            <div aria-label="otros torneos" style={{ marginTop: '20px' }}>
-              <h2 style={{ marginBottom: '12px' }}>Otros Torneos</h2>
-              <div style={{ overflowX: 'auto', paddingBottom: '8px' }}>
-                <div style={{ display: 'flex', gap: '12px' }}>
-                  {tournaments.map((tournament) => (
-                    <div
-                      key={tournament.id}
-                      className="tournament-card"
-                      style={{ minWidth: '280px', flex: '0 0 auto' }}
-                    >
-                      <div className="tournament-header">
-                        <img
-                          src={tournament.logo || '/images/default-tournament.png'}
-                          alt={tournament.name}
-                          className="tournament-logo"
-                        />
-                        <h3>{tournament.name}</h3>
-                      </div>
-
-                      <div className="tournament-info">
-                        <p>
-                          <strong>Modalidad:</strong>{' '}
-                          {tournament.modality === 'futsal' ? 'Fútbol de Salón' : 'Fútbol 7'}
-                        </p>
-                        {tournament.startDate && tournament.endDate && (
-                          <p>
-                            <strong>Fechas:</strong> {tournament.startDate} - {tournament.endDate}
-                          </p>
-                        )}
-                        <p>
-                          <strong>Estado:</strong> {tournament.status || 'Activo'}
-                        </p>
-                      </div>
-
-                      <div className="tournament-stats">
-                        <div className="stat-item">
-                          <span className="stat-number">
-                            {matches.filter((m) => m.status === 'finished').length}
-                          </span>
-                          <span className="stat-label">Partidos Jugados</span>
-                        </div>
-                        <div className="stat-item">
-                          <span className="stat-number">
-                            {matches.filter((m) => m.status === 'scheduled').length}
-                          </span>
-                          <span className="stat-label">Próximos Partidos</span>
-                        </div>
-                      </div>
-
-                      <Link href={`/tournaments/${tournament.id}`} className="btn btn-primary">
-                        Ver Detalles del Torneo
-                      </Link>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
           </>
         )}
