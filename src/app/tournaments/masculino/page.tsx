@@ -129,6 +129,27 @@ const MasculinoPage = () => {
 
   const standings = useMemo<Standing[]>(() => computeStandings(matches), [matches]);
 
+  // Cálculo del equipo con la valla menos vencida (menor GC)
+  const bestDefense = useMemo(() => {
+    if (!standings.length) return null;
+    const copy = [...standings];
+    copy.sort((a, b) => {
+      if (a.goalsAgainst !== b.goalsAgainst) return a.goalsAgainst - b.goalsAgainst;
+      if (b.points !== a.points) return b.points - a.points;
+      return b.goalDiff - a.goalDiff;
+    });
+    return copy[0];
+  }, [standings]);
+
+  // Próximos partidos (status = scheduled)
+  const upcomingMatches = useMemo(
+    () => matches.filter(m => m.status === 'scheduled').slice(0, 8),
+    [matches]
+  );
+
+  // Placeholder para máximo goleador (requiere goles por jugador en la API)
+  const topScorer: { name: string; goals: number } | null = null;
+
   useEffect(() => {
     const loadData = async () => {
       try {

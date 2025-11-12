@@ -233,6 +233,9 @@ const Tournaments: React.FC = () => {
     loadAll();
   }, []);
 
+  // Estilo para celdas de tabla (más espacio)
+  const cellStyle: React.CSSProperties = { padding: '10px 12px' };
+
   return (
     <section className="tournaments-section">
       <div className="container">
@@ -241,7 +244,7 @@ const Tournaments: React.FC = () => {
         {/* Masculino: card con logo+nombre+tabla */}
         <div className="tournament-category-section">
           <h2 className="category-title">Torneos Masculinos</h2>
-          <div style={{ maxWidth: '980px', margin: '0 auto', padding: '0 16px' }}>
+          <div style={{ maxWidth: '1120px', margin: '0 auto', padding: '0 16px' }}>
             {isLoading ? (
               <p>Cargando tabla de posiciones masculinas...</p>
             ) : masculineTournaments.length === 0 ? (
@@ -264,34 +267,34 @@ const Tournaments: React.FC = () => {
                 </div>
 
                 {masculineStandings.length > 0 ? (
-                  <table className="standings-table" style={{ width: '100%', fontSize: '0.95rem' }}>
+                  <table className="standings-table" style={{ width: '100%', fontSize: '1.1rem' }}>
                     <thead>
                       <tr>
-                        <th>#</th>
-                        <th>Equipo</th>
-                        <th>J</th>
-                        <th>G</th>
-                        <th>E</th>
-                        <th>P</th>
-                        <th>GF</th>
-                        <th>GC</th>
-                        <th>DG</th>
-                        <th>Pts</th>
+                        <th style={cellStyle}>#</th>
+                        <th style={cellStyle}>Equipo</th>
+                        <th style={cellStyle}>J</th>
+                        <th style={cellStyle}>G</th>
+                        <th style={cellStyle}>E</th>
+                        <th style={cellStyle}>P</th>
+                        <th style={cellStyle}>GF</th>
+                        <th style={cellStyle}>GC</th>
+                        <th style={cellStyle}>DG</th>
+                        <th style={cellStyle}>Pts</th>
                       </tr>
                     </thead>
                     <tbody>
                       {masculineStandings.map((s, idx) => (
                         <tr key={`m-${s.team.name}-${idx}`}>
-                          <td>{idx + 1}</td>
-                          <td>{s.team.name}</td>
-                          <td>{s.played}</td>
-                          <td>{s.wins}</td>
-                          <td>{s.draws}</td>
-                          <td>{s.losses}</td>
-                          <td>{s.goalsFor}</td>
-                          <td>{s.goalsAgainst}</td>
-                          <td>{s.goalDiff}</td>
-                          <td>{s.points}</td>
+                          <td style={cellStyle}>{idx + 1}</td>
+                          <td style={cellStyle}>{s.team.name}</td>
+                          <td style={cellStyle}>{s.played}</td>
+                          <td style={cellStyle}>{s.wins}</td>
+                          <td style={cellStyle}>{s.draws}</td>
+                          <td style={cellStyle}>{s.losses}</td>
+                          <td style={cellStyle}>{s.goalsFor}</td>
+                          <td style={cellStyle}>{s.goalsAgainst}</td>
+                          <td style={cellStyle}>{s.goalDiff}</td>
+                          <td style={cellStyle}>{s.points}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -307,7 +310,7 @@ const Tournaments: React.FC = () => {
         {/* Femenino: card con logo+nombre+tabla */}
         <div className="tournament-category-section">
           <h2 className="category-title">Torneos Femeninos</h2>
-          <div style={{ maxWidth: '980px', margin: '0 auto', padding: '0 16px' }}>
+          <div style={{ maxWidth: '1120px', margin: '0 auto', padding: '0 16px' }}>
             {isLoading ? (
               <p>Cargando tabla de posiciones femeninas...</p>
             ) : feminineTournaments.length === 0 ? (
@@ -330,34 +333,34 @@ const Tournaments: React.FC = () => {
                 </div>
 
                 {feminineStandings.length > 0 ? (
-                  <table className="standings-table" style={{ width: '100%', fontSize: '0.95rem' }}>
+                  <table className="standings-table" style={{ width: '100%', fontSize: '1.1rem' }}>
                     <thead>
                       <tr>
-                        <th>#</th>
-                        <th>Equipo</th>
-                        <th>J</th>
-                        <th>G</th>
-                        <th>E</th>
-                        <th>P</th>
-                        <th>GF</th>
-                        <th>GC</th>
-                        <th>DG</th>
-                        <th>Pts</th>
+                        <th style={cellStyle}>#</th>
+                        <th style={cellStyle}>Equipo</th>
+                        <th style={cellStyle}>J</th>
+                        <th style={cellStyle}>G</th>
+                        <th style={cellStyle}>E</th>
+                        <th style={cellStyle}>P</th>
+                        <th style={cellStyle}>GF</th>
+                        <th style={cellStyle}>GC</th>
+                        <th style={cellStyle}>DG</th>
+                        <th style={cellStyle}>Pts</th>
                       </tr>
                     </thead>
                     <tbody>
                       {feminineStandings.map((s, idx) => (
                         <tr key={`f-${s.team.name}-${idx}`}>
-                          <td>{idx + 1}</td>
-                          <td>{s.team.name}</td>
-                          <td>{s.played}</td>
-                          <td>{s.wins}</td>
-                          <td>{s.draws}</td>
-                          <td>{s.losses}</td>
-                          <td>{s.goalsFor}</td>
-                          <td>{s.goalsAgainst}</td>
-                          <td>{s.goalDiff}</td>
-                          <td>{s.points}</td>
+                          <td style={cellStyle}>{idx + 1}</td>
+                          <td style={cellStyle}>{s.team.name}</td>
+                          <td style={cellStyle}>{s.played}</td>
+                          <td style={cellStyle}>{s.wins}</td>
+                          <td style={cellStyle}>{s.draws}</td>
+                          <td style={cellStyle}>{s.losses}</td>
+                          <td style={cellStyle}>{s.goalsFor}</td>
+                          <td style={cellStyle}>{s.goalsAgainst}</td>
+                          <td style={cellStyle}>{s.goalDiff}</td>
+                          <td style={cellStyle}>{s.points}</td>
                         </tr>
                       ))}
                     </tbody>
