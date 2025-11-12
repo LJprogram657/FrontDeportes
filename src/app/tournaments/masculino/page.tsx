@@ -155,7 +155,7 @@ function computeStandings(matches: Match[]): Standing[] {
   return table;
 }
 
-const MasculinoPage = () => {
+function MasculinoPage() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -386,31 +386,39 @@ const MasculinoPage = () => {
               )}
 
               <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: '1fr', gap: '12px' }}>
+                {/* Máximo Goleador */}
                 <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid #1f2937', borderRadius: '10px', padding: '12px' }}>
                   <h3 style={{ margin: 0, marginBottom: '8px' }}>Máximo Goleador</h3>
                   {topScorer ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ opacity: 0.95 }}>
+                        <strong>{topScorer.name}</strong> ({topScorer.team}) — {topScorer.goals} gol{topScorer.goals === 1 ? '' : 'es'}
+                      </span>
                       <img
                         src={(topScorer.playerId && playerPhotos[topScorer.playerId]) ? playerPhotos[topScorer.playerId] : '/images/default-avatar.png'}
                         alt={topScorer.name}
-                        style={{ width: '40px', height: '40px', borderRadius: '9999px', objectFit: 'cover' }}
+                        style={{ width: '40px', height: '40px', borderRadius: '6px', objectFit: 'cover' }}
                       />
-                      <span style={{ fontWeight: 600 }}>{topScorer.name}</span>
-                      <span style={{ opacity: 0.85 }}>
-                        ({topScorer.team}) — {topScorer.goals} gol{topScorer.goals === 1 ? '' : 'es'}
-                      </span>
                     </div>
                   ) : (
                     <p style={{ margin: 0, opacity: 0.8 }}>No hay datos de goleadores disponibles aún.</p>
                   )}
                 </div>
 
+                {/* Valla menos vencida */}
                 <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid #1f2937', borderRadius: '10px', padding: '12px' }}>
                   <h3 style={{ margin: 0, marginBottom: '8px' }}>Valla menos vencida</h3>
                   {bestDefense ? (
-                    <p style={{ margin: 0 }}>
-                      {bestDefense.team.name}
-                    </p>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ opacity: 0.95 }}>
+                        <strong>{bestDefense.team.name}</strong>
+                      </span>
+                      <img
+                        src={bestDefense.team.logo || '/images/logo.png'}
+                        alt={bestDefense.team.name}
+                        style={{ width: '40px', height: '40px', borderRadius: '6px', objectFit: 'cover' }}
+                      />
+                    </div>
                   ) : (
                     <p style={{ margin: 0, opacity: 0.8 }}>Aún no hay suficiente información.</p>
                   )}
