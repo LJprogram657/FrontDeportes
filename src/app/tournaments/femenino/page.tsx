@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useMemo } from 'react';
-import Link from 'next/link';
 import BackButton from '@/components/BackButton';
 
 interface Tournament {
@@ -140,12 +139,12 @@ const FemeninoPage = () => {
           id: Number(t.id),
           name: String(t.name),
           logo: t.logo || '/images/logo.png',
-          category: 'femenino' as const,
-          modality: 'futsal' as const,
-          status: String(t.status),
+          category: 'femenino',
+          modality: t.modality === 'futbol7' ? 'futbol7' : 'futsal',
+          status: String(t.status || 'active'),
           startDate: t.start_date ? new Date(t.start_date).toISOString().slice(0, 10) : undefined,
-          endDate: undefined,
-          description: undefined,
+          endDate: t.end_date ? new Date(t.end_date).toISOString().slice(0, 10) : undefined,
+          description: t.description ?? undefined,
         }));
         setTournaments(feminineTournaments);
 
@@ -198,108 +197,72 @@ const FemeninoPage = () => {
         <BackButton />
       </div>
       <h1 className="main-title">Torneos Femeninos</h1>
-      
-      {tournaments.length === 0 ? (
-        <div className="no-tournaments">
-          <p>No hay torneos femeninos disponibles en este momento.</p>
-          <p>Los torneos aparecerán aquí una vez que el administrador los cree.</p>
-        </div>
-      ) : (
-        <div className="tournaments-section">
-          <h2>Tabla de Posiciones</h2>
-          <div className="standings-cards">
+
+      {/* Card centrada con logo + nombre + tabla */}
+      <div style={{ maxWidth: '980px', margin: '0 auto', padding: '0 16px' }}>
+        {tournaments.length === 0 ? (
+          <div className="no-tournaments">
+            <p>No hay torneos femeninos disponibles en este momento.</p>
+            <p>Los torneos aparecerán aquí una vez que el administrador los cree.</p>
+          </div>
+        ) : (
+          <div
+            className="tournament-card"
+            style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '16px' }}
+          >
+            {/* Encabezado de la card: logo pequeño + nombre del torneo */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+              <img
+                src={tournaments[0]?.logo || '/images/default-tournament.png'}
+                alt={tournaments[0]?.name || 'Torneo'}
+                style={{ width: '48px', height: '48px', objectFit: 'contain', borderRadius: '8px' }}
+              />
+              <div>
+                <h2 style={{ margin: 0 }}>{tournaments[0]?.name || 'Torneo'}</h2>
+                <span style={{ fontSize: '0.9rem', opacity: 0.7 }}>Tabla de Posiciones</span>
+              </div>
+            </div>
+
+            {/* Tabla de posiciones dentro de la card */}
             {standings.length > 0 ? (
-              standings.map((team, index) => (
-                <div key={`${team.team.name}-${index}`} className="standings-card">
-                  <h3>{index + 1}. {team.team.name}</h3>
-                  <p>Jugados: {team.played}</p>
-                  <p>Ganados: {team.wins}</p>
-                  <p>Empatados: {team.draws}</p>
-                  <p>Perdidos: {team.losses}</p>
-                  <p>GF: {team.goalsFor} | GC: {team.goalsAgainst}</p>
-                  <p>Diferencia: {team.goalDiff}</p>
-                  <p>Puntos: {team.points}</p>
-                </div>
-              ))
+              <table className="standings-table" style={{ width: '100%', fontSize: '0.95rem' }}>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Equipo</th>
+                    <th>J</th>
+                    <th>G</th>
+                    <th>E</th>
+                    <th>P</th>
+                    <th>GF</th>
+                    <th>GC</th>
+                    <th>DG</th>
+                    <th>Pts</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {standings.map((s, idx) => (
+                    <tr key={`${s.team.name}-${idx}`}>
+                      <td>{idx + 1}</td>
+                      <td>{s.team.name}</td>
+                      <td>{s.played}</td>
+                      <td>{s.wins}</td>
+                      <td>{s.draws}</td>
+                      <td>{s.losses}</td>
+                      <td>{s.goalsFor}</td>
+                      <td>{s.goalsAgainst}</td>
+                      <td>{s.goalDiff}</td>
+                      <td>{s.points}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             ) : (
-              <p>No hay datos disponibles para la tabla de posiciones.</p>
+              <p style={{ margin: '12px 0' }}>No hay posiciones disponibles.</p>
             )}
           </div>
-          <div className="tournaments-grid">
-            {tournaments.map((tournament) => (
-              <div key={tournament.id} className="tournament-card">
-                <div className="tournament-header">
-                  <img 
-                    src={tournament.logo || '/images/default-tournament.png'} 
-                    alt={tournament.name}
-                    className="tournament-logo"
-                  />
-                  <h3>{tournament.name}</h3>
-                </div>
-                
-                <div className="tournament-info">
-                  <p><strong>Modalidad:</strong> {tournament.modality === 'futsal' ? 'Fútbol de Salón' : 'Fútbol 7'}</p>
-                  {tournament.startDate && tournament.endDate && (
-                    <p><strong>Fechas:</strong> {tournament.startDate} - {tournament.endDate}</p>
-                  )}
-                  <p><strong>Estado:</strong> {tournament.status || 'Activo'}</p>
-                </div>
-
-                <div className="tournament-stats">
-                  <div className="stat-item">
-                    <span className="stat-number">
-                      {matches.filter(m => m.status === 'finished').length}
-                    </span>
-                    <span className="stat-label">Partidos Jugados</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-number">
-                      {matches.filter(m => m.status === 'scheduled').length}
-                    </span>
-                    <span className="stat-label">Próximos Partidos</span>
-                  </div>
-                </div>
-
-                <Link href={`/tournaments/${tournament.id}`} className="btn btn-primary">
-                  Ver Detalles del Torneo
-                </Link>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Próximos partidos */}
-      {matches.filter(m => m.status === 'scheduled').length > 0 && (
-        <div className="upcoming-matches-section">
-          <h2>Próximos Partidos</h2>
-          <div className="matches-grid">
-            {matches
-              .filter(m => m.status === 'scheduled')
-              .slice(0, 6)
-              .map((match) => (
-                <div key={match.id} className="match-card">
-                  <div className="match-teams">
-                    <div className="team">
-                      <img src={match.homeTeam?.logo || '/images/logo.png'} alt={match.homeTeam?.name} />
-                      <span>{match.homeTeam?.name || 'TBD'}</span>
-                    </div>
-                    <div className="vs">VS</div>
-                    <div className="team">
-                      <img src={match.awayTeam?.logo || '/images/logo.png'} alt={match.awayTeam?.name} />
-                      <span>{match.awayTeam?.name || 'TBD'}</span>
-                    </div>
-                  </div>
-                  <div className="match-info">
-                    {match.date && <p><strong>Fecha:</strong> {match.date}</p>}
-                    {match.time && <p><strong>Hora:</strong> {match.time}</p>}
-                    {match.venue && <p><strong>Cancha:</strong> {match.venue}</p>}
-                  </div>
-                </div>
-              ))}
-          </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };
