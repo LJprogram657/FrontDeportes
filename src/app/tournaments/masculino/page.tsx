@@ -159,6 +159,7 @@ const MasculinoPage = () => {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [playerPhotos, setPlayerPhotos] = useState<Record<number, string>>({}); // NUEVO
 
   const standings = useMemo<Standing[]>(() => computeStandings(matches), [matches]);
 
@@ -257,6 +258,23 @@ const MasculinoPage = () => {
           description: t.description ?? undefined,
         }));
         setTournaments(masculineTournaments);
+
+        // NUEVO: cargar fotos de jugadores por torneo
+        const photos: Record<number, string> = {};
+        for (const t of masculineTournaments) {
+          const teamsRes = await fetch(`/api/tournaments/${t.id}/teams`, { cache: 'no-store' });
+          if (teamsRes.ok) {
+            const teams = await teamsRes.json();
+            for (const team of teams as Array<{ players: Array<{ id: number; photo?: string }> }>) {
+              for (const p of team.players || []) {
+                if (typeof p.id === 'number' && p.photo) {
+                  photos[p.id] = p.photo;
+                }
+              }
+            }
+          }
+        }
+        setPlayerPhotos(photos);
 
         const allMatches: Match[] = [];
         for (const t of masculineTournaments) {
@@ -371,9 +389,16 @@ const MasculinoPage = () => {
                 <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid #1f2937', borderRadius: '10px', padding: '12px' }}>
                   <h3 style={{ margin: 0, marginBottom: '8px' }}>Máximo Goleador</h3>
                   {topScorer ? (
-                    <p style={{ margin: 0 }}>
-                      {topScorer.name} ({topScorer.team}) — {topScorer.goals} gol{topScorer.goals === 1 ? '' : 'es'}
-                    </p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <img
+                        src={(topScorer.playerId && playerPhotos[topScorer.playerId]) ? playerPhotos[topScorer.playerId] : '/images/default-avatar.png'}
+                        alt={topScorer.name}
+                        style={{ width: '40px', height: '40px', borderRadius: '9999px', objectFit: 'cover' }}
+                      />
+                      <p style={{ margin: 0 }}>
+                        {topScorer.name} ({topScorer.team}) — {topScorer.goals} gol{topScorer.goals === 1 ? '' : 'es'}
+                      </p>
+                    </div>
                   ) : (
                     <p style={{ margin: 0, opacity: 0.8 }}>No hay datos de goleadores disponibles aún.</p>
                   )}
@@ -383,7 +408,7 @@ const MasculinoPage = () => {
                   <h3 style={{ margin: 0, marginBottom: '8px' }}>Valla menos vencida</h3>
                   {bestDefense ? (
                     <p style={{ margin: 0 }}>
-                      {bestDefense.team.name} — {bestDefense.goalsAgainst} GC
+                      {bestDefense.team.name}
                     </p>
                   ) : (
                     <p style={{ margin: 0, opacity: 0.8 }}>Aún no hay suficiente información.</p>
