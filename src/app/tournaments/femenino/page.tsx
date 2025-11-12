@@ -159,7 +159,7 @@ function FemeninoPage() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [playerPhotos, setPlayerPhotos] = useState<Record<number, string>>({}); // NUEVO
+  const [playerPhotos, setPlayerPhotos] = useState<Record<number, string>>({});
 
   const standings = useMemo<Standing[]>(() => computeStandings(matches), [matches]);
 
@@ -256,7 +256,7 @@ function FemeninoPage() {
         }));
         setTournaments(feminineTournaments);
 
-        // NUEVO: cargar fotos de jugadores por torneo
+        // Cargar fotos de jugadores por torneo
         const photos: Record<number, string> = {};
         for (const t of feminineTournaments) {
           const teamsRes = await fetch(`/api/tournaments/${t.id}/teams`, { cache: 'no-store' });
@@ -393,7 +393,7 @@ function FemeninoPage() {
                     <img
                       src={(topScorer.playerId && playerPhotos[topScorer.playerId]) ? playerPhotos[topScorer.playerId] : '/images/default-avatar.png'}
                       alt={topScorer.name}
-                      style={{ width: '56px', height: '56px', borderRadius: '6px', objectFit: 'cover' }}
+                      style={{ width: '96px', height: '96px', borderRadius: '6px', objectFit: 'cover' }}
                     />
                   </div>
                 ) : (
@@ -413,6 +413,7 @@ function FemeninoPage() {
                 )}
               </div>
 
+              {/* Próximos Partidos */}
               <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid #1f2937', borderRadius: '10px', padding: '12px' }}>
                 <h3 style={{ margin: 0, marginBottom: '8px' }}>Próximos Partidos</h3>
                 {upcomingMatches.length > 0 ? (
@@ -438,6 +439,6 @@ function FemeninoPage() {
       </div>
     </div>
   );
-};
+}
 
 export default FemeninoPage;

@@ -397,7 +397,7 @@ function MasculinoPage() {
                       <img
                         src={(topScorer.playerId && playerPhotos[topScorer.playerId]) ? playerPhotos[topScorer.playerId] : '/images/default-avatar.png'}
                         alt={topScorer.name}
-                        style={{ width: '56px', height: '56px', borderRadius: '6px', objectFit: 'cover' }}
+                        style={{ width: '96px', height: '96px', borderRadius: '6px', objectFit: 'cover' }}
                       />
                     </div>
                   ) : (
