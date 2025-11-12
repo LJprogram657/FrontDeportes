@@ -1,37 +1,43 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
-import BackButton from '@/components/BackButton';
+import React, { useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
 
 interface Tournament {
   id: number;
   name: string;
-  logo: string;
-  category: 'masculino' | 'femenino';
-  modality: 'futsal' | 'futbol7';
-  status: string;
-  startDate?: string;
-  endDate?: string;
-  description?: string;
+  logo: string | null;
 }
 
+interface TeamRef {
+  id: number | null;
+  name: string | null;
+  logo: string | null;
+}
+
+type MatchStatus = 'scheduled' | 'finished' | 'canceled' | 'postponed';
+
 interface Match {
-  id: string;
-  phase: string;
-  homeTeam: any;
-  awayTeam: any;
-  date?: string;
-  time?: string;
-  venue?: string;
-  homeScore?: number;
-  awayScore?: number;
-  status: 'scheduled' | 'finished';
-  goals?: string; // JSON con goles por jugador (home/away)
+  id: number;
+  tournamentId: number;
+  phase?: string | null;
+  venue?: string | null;
+  date?: string | null;
+  time?: string | null;
+  round?: string | null;
+  group?: string | null;
+  status: MatchStatus;
+  homeScore?: number | null;
+  awayScore?: number | null;
+  goals?: string | null; // JSON string con eventos de goles
+  fouls?: string | null;
+  homeTeam?: TeamRef | null;
+  awayTeam?: TeamRef | null;
 }
 
 interface Standing {
-  id: number;
-  team: { name: string; logo?: string | null };
+  teamId: number;
+  teamName: string;
   played: number;
   wins: number;
   draws: number;
@@ -42,372 +48,392 @@ interface Standing {
   points: number;
 }
 
-function computeStandings(matches: Match[]): Standing[] {
-  const teams = new Map<string, { name: string; logo?: string | null }>();
-  const stats = new Map<
-    string,
-    {
-      played: number;
-      wins: number;
-      draws: number;
-      losses: number;
-      goalsFor: number;
-      goalsAgainst: number;
-      points: number;
-      logo?: string | null;
+const computeStandings = (matches: Match[]): Standing[] => {
+  const table = new Map<number, Standing>();
+
+  const addTeamIfMissing = (team?: TeamRef | null) => {
+    if (!team?.id || !team?.name) return;
+    if (!table.has(team.id)) {
+      table.set(team.id, {
+        teamId: team.id,
+        teamName: team.name,
+        played: 0,
+        wins: 0,
+        draws: 0,
+        losses: 0,
+        goalsFor: 0,
+        goalsAgainst: 0,
+        goalDiff: 0,
+        points: 0,
+      });
     }
-  >();
+  };
 
-  for (const m of matches) {
-    const homeName = m.homeTeam?.name;
-    const awayName = m.awayTeam?.name;
-    const homeLogo = m.homeTeam?.logo ?? null;
-    const awayLogo = m.awayTeam?.logo ?? null;
+  matches
+    .filter(m => m.status === 'finished')
+    .forEach(m => {
+      addTeamIfMissing(m.homeTeam);
+      addTeamIfMissing(m.awayTeam);
 
-    if (homeName) {
-      teams.set(homeName, { name: homeName, logo: homeLogo });
-      if (!stats.has(homeName)) {
-        stats.set(homeName, {
-          played: 0,
-          wins: 0,
-          draws: 0,
-          losses: 0,
-          goalsFor: 0,
-          goalsAgainst: 0,
-          points: 0,
-          logo: homeLogo,
-        });
+      const homeId = m.homeTeam?.id ?? null;
+      const awayId = m.awayTeam?.id ?? null;
+      const hs = m.homeScore ?? null;
+      const as = m.awayScore ?? null;
+
+      if (homeId == null || awayId == null || hs == null || as == null) return;
+
+      const home = table.get(homeId)!;
+      const away = table.get(awayId)!;
+
+      home.played += 1;
+      away.played += 1;
+
+      home.goalsFor += hs;
+      home.goalsAgainst += as;
+      away.goalsFor += as;
+      away.goalsAgainst += hs;
+
+      if (hs > as) {
+        home.wins += 1;
+        away.losses += 1;
+        home.points += 3;
+      } else if (hs < as) {
+        away.wins += 1;
+        home.losses += 1;
+        away.points += 3;
+      } else {
+        home.draws += 1;
+        away.draws += 1;
+        home.points += 1;
+        away.points += 1;
       }
-    }
-    if (awayName) {
-      teams.set(awayName, { name: awayName, logo: awayLogo });
-      if (!stats.has(awayName)) {
-        stats.set(awayName, {
-          played: 0,
-          wins: 0,
-          draws: 0,
-          losses: 0,
-          goalsFor: 0,
-          goalsAgainst: 0,
-          points: 0,
-          logo: awayLogo,
-        });
-      }
-    }
+    });
 
-    if (m.status === 'finished' && typeof m.homeScore === 'number' && typeof m.awayScore === 'number') {
-      if (homeName) {
-        const s = stats.get(homeName)!;
-        s.played += 1;
-        s.goalsFor += m.homeScore;
-        s.goalsAgainst += m.awayScore;
-        if (m.homeScore > m.awayScore) {
-          s.wins += 1;
-          s.points += 3;
-        } else if (m.homeScore === m.awayScore) {
-          s.draws += 1;
-          s.points += 1;
-        } else {
-          s.losses += 1;
-        }
-      }
-      if (awayName) {
-        const s = stats.get(awayName)!;
-        s.played += 1;
-        s.goalsFor += m.awayScore;
-        s.goalsAgainst += m.homeScore;
-        if (m.awayScore > m.homeScore) {
-          s.wins += 1;
-          s.points += 3;
-        } else if (m.awayScore === m.homeScore) {
-          s.draws += 1;
-          s.points += 1;
-        } else {
-          s.losses += 1;
-        }
-      }
-    }
-  }
+  const list = Array.from(table.values()).map(s => ({
+    ...s,
+    goalDiff: s.goalsFor - s.goalsAgainst,
+  }));
 
-  const table = Array.from(teams.values()).map((t, idx) => {
-    const s = stats.get(t.name)!;
-    const goalDiff = s.goalsFor - s.goalsAgainst;
-    return {
-      id: idx + 1,
-      team: { name: t.name, logo: s.logo },
-      played: s.played,
-      wins: s.wins,
-      draws: s.draws,
-      losses: s.losses,
-      goalsFor: s.goalsFor,
-      goalsAgainst: s.goalsAgainst,
-      goalDiff,
-      points: s.points,
-    } as Standing;
-  });
-
-  table.sort((a, b) => {
+  return list.sort((a, b) => {
     if (b.points !== a.points) return b.points - a.points;
     if (b.goalDiff !== a.goalDiff) return b.goalDiff - a.goalDiff;
-    return b.goalsFor - a.goalsFor;
+    if (b.goalsFor !== a.goalsFor) return b.goalsFor - a.goalsFor;
+    return a.teamName.localeCompare(b.teamName);
   });
-
-  return table;
-}
+};
 
 const FemeninoPage = () => {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [selectedTournamentId, setSelectedTournamentId] = useState<number | null>(null);
   const [matches, setMatches] = useState<Match[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  const [playersMap, setPlayersMap] = useState<
+    Record<number, { name: string; lastName: string; photo: string | null; teamName: string }>
+  >({});
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        setLoading(true);
+        const res = await fetch('/api/tournaments/active?category=femenino');
+        const active = await res.json();
+        const ts: Tournament[] = (active || []).map((t: any) => ({
+          id: t.id,
+          name: t.name,
+          logo: t.logo ?? null,
+        }));
+        if (!mounted) return;
+        setTournaments(ts);
+        const firstId = ts[0]?.id ?? null;
+        setSelectedTournamentId(firstId);
+
+        if (firstId) {
+          const mRes = await fetch(`/api/tournaments/${firstId}/matches`);
+          const m = await mRes.json();
+          const normalized: Match[] = (m || []).map((x: any) => ({
+            id: x.id,
+            tournamentId: x.tournamentId,
+            phase: x.phase ?? null,
+            venue: x.venue ?? null,
+            date: x.date ?? null,
+            time: x.time ?? null,
+            round: x.round ?? null,
+            group: x.group ?? null,
+            status: x.status,
+            homeScore: x.homeScore ?? null,
+            awayScore: x.awayScore ?? null,
+            goals: x.goals ?? null,
+            fouls: x.fouls ?? null,
+            homeTeam: x.homeTeam ? { id: x.homeTeam.id, name: x.homeTeam.name, logo: x.homeTeam.logo } : null,
+            awayTeam: x.awayTeam ? { id: x.awayTeam.id, name: x.awayTeam.name, logo: x.awayTeam.logo } : null,
+          }));
+          if (!mounted) return;
+          setMatches(normalized);
+
+          const tRes = await fetch(`/api/tournaments/${firstId}/teams`);
+          const teams = await tRes.json();
+          const map: Record<number, { name: string; lastName: string; photo: string | null; teamName: string }> = {};
+          (teams || []).forEach((team: any) => {
+            (team.players || []).forEach((p: any) => {
+              map[p.id] = { name: p.name, lastName: p.lastName, photo: p.photo ?? null, teamName: team.name };
+            });
+          });
+          if (!mounted) return;
+          setPlayersMap(map);
+        }
+      } catch (e) {
+        console.error('Error cargando torneos/partidos (femenino):', e);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const standings = useMemo<Standing[]>(() => computeStandings(matches), [matches]);
 
   const bestDefense = useMemo(() => {
     if (!standings.length) return null;
-    const copy = [...standings];
-    copy.sort((a, b) => {
-      if (a.goalsAgainst !== b.goalsAgainst) return a.goalsAgainst - b.goalsAgainst;
-      if (b.points !== a.points) return b.points - a.points;
-      return b.goalDiff - a.goalDiff;
-    });
-    return copy[0];
+    const sorted = [...standings].sort((a, b) => a.goalsAgainst - b.goalsAgainst || b.points - a.points);
+    const top = sorted[0];
+    return top ? { teamName: top.teamName, goalsAgainst: top.goalsAgainst } : null;
   }, [standings]);
 
-  const upcomingMatches = useMemo(() => matches.filter((m) => m.status === 'scheduled').slice(0, 8), [matches]);
+  const upcomingMatches = useMemo(
+    () => matches.filter(m => m.status === 'scheduled').sort((a, b) => (a.date ?? '').localeCompare(b.date ?? '')),
+    [matches]
+  );
 
-  function safeParseGoals(raw?: string): {
-    home: Array<{ playerId?: number; name?: string; goals?: number }>;
-    away: Array<{ playerId?: number; name?: string; goals?: number }>;
-  } {
-    if (!raw) return { home: [], away: [] };
+  const safeParseGoals = (json: string | null | undefined): any[] => {
+    if (!json) return [];
     try {
-      const parsed = JSON.parse(raw);
-      const home = Array.isArray(parsed?.home) ? parsed.home : [];
-      const away = Array.isArray(parsed?.away) ? parsed.away : [];
-      return { home, away };
+      const parsed = typeof json === 'string' ? JSON.parse(json) : json;
+      return Array.isArray(parsed) ? parsed : [];
     } catch {
-      return { home: [], away: [] };
+      return [];
     }
-  }
+  };
 
   const topScorer = useMemo(() => {
-    const goalsByPlayer = new Map<string, { playerId?: number; name: string; team: string; goals: number }>();
+    const goalsByPlayer: Record<
+      string,
+      { goals: number; playerId?: number; name: string; team: string; photo?: string | null }
+    > = {};
 
-    for (const m of matches) {
-      if (m.status !== 'finished') continue;
-      const { home, away } = safeParseGoals(m.goals);
-
-      const homeTeamName = m.homeTeam?.name || 'Local';
-      for (const ev of home) {
-        const pid = typeof ev.playerId === 'number' ? ev.playerId : undefined;
-        const pname = ev.name || 'Jugador';
-        const key = pid ? `id:${pid}` : `name:${pname}|team:${homeTeamName}`;
-        const prev = goalsByPlayer.get(key);
-        goalsByPlayer.set(key, {
-          playerId: pid,
-          name: pname,
-          team: homeTeamName,
-          goals: (prev?.goals || 0) + (ev.goals || 0),
+    matches
+      .filter(m => m.status === 'finished' && !!m.goals)
+      .forEach(m => {
+        const events = safeParseGoals(m.goals);
+        events.forEach((ev: any) => {
+          const key =
+            ev.playerId != null ? `id:${ev.playerId}` : `${(ev.name ?? '').toLowerCase()}|${(ev.team ?? '').toLowerCase()}`;
+          if (!goalsByPlayer[key]) {
+            const pm = ev.playerId != null ? playersMap[ev.playerId] : null;
+            goalsByPlayer[key] = {
+              goals: 0,
+              playerId: ev.playerId,
+              name: pm ? `${pm.name} ${pm.lastName}` : (ev.name ?? 'Jugador'),
+              team: pm ? pm.teamName : (ev.team ?? 'Equipo'),
+              photo: pm?.photo ?? null,
+            };
+          }
+          goalsByPlayer[key].goals += 1;
         });
-      }
+      });
 
-      const awayTeamName = m.awayTeam?.name || 'Visitante';
-      for (const ev of away) {
-        const pid = typeof ev.playerId === 'number' ? ev.playerId : undefined;
-        const pname = ev.name || 'Jugador';
-        const key = pid ? `id:${pid}` : `name:${pname}|team:${awayTeamName}`;
-        const prev = goalsByPlayer.get(key);
-        goalsByPlayer.set(key, {
-          playerId: pid,
-          name: pname,
-          team: awayTeamName,
-          goals: (prev?.goals || 0) + (ev.goals || 0),
-        });
-      }
-    }
+    const best = Object.values(goalsByPlayer).sort((a, b) => b.goals - a.goals)[0];
+    return best ?? null;
+  }, [matches, playersMap]);
 
-    let leader: { playerId?: number; name: string; team: string; goals: number } | null = null;
-    for (const value of goalsByPlayer.values()) {
-      if (!leader || value.goals > leader.goals) {
-        leader = value;
-      }
-    }
-    return leader;
-  }, [matches]);
-
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const res = await fetch('/api/tournaments/active?category=femenino', { cache: 'no-store' });
-        if (!res.ok) throw new Error('No se pudieron cargar torneos femeninos');
-        const list = await res.json();
-
-        const feminineTournaments: Tournament[] = (Array.isArray(list) ? list : []).map((t: any) => ({
-          id: Number(t.id),
-          name: String(t.name),
-          logo: t.logo || '/images/logo.png',
-          category: 'femenino',
-          modality: t.modality === 'futbol7' ? 'futbol7' : 'futsal',
-          status: String(t.status || 'active'),
-          startDate: t.start_date ? new Date(t.start_date).toISOString().slice(0, 10) : undefined,
-          endDate: t.end_date ? new Date(t.end_date).toISOString().slice(0, 10) : undefined,
-          description: t.description ?? undefined,
-        }));
-        setTournaments(feminineTournaments);
-
-        const allMatches: Match[] = [];
-        for (const t of feminineTournaments) {
-          const mRes = await fetch(`/api/tournaments/${t.id}/matches`, { cache: 'no-store' });
-          if (!mRes.ok) continue;
-          const mList = await mRes.json();
-          const mapped: Match[] = (Array.isArray(mList) ? mList : []).map((m: any) => ({
-            id: String(m.id),
-            phase: m.phase || 'Sin Fase',
-            homeTeam: m.homeTeam ? { name: m.homeTeam.name, logo: m.homeTeam.logo } : null,
-            awayTeam: m.awayTeam ? { name: m.awayTeam.name, logo: m.awayTeam.logo } : null,
-            date: m.date ? new Date(m.date).toISOString().slice(0, 10) : undefined,
-            time: m.time ?? undefined,
-            venue: m.venue ?? undefined,
-            homeScore: typeof m.homeScore === 'number' ? m.homeScore : undefined,
-            awayScore: typeof m.awayScore === 'number' ? m.awayScore : undefined,
-            status: m.status === 'finished' ? 'finished' : 'scheduled',
-            goals: typeof m.goals === 'string' ? m.goals : undefined,
-          }));
-          allMatches.push(...mapped);
-        }
-        setMatches(allMatches);
-      } catch (error) {
-        console.error('Error cargando datos:', error);
-        setTournaments([]);
-        setMatches([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadData();
-  }, []);
-
-  if (isLoading) {
+  if (loading) {
     return (
-      <div className="container">
-        <div className="loading-container">
-          <div className="loading-spinner"></div>
-          <p>Cargando torneos femeninos...</p>
-        </div>
+      <div className="min-h-screen grid place-items-center">
+        <div className="rounded-xl px-4 py-3 bg-black/30 text-white">Cargando torneos...</div>
       </div>
     );
   }
 
-  return (
-    <div className="container">
-      <div className="back-button-container">
-        <BackButton />
+  if (!tournaments.length || !selectedTournamentId) {
+    return (
+      <div className="min-h-screen grid place-items-center">
+        <div className="rounded-xl px-4 py-3 bg-black/30 text-white">No hay torneos femeninos activos.</div>
       </div>
-      <h1 className="main-title">Torneos Femeninos</h1>
+    );
+  }
 
-      <div style={{ maxWidth: '980px', margin: '0 auto', padding: '0 16px' }}>
-        {tournaments.length === 0 ? (
-          <div className="no-tournaments">
-            <p>No hay torneos femeninos disponibles en este momento.</p>
-            <p>Los torneos aparecerán aquí una vez que el administrador los cree.</p>
-          </div>
-        ) : (
-          <div className="tournament-card" style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-              <img
-                src={tournaments[0]?.logo || '/images/default-tournament.png'}
-                alt={tournaments[0]?.name || 'Torneo'}
-                style={{ width: '48px', height: '48px', objectFit: 'contain', borderRadius: '8px' }}
-              />
-              <div>
-                <h2 style={{ margin: 0 }}>{tournaments[0]?.name || 'Torneo'}</h2>
-                <span style={{ fontSize: '0.9rem', opacity: 0.7 }}>Tabla de Posiciones</span>
-              </div>
+  const selectedTournament = tournaments.find(t => t.id === selectedTournamentId)!;
+
+  return (
+    <div className="min-h-screen px-4 md:px-0">
+      <h1 className="text-2xl md:text-3xl font-bold mb-4 text-white">Torneos Femeninos</h1>
+
+      <div className="mx-auto max-w-3xl">
+        <div className="rounded-xl border border-purple-500/20 bg-gradient-to-br from-purple-900/20 to-blue-900/20 backdrop-blur-md shadow-[0_0_25px_rgba(147,51,234,0.25)] overflow-hidden">
+          {/* Encabezado */}
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-white/10">
+            <div className="relative h-10 w-10 rounded-md overflow-hidden ring-1 ring-white/20">
+              {selectedTournament.logo ? (
+                <Image src={selectedTournament.logo} alt={selectedTournament.name} fill className="object-cover" />
+              ) : (
+                <div className="h-full w-full bg-white/10" />
+              )}
             </div>
+            <div>
+              <div className="text-white font-semibold">{selectedTournament.name}</div>
+              <div className="text-xs text-gray-300">Tabla de Posiciones</div>
+            </div>
+          </div>
 
-            {standings.length > 0 ? (
-              <table className="standings-table" style={{ width: '100%', fontSize: '0.95rem' }}>
-                <thead>
+          {/* Tabla de posiciones */}
+          <div className="px-4 py-3">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="text-gray-300">
                   <tr>
-                    <th>#</th>
-                    <th>Equipo</th>
-                    <th>J</th>
-                    <th>G</th>
-                    <th>E</th>
-                    <th>P</th>
-                    <th>GF</th>
-                    <th>GC</th>
-                    <th>DG</th>
-                    <th>Pts</th>
+                    <th className="py-2">#</th>
+                    <th className="py-2">Equipo</th>
+                    <th className="py-2">J</th>
+                    <th className="py-2">G</th>
+                    <th className="py-2">E</th>
+                    <th className="py-2">P</th>
+                    <th className="py-2">GF</th>
+                    <th className="py-2">GC</th>
+                    <th className="py-2">DG</th>
+                    <th className="py-2">Pts</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {standings.map((s, idx) => (
-                    <tr key={`${s.team.name}-${idx}`}>
-                      <td>{idx + 1}</td>
-                      <td>{s.team.name}</td>
-                      <td>{s.played}</td>
-                      <td>{s.wins}</td>
-                      <td>{s.draws}</td>
-                      <td>{s.losses}</td>
-                      <td>{s.goalsFor}</td>
-                      <td>{s.goalsAgainst}</td>
-                      <td>{s.goalDiff}</td>
-                      <td>{s.points}</td>
+                <tbody className="text-white/90">
+                  {standings.length ? (
+                    standings.map((s, idx) => (
+                      <tr key={s.teamId} className="border-t border-white/10">
+                        <td className="py-2">{idx + 1}</td>
+                        <td className="py-2">{s.teamName}</td>
+                        <td className="py-2">{s.played}</td>
+                        <td className="py-2">{s.wins}</td>
+                        <td className="py-2">{s.draws}</td>
+                        <td className="py-2">{s.losses}</td>
+                        <td className="py-2">{s.goalsFor}</td>
+                        <td className="py-2">{s.goalsAgainst}</td>
+                        <td className="py-2">{s.goalDiff}</td>
+                        <td className="py-2">{s.points}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td className="py-3 text-gray-400" colSpan={10}>
+                        No hay datos de posiciones aún.
+                      </td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
-            ) : (
-              <p style={{ margin: '12px 0' }}>No hay posiciones disponibles.</p>
-            )}
-
-            <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: '1fr', gap: '12px' }}>
-              <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid #1f2937', borderRadius: '10px', padding: '12px' }}>
-                <h3 style={{ margin: 0, marginBottom: '8px' }}>Máximo Goleador</h3>
-                {topScorer ? (
-                  <p style={{ margin: 0 }}>
-                    {topScorer.name} ({topScorer.team}) — {topScorer.goals} gol{topScorer.goals === 1 ? '' : 'es'}
-                  </p>
-                ) : (
-                  <p style={{ margin: 0, opacity: 0.8 }}>No hay datos de goleadores disponibles aún.</p>
-                )}
-              </div>
-
-              <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid #1f2937', borderRadius: '10px', padding: '12px' }}>
-                <h3 style={{ margin: 0, marginBottom: '8px' }}>Valla menos vencida</h3>
-                {bestDefense ? (
-                  <p style={{ margin: 0 }}>
-                    {bestDefense.team.name} — {bestDefense.goalsAgainst} GC
-                  </p>
-                ) : (
-                  <p style={{ margin: 0, opacity: 0.8 }}>Aún no hay suficiente información.</p>
-                )}
-              </div>
-
-              <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid #1f2937', borderRadius: '10px', padding: '12px' }}>
-                <h3 style={{ margin: 0, marginBottom: '8px' }}>Próximos Partidos</h3>
-                {upcomingMatches.length > 0 ? (
-                  <div style={{ display: 'grid', gap: '8px' }}>
-                    {upcomingMatches.map((m) => (
-                      <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
-                        <span style={{ opacity: 0.9 }}>
-                          {m.homeTeam?.name || 'Local'} vs {m.awayTeam?.name || 'Visitante'}
-                        </span>
-                        <span style={{ opacity: 0.7 }}>
-                          {m.date ?? 'Sin fecha'} {m.time ? `— ${m.time}` : ''} {m.venue ? `@ ${m.venue}` : ''}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p style={{ margin: 0, opacity: 0.8 }}>No hay partidos programados próximos.</p>
-                )}
-              </div>
             </div>
           </div>
-        )}
+
+          {/* Máximo Goleador */}
+          <div className="px-4 py-3 border-t border-white/10">
+            <div className="rounded-lg bg-black/20 p-3 shadow-inner">
+              <div className="text-sm font-semibold mb-2 tracking-wide text-purple-300">Máximo Goleador</div>
+              {topScorer ? (
+                <div className="flex items-center gap-3">
+                  <div className="relative h-12 w-12 rounded-full overflow-hidden ring-2 ring-purple-500/60 shadow-[0_0_16px_rgba(168,85,247,0.45)]">
+                    {topScorer.photo ? (
+                      <Image src={topScorer.photo} alt={topScorer.name} fill className="object-cover" />
+                    ) : (
+                      <div className="h-full w-full grid place-items-center bg-gradient-to-br from-purple-700 to-blue-700 text-white">
+                        <span className="text-sm font-bold">
+                          {topScorer.name
+                            .split(' ')
+                            .slice(0, 2)
+                            .map((s: string) => s[0]?.toUpperCase())
+                            .join('')}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-sm">
+                    <span className="font-semibold text-white">{topScorer.name}</span>
+                    <span className="text-gray-300"> ({topScorer.team})</span>
+                    <span className="ml-2 text-purple-300">
+                      — {topScorer.goals} gol{(topScorer.goals ?? 0) > 1 ? 'es' : ''}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-gray-400 text-sm">Sin datos de goles todavía.</div>
+              )}
+            </div>
+          </div>
+
+          {/* Valla menos vencida — solo nombre */}
+          <div className="px-4 py-3 border-t border-white/10">
+            <div className="rounded-lg bg-black/20 p-3 shadow-inner">
+              <div className="text-sm font-semibold mb-2 tracking-wide text-blue-300">Valla menos vencida</div>
+              {bestDefense ? (
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="inline-block h-5 w-5 rounded-full bg-blue-600/40 ring-2 ring-blue-400/60 shadow-[0_0_12px_rgba(59,130,246,0.45)] grid place-items-center text-white">
+                    🛡️
+                  </span>
+                  <span className="font-semibold text-white">{bestDefense.teamName}</span>
+                </div>
+              ) : (
+                <div className="text-gray-400 text-sm">Sin datos suficientes.</div>
+              )}
+            </div>
+          </div>
+
+          {/* Próximos Partidos */}
+          <div className="px-4 py-3 border-t border-white/10">
+            <div className="rounded-lg bg-black/20 p-3 shadow-inner">
+              <div className="text-sm font-semibold mb-2 tracking-wide text-rose-300">Próximos Partidos</div>
+              {upcomingMatches.length ? (
+                <div className="grid gap-3">
+                  {upcomingMatches.slice(0, 6).map(m => (
+                    <div
+                      key={m.id}
+                      className="flex items-center justify-between rounded-lg border border-rose-500/20 bg-gradient-to-r from-rose-900/20 to-purple-900/20 p-3 shadow-[0_0_18px_rgba(244,63,94,0.25)]"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="relative h-8 w-8 rounded-md overflow-hidden ring-1 ring-white/20">
+                          {m.homeTeam?.logo ? (
+                            <Image src={m.homeTeam.logo!} alt={m.homeTeam?.name ?? 'Local'} fill className="object-cover" />
+                          ) : (
+                            <div className="h-full w-full bg-white/10" />
+                          )}
+                        </div>
+                        <span className="text-sm text-white font-semibold">{m.homeTeam?.name ?? 'Local'}</span>
+                      </div>
+
+                      <span className="text-xs font-bold tracking-widest text-gray-200">VS</span>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-white font-semibold">{m.awayTeam?.name ?? 'Visitante'}</span>
+                        <div className="relative h-8 w-8 rounded-md overflow-hidden ring-1 ring-white/20">
+                          {m.awayTeam?.logo ? (
+                            <Image src={m.awayTeam.logo!} alt={m.awayTeam?.name ?? 'Visitante'} fill className="object-cover" />
+                          ) : (
+                            <div className="h-full w-full bg-white/10" />
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="text-[11px] text-gray-300">
+                        {(m.date && new Date(m.date).toLocaleDateString()) || 'Fecha por definir'} {' • '}
+                        {m.time || 'Hora por definir'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-gray-400 text-sm">No hay partidos programados próximos.</div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
