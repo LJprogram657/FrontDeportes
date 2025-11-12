@@ -155,7 +155,7 @@ function computeStandings(matches: Match[]): Standing[] {
   return table;
 }
 
-const FemeninoPage = () => {
+function FemeninoPage() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -405,15 +405,8 @@ const FemeninoPage = () => {
               <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid #1f2937', borderRadius: '10px', padding: '12px' }}>
                 <h3 style={{ margin: 0, marginBottom: '8px' }}>Valla menos vencida</h3>
                 {bestDefense ? (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ opacity: 0.95 }}>
-                      <strong>{bestDefense.team.name}</strong>
-                    </span>
-                    <img
-                      src={bestDefense.team.logo || '/images/logo.png'}
-                      alt={bestDefense.team.name}
-                      style={{ width: '40px', height: '40px', borderRadius: '6px', objectFit: 'cover' }}
-                    />
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                    <span style={{ fontWeight: 600 }}>{bestDefense.team.name}</span>
                   </div>
                 ) : (
                   <p style={{ margin: 0, opacity: 0.8 }}>Aún no hay suficiente información.</p>
