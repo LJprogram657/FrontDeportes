@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import Link from 'next/link';
 import BackButton from '@/components/BackButton';
 
 interface Tournament {
@@ -27,6 +26,7 @@ interface Match {
   homeScore?: number;
   awayScore?: number;
   status: 'scheduled' | 'finished';
+  goals?: string; // JSON con goles por jugador (home/away) desde la API
 }
 
 interface Standing {
@@ -44,16 +44,19 @@ interface Standing {
 
 function computeStandings(matches: Match[]): Standing[] {
   const teams = new Map<string, { name: string; logo?: string | null }>();
-  const stats = new Map<string, {
-    played: number;
-    wins: number;
-    draws: number;
-    losses: number;
-    goalsFor: number;
-    goalsAgainst: number;
-    points: number;
-    logo?: string | null;
-  }>();
+  const stats = new Map<
+    string,
+    {
+      played: number;
+      wins: number;
+      draws: number;
+      losses: number;
+      goalsFor: number;
+      goalsAgainst: number;
+      points: number;
+      logo?: string | null;
+    }
+  >();
 
   for (const m of matches) {
     const homeName = m.homeTeam?.name;
@@ -64,13 +67,31 @@ function computeStandings(matches: Match[]): Standing[] {
     if (homeName) {
       teams.set(homeName, { name: homeName, logo: homeLogo });
       if (!stats.has(homeName)) {
-        stats.set(homeName, { played: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, points: 0, logo: homeLogo });
+        stats.set(homeName, {
+          played: 0,
+          wins: 0,
+          draws: 0,
+          losses: 0,
+          goalsFor: 0,
+          goalsAgainst: 0,
+          points: 0,
+          logo: homeLogo,
+        });
       }
     }
     if (awayName) {
       teams.set(awayName, { name: awayName, logo: awayLogo });
       if (!stats.has(awayName)) {
-        stats.set(awayName, { played: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, points: 0, logo: awayLogo });
+        stats.set(awayName, {
+          played: 0,
+          wins: 0,
+          draws: 0,
+          losses: 0,
+          goalsFor: 0,
+          goalsAgainst: 0,
+          points: 0,
+          logo: awayLogo,
+        });
       }
     }
 
@@ -80,18 +101,30 @@ function computeStandings(matches: Match[]): Standing[] {
         s.played += 1;
         s.goalsFor += m.homeScore;
         s.goalsAgainst += m.awayScore;
-        if (m.homeScore > m.awayScore) { s.wins += 1; s.points += 3; }
-        else if (m.homeScore === m.awayScore) { s.draws += 1; s.points += 1; }
-        else { s.losses += 1; }
+        if (m.homeScore > m.awayScore) {
+          s.wins += 1;
+          s.points += 3;
+        } else if (m.homeScore === m.awayScore) {
+          s.draws += 1;
+          s.points += 1;
+        } else {
+          s.losses += 1;
+        }
       }
       if (awayName) {
         const s = stats.get(awayName)!;
         s.played += 1;
         s.goalsFor += m.awayScore;
         s.goalsAgainst += m.homeScore;
-        if (m.awayScore > m.homeScore) { s.wins += 1; s.points += 3; }
-        else if (m.awayScore === m.homeScore) { s.draws += 1; s.points += 1; }
-        else { s.losses += 1; }
+        if (m.awayScore > m.homeScore) {
+          s.wins += 1;
+          s.points += 3;
+        } else if (m.awayScore === m.homeScore) {
+          s.draws += 1;
+          s.points += 1;
+        } else {
+          s.losses += 1;
+        }
       }
     }
   }
@@ -142,13 +175,68 @@ const MasculinoPage = () => {
   }, [standings]);
 
   // Próximos partidos (status = scheduled)
-  const upcomingMatches = useMemo(
-    () => matches.filter(m => m.status === 'scheduled').slice(0, 8),
-    [matches]
-  );
+  const upcomingMatches = useMemo(() => matches.filter((m) => m.status === 'scheduled').slice(0, 8), [matches]);
 
-  // Placeholder para máximo goleador (requiere goles por jugador en la API)
-  const topScorer: { name: string; goals: number } | null = null;
+  function safeParseGoals(raw?: string): {
+    home: Array<{ playerId?: number; name?: string; goals?: number }>;
+    away: Array<{ playerId?: number; name?: string; goals?: number }>;
+  } {
+    if (!raw) return { home: [], away: [] };
+    try {
+      const parsed = JSON.parse(raw);
+      const home = Array.isArray(parsed?.home) ? parsed.home : [];
+      const away = Array.isArray(parsed?.away) ? parsed.away : [];
+      return { home, away };
+    } catch {
+      return { home: [], away: [] };
+    }
+  }
+
+  // Máximo goleador desde partidos finalizados
+  const topScorer = useMemo(() => {
+    const goalsByPlayer = new Map<string, { playerId?: number; name: string; team: string; goals: number }>();
+
+    for (const m of matches) {
+      if (m.status !== 'finished') continue;
+      const { home, away } = safeParseGoals(m.goals);
+
+      const homeTeamName = m.homeTeam?.name || 'Local';
+      for (const ev of home) {
+        const pid = typeof ev.playerId === 'number' ? ev.playerId : undefined;
+        const pname = ev.name || 'Jugador';
+        const key = pid ? `id:${pid}` : `name:${pname}|team:${homeTeamName}`;
+        const prev = goalsByPlayer.get(key);
+        goalsByPlayer.set(key, {
+          playerId: pid,
+          name: pname,
+          team: homeTeamName,
+          goals: (prev?.goals || 0) + (ev.goals || 0),
+        });
+      }
+
+      const awayTeamName = m.awayTeam?.name || 'Visitante';
+      for (const ev of away) {
+        const pid = typeof ev.playerId === 'number' ? ev.playerId : undefined;
+        const pname = ev.name || 'Jugador';
+        const key = pid ? `id:${pid}` : `name:${pname}|team:${awayTeamName}`;
+        const prev = goalsByPlayer.get(key);
+        goalsByPlayer.set(key, {
+          playerId: pid,
+          name: pname,
+          team: awayTeamName,
+          goals: (prev?.goals || 0) + (ev.goals || 0),
+        });
+      }
+    }
+
+    let leader: { playerId?: number; name: string; team: string; goals: number } | null = null;
+    for (const value of goalsByPlayer.values()) {
+      if (!leader || value.goals > leader.goals) {
+        leader = value;
+      }
+    }
+    return leader;
+  }, [matches]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -186,6 +274,7 @@ const MasculinoPage = () => {
             homeScore: typeof m.homeScore === 'number' ? m.homeScore : undefined,
             awayScore: typeof m.awayScore === 'number' ? m.awayScore : undefined,
             status: m.status === 'finished' ? 'finished' : 'scheduled',
+            goals: typeof m.goals === 'string' ? m.goals : undefined,
           }));
           allMatches.push(...mapped);
         }
@@ -220,7 +309,6 @@ const MasculinoPage = () => {
       </div>
       <h1 className="main-title">Torneos Masculinos</h1>
 
-      {/* Card centrada con logo + nombre + tabla */}
       <div style={{ maxWidth: '980px', margin: '0 auto', padding: '0 16px' }}>
         {tournaments.length === 0 ? (
           <div className="no-tournaments">
@@ -229,11 +317,7 @@ const MasculinoPage = () => {
           </div>
         ) : (
           <>
-            <div
-              className="tournament-card"
-              style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '16px' }}
-            >
-              {/* Encabezado de la card: logo pequeño + nombre del torneo */}
+            <div className="tournament-card" style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
                 <img
                   src={tournaments[0]?.logo || '/images/default-tournament.png'}
@@ -246,7 +330,6 @@ const MasculinoPage = () => {
                 </div>
               </div>
 
-              {/* Tabla de posiciones dentro de la card */}
               {standings.length > 0 ? (
                 <table className="standings-table" style={{ width: '100%', fontSize: '0.95rem' }}>
                   <thead>
@@ -283,6 +366,50 @@ const MasculinoPage = () => {
               ) : (
                 <p style={{ margin: '12px 0' }}>No hay posiciones disponibles.</p>
               )}
+
+              <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: '1fr', gap: '12px' }}>
+                <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid #1f2937', borderRadius: '10px', padding: '12px' }}>
+                  <h3 style={{ margin: 0, marginBottom: '8px' }}>Máximo Goleador</h3>
+                  {topScorer ? (
+                    <p style={{ margin: 0 }}>
+                      {topScorer.name} ({topScorer.team}) — {topScorer.goals} gol{topScorer.goals === 1 ? '' : 'es'}
+                    </p>
+                  ) : (
+                    <p style={{ margin: 0, opacity: 0.8 }}>No hay datos de goleadores disponibles aún.</p>
+                  )}
+                </div>
+
+                <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid #1f2937', borderRadius: '10px', padding: '12px' }}>
+                  <h3 style={{ margin: 0, marginBottom: '8px' }}>Valla menos vencida</h3>
+                  {bestDefense ? (
+                    <p style={{ margin: 0 }}>
+                      {bestDefense.team.name} — {bestDefense.goalsAgainst} GC
+                    </p>
+                  ) : (
+                    <p style={{ margin: 0, opacity: 0.8 }}>Aún no hay suficiente información.</p>
+                  )}
+                </div>
+
+                <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid #1f2937', borderRadius: '10px', padding: '12px' }}>
+                  <h3 style={{ margin: 0, marginBottom: '8px' }}>Próximos Partidos</h3>
+                  {upcomingMatches.length > 0 ? (
+                    <div style={{ display: 'grid', gap: '8px' }}>
+                      {upcomingMatches.map((m) => (
+                        <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
+                          <span style={{ opacity: 0.9 }}>
+                            {m.homeTeam?.name || 'Local'} vs {m.awayTeam?.name || 'Visitante'}
+                          </span>
+                          <span style={{ opacity: 0.7 }}>
+                            {m.date ?? 'Sin fecha'} {m.time ? `— ${m.time}` : ''} {m.venue ? `@ ${m.venue}` : ''}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p style={{ margin: 0, opacity: 0.8 }}>No hay partidos programados próximos.</p>
+                  )}
+                </div>
+              </div>
             </div>
           </>
         )}
