@@ -456,7 +456,7 @@ export default function AdminRegistrationsPage() {
                       {(selectedRegistration.players || []).map((p) => (
                         <div key={p.id} className="player-card">
                           <img className="player-photo" src={p.photo || '/images/default-team.png'} alt={p.name} />
-                          <div>
+                          <div className="player-info">
                             <div><strong>{p.name} {p.lastName}</strong></div>
                             <div>Cédula: {p.cedula}</div>
                           </div>

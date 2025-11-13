@@ -222,10 +222,44 @@
 .admin-dashboard .team-logo-large { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; background: #fff; }
 
 .admin-dashboard .players-section h5 { margin: 0 0 10px; }
-.admin-dashboard .players-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
-.admin-dashboard .player-card { display: flex; align-items: center; gap: 8px; background: #f8f9fa; border: 1px solid #eee; border-radius: 10px; padding: 8px; }
-.admin-dashboard .player-photo { width: 46px; height: 46px; border-radius: 50%; object-fit: cover; background: #fff; }
+.admin-dashboard .players-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
 
+.admin-dashboard .player-card {
+  display: flex;
+  flex-direction: column; /* foto arriba, info debajo */
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  background: #f8f9fa;
+  border: 1px solid #eee;
+  border-radius: 10px;
+  padding: 12px;
+  min-height: 220px; /* alto uniforme para todas las tarjetas */
+}
+
+.admin-dashboard .player-photo {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  margin-bottom: 6px;
+}
+
+.admin-dashboard .player-card .player-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-dashboard .player-card strong {
+  color: #333;
+}
 .admin-dashboard .actions-section { border-top: 1px solid #eee; padding-top: 14px; }
 .admin-dashboard .action-buttons { display: flex; gap: 10px; }
 .admin-dashboard .btn-success, .admin-dashboard .btn-danger { padding: 10px 16px; border-radius: 8px; font-weight: 700; border: none; cursor: pointer; }
