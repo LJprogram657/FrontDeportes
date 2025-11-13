@@ -179,23 +179,23 @@
 }
 
 /* Gestión de Registro (scoped) */
+.admin-dashboard .players-section h5 { margin: 0 0 10px; }
 .admin-dashboard .players-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
 }
 
 .admin-dashboard .player-card {
   display: flex;
-  flex-direction: column;
+  flex-direction: column; /* foto arriba, info debajo */
   align-items: center;
   text-align: center;
-  gap: 10px;
+  gap: 8px;
   background: #f8f9fa;
   border: 1px solid #eee;
   border-radius: 10px;
-  padding: 12px;
-  min-height: 280px; /* alto uniforme para foto grande */
+  padding: 8px;
 }
 
 .admin-dashboard .player-photo {
@@ -204,7 +204,6 @@
   border-radius: 0; /* cuadrada */
   object-fit: cover;
   background: #fff;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
   margin-bottom: 6px;
 }
 
