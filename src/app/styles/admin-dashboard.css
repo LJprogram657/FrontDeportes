@@ -179,11 +179,53 @@
 }
 
 /* Gestión de Registro (scoped) */
+.admin-dashboard .registrations-header { margin-top: -10px; }
+.admin-dashboard .registrations-container { width: 100%; max-width: 100%; margin: 0; min-height: 640px; box-sizing: border-box; }
+.admin-dashboard .filters-section { margin-bottom: 20px; }
+.admin-dashboard .filters-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; }
+.admin-dashboard .filter-group label { display: block; font-weight: 600; color: #333; margin-bottom: 6px; }
+.admin-dashboard .filter-group select { width: 100%; padding: 10px 12px; border: 2px solid #e9ecef; border-radius: 8px; background: #fff; }
+
+.admin-dashboard .registrations-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin: 20px 0 10px; }
+.admin-dashboard .stat-card { background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 12px; padding: 16px; text-align: center; }
+.admin-dashboard .stat-card h4 { margin: 0 0 6px; color: #333; }
+.admin-dashboard .stat-card .stat-number { font-size: 1.6rem; font-weight: 800; color: var(--primary-red); }
+.admin-dashboard .stat-card.pending .stat-number { color: #ffc107; }
+.admin-dashboard .stat-card.approved .stat-number { color: #28a745; }
+.admin-dashboard .stat-card.rejected .stat-number { color: #dc3545; }
+
+.admin-dashboard .registrations-list { margin-top: 10px; }
+.admin-dashboard .no-registrations { background: #f8f9fa; border: 1px dashed #e9ecef; border-radius: 12px; padding: 30px; text-align: center; color: #666; }
+
+.admin-dashboard .registrations-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px; }
+.admin-dashboard .registration-card { background: #fff; border: 2px solid #e9ecef; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 14px; transition: .2s; }
+.admin-dashboard .registration-card:hover { border-color: var(--primary-red); box-shadow: 0 6px 16px rgba(0,0,0,0.08); }
+
+.admin-dashboard .registration-header { display: flex; justify-content: space-between; align-items: center; gap: 10px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+.admin-dashboard .team-info { display: flex; align-items: center; gap: 10px; }
+.admin-dashboard .team-logo-small { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: #fff; }
+
+.admin-dashboard .tournament-info { display: flex; align-items: center; gap: 10px; }
+.admin-dashboard .tournament-logo-small { width: 34px; height: 34px; border-radius: 50%; object-fit: contain; background: #fff; padding: 4px; border: 1px solid #eee; }
+
+.admin-dashboard .registration-details p { margin: 6px 0; color: #555; }
+
+.admin-dashboard .status-badge { padding: 6px 10px; border-radius: 999px; font-size: .8rem; font-weight: 700; }
+.admin-dashboard .status-badge.pending { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+.admin-dashboard .status-badge.approved { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+.admin-dashboard .status-badge.rejected { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+
+.admin-dashboard .registration-detail { background: #fff; border: 1px solid #e9ecef; border-radius: 12px; padding: 20px; }
+.admin-dashboard .detail-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 12px; border-bottom: 1px solid #eee; margin-bottom: 15px; }
+.admin-dashboard .detail-content { display: grid; grid-template-columns: 1fr; gap: 20px; }
+.admin-dashboard .team-section .team-header { display: flex; gap: 14px; align-items: center; }
+.admin-dashboard .team-logo-large { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; background: #fff; }
+
 .admin-dashboard .players-section h5 { margin: 0 0 10px; }
 .admin-dashboard .players-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
 }
 
 .admin-dashboard .player-card {
@@ -191,19 +233,21 @@
   flex-direction: column; /* foto arriba, info debajo */
   align-items: center;
   text-align: center;
-  gap: 8px;
+  gap: 10px;
   background: #f8f9fa;
   border: 1px solid #eee;
   border-radius: 10px;
-  padding: 8px;
+  padding: 12px;
+  min-height: 220px; /* alto uniforme para todas las tarjetas */
 }
 
 .admin-dashboard .player-photo {
-  width: 128px;
-  height: 128px;
-  border-radius: 0; /* cuadrada */
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
   object-fit: cover;
   background: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
   margin-bottom: 6px;
 }
 
