@@ -555,3 +555,13 @@
     height: clamp(28px, 8vw, 48px);
   }
 }
+.scheduler-layout .team-item span,
+.match-teams .team-info span,
+.teams-grid .team-item .team-name {
+  color: #000 !important;
+  opacity: 1 !important;
+}
+.match-teams .team-info .team-name {
+  color: #000 !important;
+  font-weight: 700;
+}

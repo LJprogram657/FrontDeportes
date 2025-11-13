@@ -175,6 +175,7 @@ interface TeamsTableProps {
   onDragStart: (team: Team) => void;
 }
 
+// Dentro de TeamsTable
 const TeamsTable: React.FC<TeamsTableProps> = ({ teams, onDragStart }) => {
   return (
     <div style={{ marginBottom: '1rem' }}>

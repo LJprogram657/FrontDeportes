@@ -424,7 +424,11 @@ function MasculinoPage() {
                       {upcomingMatches.map((m) => (
                         <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
                           <span style={{ opacity: 0.9 }}>
-                            {m.homeTeam?.name || 'Local'} vs {m.awayTeam?.name || 'Visitante'}
+                            // En el bloque de "Próximos Partidos" donde renderiza:
+                            // {m.homeTeam?.name || 'Local'} vs {m.awayTeam?.name || 'Visitante'}
+                            <span style={{ color: '#000', fontWeight: 600 }}>
+                              {m.homeTeam?.name || 'Local'} vs {m.awayTeam?.name || 'Visitante'}
+                            </span>
                           </span>
                           <span style={{ opacity: 0.7 }}>
                             {m.date ?? 'Sin fecha'} {m.time ? `— ${m.time}` : ''} {m.venue ? `@ ${m.venue}` : ''}
