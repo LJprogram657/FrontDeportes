@@ -271,3 +271,66 @@
 @media (max-width: 768px) {
   .admin-dashboard .registrations-stats { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* Layout de Programación: dos columnas 50/50 en escritorio */
+.scheduling-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+@media (min-width: 1024px) {
+  .scheduling-layout {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Grilla Equipos disponibles: 4 columnas en escritorio */
+.teams-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+@media (min-width: 768px) {
+  .teams-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (min-width: 1024px) {
+  .teams-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+/* Tarjeta de equipo con selección visible */
+.team-card {
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 10px;
+  padding: 10px;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.team-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0,0,0,.12);
+}
+.team-card.selected {
+  border-color: var(--primary-red);
+  box-shadow: 0 0 0 2px rgba(192,0,0,.2);
+}
+.team-card .team-logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #fff;
+  border: 1px solid #eee;
+}
+
+/* Encabezados coherentes en paneles */
+.panel-header {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: #333;
+}

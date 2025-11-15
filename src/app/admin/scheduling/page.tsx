@@ -5,7 +5,7 @@ import '../../styles/admin-dashboard.css';
 import '../../styles/scheduling.css';
 import { toast } from 'sonner';
 
-// Interfaces
+// Tipos
 interface Tournament {
   id: number;
   name: string;
@@ -16,15 +16,15 @@ interface Tournament {
 }
 
 interface Team {
-  id: string;
+  id: string;        // id local "team-<dbId>"
   name: string;
   logo: string;
-  dbId: number;
+  dbId: number;      // id real en BD
   source?: 'server' | 'local';
 }
 
 interface Match {
-  id: string;
+  id: string;        // id local "match-<phase>-<n>" o "db-<id>"
   phase: string;
   homeTeam: Team | null;
   awayTeam: Team | null;
@@ -36,7 +36,7 @@ interface Match {
   homeScore?: number;
   awayScore?: number;
   status: 'scheduled' | 'finished';
-  dbId?: number;
+  dbId?: number;     // id real de BD si existe
 }
 
 interface Venue {
@@ -47,47 +47,33 @@ interface Venue {
   sports: string[];
 }
 
-// Canchas básicas reales (puedes personalizar estas según tu ubicación)
+// Canchas de ejemplo (coherentes con tu UI)
 const mockVenues: Venue[] = [
-  {
-    id: '1',
-    name: 'Cancha Principal',
-    address: 'Dirección por definir',
-    images: ['/images/default-venue.jpg'],
-    sports: ['futbol.salon', 'futbol.7'],
-  },
-  {
-    id: '2',
-    name: 'Cancha Auxiliar',
-    address: 'Dirección por definir',
-    images: ['/images/default-venue.jpg'],
-    sports: ['futbol.salon', 'futbol.7'],
-  }
+  { id: '1', name: 'Cancha Principal', address: 'Por definir', images: ['/images/default-venue.jpg'], sports: ['futbol.salon', 'futbol.7'] },
+  { id: '2', name: 'Cancha Auxiliar', address: 'Por definir', images: ['/images/default-venue.jpg'], sports: ['futbol.salon', 'futbol.7'] },
 ];
 
-// Componente principal
+// ----------------- Página raíz -----------------
 const SchedulingPage: React.FC = () => {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Cargar torneos reales desde BD
+  // Carga torneos desde BD
   useEffect(() => {
     const loadTournaments = async () => {
       try {
         const res = await fetch('/api/tournaments', { cache: 'no-store' });
         const list = await res.json();
-
-        const formattedTournaments: Tournament[] = (Array.isArray(list) ? list : []).map((t: any) => ({
+        const formatted: Tournament[] = (Array.isArray(list) ? list : []).map((t: any) => ({
           id: t.id,
           name: t.name,
           logo: t.logo || '/images/logo.png',
           format: 'todos_contra_todos',
           phases: ['Todos contra Todos'],
-          sport: 'futbol.salon', // default; las canchas mock soportan ambos
+          sport: 'futbol.salon',
         }));
-
-        setTournaments(formattedTournaments);
+        setTournaments(formatted);
       } catch (error) {
         console.error('Error cargando torneos:', error);
         setTournaments([]);
@@ -95,7 +81,6 @@ const SchedulingPage: React.FC = () => {
         setIsLoading(false);
       }
     };
-
     loadTournaments();
   }, []);
 
@@ -115,16 +100,9 @@ const SchedulingPage: React.FC = () => {
           <h2 className="content-title">📅 Programación de Partidos</h2>
           <p className="content-subtitle">No hay torneos disponibles para programar</p>
         </div>
-        <div style={{
-          textAlign: 'center',
-          padding: '3rem',
-          backgroundColor: '#f8f9fa',
-          borderRadius: '8px',
-          margin: '2rem 0'
-        }}>
+        <div style={{ textAlign: 'center', padding: '3rem', backgroundColor: '#f8f9fa', borderRadius: 8, margin: '2rem 0' }}>
           <h3>🏆 No hay torneos creados</h3>
-          <p>Primero debes crear un torneo en la sección "Creación de Torneos"</p>
-          <p>Luego podrás programar los partidos aquí</p>
+          <p>Primero crea un torneo en “Creación de torneos”.</p>
         </div>
       </div>
     );
@@ -135,9 +113,7 @@ const SchedulingPage: React.FC = () => {
       <div className="content-header">
         <h2 className="content-title">📅 Programación de Partidos</h2>
         <p className="content-subtitle">
-          {selectedTournament
-            ? `Programando partidos para: ${selectedTournament.name}`
-            : 'Selecciona un torneo para comenzar a programar los partidos.'}
+          {selectedTournament ? `Programando partidos para: ${selectedTournament.name}` : 'Selecciona un torneo para comenzar.'}
         </p>
       </div>
 
@@ -150,7 +126,7 @@ const SchedulingPage: React.FC = () => {
   );
 };
 
-// Componente para seleccionar un torneo
+// ----------------- Selector de torneo -----------------
 interface TournamentSelectorProps {
   tournaments: Tournament[];
   onSelect: (tournament: Tournament) => void;
@@ -169,12 +145,12 @@ const TournamentSelector: React.FC<TournamentSelectorProps> = ({ tournaments, on
   );
 };
 
-// Tabla de equipos (fuera de JSX del return)
+// ----------------- Tabla de equipos -----------------
 interface TeamsTableProps {
   teams: Team[];
   onDragStart: (team: Team) => void;
-  onSelectTeam?: (team: Team) => void; // NUEVO
-  getTeamStatus?: (teamId: string) => 'played' | 'scheduled' | 'remaining' | 'self' | undefined; // NUEVO
+  onSelectTeam?: (team: Team) => void;
+  getTeamStatus?: (teamId: string) => 'played' | 'scheduled' | 'remaining' | 'self' | undefined;
 }
 
 const TeamsTable: React.FC<TeamsTableProps> = ({ teams, onDragStart, onSelectTeam, getTeamStatus }) => {
@@ -182,7 +158,7 @@ const TeamsTable: React.FC<TeamsTableProps> = ({ teams, onDragStart, onSelectTea
     <div style={{ marginBottom: '1rem' }}>
       {teams.length === 0 ? (
         <div style={{ padding: '1rem', textAlign: 'center', color: '#6c757d', background: '#fff', borderRadius: 6, border: '1px dashed #e0e0e0' }}>
-          No hay equipos registrados para este torneo todavía.
+          No hay equipos registrados para este torneo.
         </div>
       ) : (
         <div className="teams-grid">
@@ -214,25 +190,23 @@ const TeamsTable: React.FC<TeamsTableProps> = ({ teams, onDragStart, onSelectTea
       )}
     </div>
   );
-}
+};
 
-// Panel principal de programación para un torneo seleccionado
+// ----------------- Panel de programación -----------------
 interface SchedulingPanelProps {
   tournament: Tournament;
   onBack: () => void;
 }
 
 const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack }) => {
-  const [matches, setMatches] = useState<Match[]>([]);
+  const [matches, setMatches] = useState<Match[]>([]);        // partidos locales (sin guardar o recién creados)
+  const [dbMatches, setDbMatches] = useState<Match[]>([]);    // partidos existentes en BD
   const [availableTeams, setAvailableTeams] = useState<Team[]>([]);
   const [venues] = useState<Venue[]>(mockVenues);
   const [selectedPhase, setSelectedPhase] = useState<string>(tournament.phases[0]);
   const [draggedTeam, setDraggedTeam] = useState<Team | null>(null);
-
-  // Selección de equipo para resaltar oponentes
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
 
-  // Header de autorización para rutas protegidas
   const authHeaders = (): HeadersInit => {
     try {
       const token = localStorage.getItem('access_token');
@@ -242,16 +216,12 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
     }
   };
 
-  // Filtrar canchas por deporte del torneo
   const filteredVenues = venues.filter(v => v.sports.includes(tournament.sport));
 
-  // Cargar equipos registrados reales (API) sin mezclar con localStorage
+  // Equipos del torneo
   const loadRegisteredTeams = useCallback(async () => {
     try {
-      const res = await fetch(`/api/tournaments/${tournament.id}/teams`, {
-        cache: 'no-store',
-        headers: { ...authHeaders() }
-      });
+      const res = await fetch(`/api/tournaments/${tournament.id}/teams`, { cache: 'no-store', headers: { ...authHeaders() } });
       if (!res.ok) {
         const msg = await res.json().catch(() => ({}));
         throw new Error(msg?.error || 'No se pudieron cargar los equipos');
@@ -272,27 +242,78 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
     }
   }, [tournament.id]);
 
+  // Partidos existentes en BD
+  const loadExistingMatches = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/tournaments/${tournament.id}/matches`, { cache: 'no-store', headers: { ...authHeaders() } });
+      if (!res.ok) {
+        const msg = await res.json().catch(() => ({}));
+        throw new Error(msg?.error || 'No se pudieron cargar los partidos');
+      }
+      const list = await res.json();
+      const normalized: Match[] = (Array.isArray(list) ? list : [])
+        .filter((m: any) => (m?.phase ?? 'Todos contra Todos') === selectedPhase)
+        .map((m: any) => {
+          // Mapea equipos si vienen anidados; si no, resuelve por id con availableTeams
+          const homeFromApi = m?.homeTeam ?? null;
+          const awayFromApi = m?.awayTeam ?? null;
+
+          const homeTeam: Team | null = homeFromApi
+            ? { id: `team-${homeFromApi.id}`, dbId: Number(homeFromApi.id), name: homeFromApi.name ?? 'Equipo', logo: homeFromApi.logo ?? '/images/logo.png', source: 'server' }
+            : (availableTeams.find(t => t.dbId === Number(m.homeTeamId)) ?? null);
+
+          const awayTeam: Team | null = awayFromApi
+            ? { id: `team-${awayFromApi.id}`, dbId: Number(awayFromApi.id), name: awayFromApi.name ?? 'Equipo', logo: awayFromApi.logo ?? '/images/logo.png', source: 'server' }
+            : (availableTeams.find(t => t.dbId === Number(m.awayTeamId)) ?? null);
+
+          return {
+            id: `db-${m.id}`,
+            dbId: Number(m.id),
+            phase: m.phase ?? 'Todos contra Todos',
+            homeTeam,
+            awayTeam,
+            date: m.date ? new Date(m.date).toISOString().slice(0, 10) : undefined,
+            time: m.time ?? undefined,
+            venue: m.venue ?? undefined,
+            round: m.round ?? undefined,
+            group: m.group ?? undefined,
+            homeScore: m.homeScore ?? undefined,
+            awayScore: m.awayScore ?? undefined,
+            status: (m.status as 'scheduled' | 'finished') ?? 'scheduled',
+          } as Match;
+        });
+
+      setDbMatches(normalized);
+    } catch (error) {
+      console.error('Error cargando partidos:', error);
+      toast.error('No se pudieron cargar los partidos del torneo');
+      setDbMatches([]);
+    }
+  }, [tournament.id, selectedPhase, availableTeams]);
+
+  // Cargas iniciales y al cambiar fase
   useEffect(() => {
     loadRegisteredTeams();
   }, [loadRegisteredTeams]);
 
-  // Refrescar lista al volver a pestaña
   useEffect(() => {
-    const onVisibility = () => {
-      if (!document.hidden) loadRegisteredTeams();
-    };
-    document.addEventListener('visibilitychange', onVisibility);
-    return () => {
-      document.removeEventListener('visibilitychange', onVisibility);
-    };
-  }, [loadRegisteredTeams]);
+    loadExistingMatches();
+  }, [loadExistingMatches]);
 
-  // Al cambiar de fase, limpiar la lista para añadir manualmente
+  // Refrescar al volver la pestaña
+  useEffect(() => {
+    const onVisibility = () => { if (!document.hidden) { loadRegisteredTeams(); loadExistingMatches(); } };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, [loadRegisteredTeams, loadExistingMatches]);
+
+  // Limpiar partidos locales al cambiar fase
   useEffect(() => {
     setMatches([]);
+    setSelectedTeam(null);
   }, [selectedPhase]);
 
-  // Añadir un nuevo partido manualmente
+  // Añadir partido local
   const addMatch = () => {
     const newMatch: Match = {
       id: `match-${selectedPhase}-${matches.length + 1}`,
@@ -304,69 +325,50 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
     setMatches(prev => [...prev, newMatch]);
   };
 
-  // Manejar drag and drop
-  const handleDragStart = (team: Team) => {
-    setDraggedTeam(team);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
+  // Drag & drop
+  const handleDragStart = (team: Team) => setDraggedTeam(team);
+  const handleDragOver = (e: React.DragEvent) => e.preventDefault();
 
   const handleDrop = (e: React.DragEvent, matchId: string, position: 'home' | 'away') => {
     e.preventDefault();
     if (!draggedTeam) return;
-
     setMatches(prev => prev.map(match => {
       if (match.id === matchId) {
-        const updatedMatch = { ...match };
-        if (position === 'home') {
-          updatedMatch.homeTeam = draggedTeam;
-        } else {
-          updatedMatch.awayTeam = draggedTeam;
-        }
-        return updatedMatch;
+        const updated = { ...match };
+        if (position === 'home') updated.homeTeam = draggedTeam;
+        else updated.awayTeam = draggedTeam;
+        return updated;
       }
       return match;
     }));
-
     setDraggedTeam(null);
   };
 
   const removeTeamFromMatch = (matchId: string, position: 'home' | 'away') => {
     setMatches(prev => prev.map(match => {
       if (match.id === matchId) {
-        const updatedMatch = { ...match };
-        if (position === 'home') {
-          updatedMatch.homeTeam = null;
-        } else {
-          updatedMatch.awayTeam = null;
-        }
-        return updatedMatch;
+        const updated = { ...match };
+        if (position === 'home') updated.homeTeam = null;
+        else updated.awayTeam = null;
+        return updated;
       }
       return match;
     }));
   };
 
   const updateMatchVenue = (matchId: string, venue: string) => {
-    setMatches(prev => prev.map(match =>
-      match.id === matchId ? { ...match, venue } : match
-    ));
+    setMatches(prev => prev.map(m => m.id === matchId ? { ...m, venue } : m));
   };
 
   const updateMatchDateTime = (matchId: string, date: string, time: string) => {
-    setMatches(prev => prev.map(match =>
-      match.id === matchId ? { ...match, date, time } : match
-    ));
+    setMatches(prev => prev.map(m => m.id === matchId ? { ...m, date, time } : m));
   };
 
   const updateMatchResult = (matchId: string, homeScore: number, awayScore: number) => {
-    setMatches(prev => prev.map(match =>
-      match.id === matchId ? { ...match, homeScore, awayScore, status: 'finished' } : match
-    ));
+    setMatches(prev => prev.map(m => m.id === matchId ? { ...m, homeScore, awayScore, status: 'finished' } : m));
   };
 
-  // Guardar partido en BD (POST)
+  // Guardar partido en BD (POST) con prevención básica de duplicado
   const saveMatchToDB = async (matchId: string) => {
     const match = matches.find(m => m.id === matchId);
     const isComplete = match && match.homeTeam && match.awayTeam && match.venue && match?.date && match?.time;
@@ -375,7 +377,6 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
       return;
     }
 
-    // Resolver IDs reales en BD (evitar IDs locales inexistentes)
     const resolveDbId = (team: Team | null) => {
       if (!team) return null;
       if (team.source === 'server' && Number.isFinite(team.dbId)) return team.dbId;
@@ -386,7 +387,17 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
     const awayDbId = resolveDbId(match.awayTeam);
 
     if (!homeDbId || !awayDbId) {
-      toast.error('Los equipos deben estar aprobados y existentes en la base de datos antes de guardar el partido.');
+      toast.error('Los equipos deben existir/estar aprobados en BD.');
+      return;
+    }
+
+    // Evitar duplicado en BD para misma fase y equipos
+    const existsDuplicate = dbMatches.some(dm =>
+      (dm.phase === match.phase) &&
+      (dm.homeTeam?.dbId === homeDbId && dm.awayTeam?.dbId === awayDbId)
+    );
+    if (existsDuplicate) {
+      toast.warning('Ese partido ya está programado en BD para esta fase.');
       return;
     }
 
@@ -412,57 +423,62 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
       const created = await resp.json();
       setMatches(prev => prev.map(m => m.id === matchId ? { ...m, dbId: Number(created?.id) } : m));
       toast.success('Partido guardado en la base de datos');
+      // Recarga partidos de BD para recalcular estados
+      loadExistingMatches();
     } catch (e) {
       console.error(e);
       toast.error('No se pudo guardar el partido');
     }
   };
 
-  // Eliminar partido (DELETE si existe en BD)
+  // Eliminar partido
   const deleteMatch = async (matchId: string) => {
-    const match = matches.find(m => m.id === matchId);
-    if (!match) return;
-    try {
-      if (match.dbId) {
-        const res = await fetch(`/api/matches/${match.dbId}`, { method: 'DELETE', headers: { ...authHeaders() } });
+    // Si es local sin dbId, solo eliminar de locales
+    const localMatch = matches.find(m => m.id === matchId);
+    if (localMatch?.dbId) {
+      try {
+        const res = await fetch(`/api/matches/${localMatch.dbId}`, { method: 'DELETE', headers: { ...authHeaders() } });
         if (!res.ok) throw new Error('Error al eliminar en BD');
+        toast.success('Partido eliminado en BD');
+        loadExistingMatches();
+      } catch (e) {
+        console.error(e);
+        toast.error('No se pudo eliminar el partido en BD');
       }
-      setMatches(prev => prev.filter(m => m.id !== matchId));
-      toast.success('Partido eliminado');
-    } catch (e) {
-      console.error(e);
-      toast.error('No se pudo eliminar el partido');
     }
+    setMatches(prev => prev.filter(m => m.id !== matchId));
   };
 
-  // Seleccionar equipo y calcular estado de oponentes
-  const handleSelectTeam = (team: Team) => {
-    setSelectedTeam(prev => (prev?.id === team.id ? null : team));
-  };
+  // Selección de equipo para resaltar oponentes
+  const handleSelectTeam = (team: Team) => setSelectedTeam(prev => (prev?.id === team.id ? null : team));
 
+  // Estados de oponentes: combina BD + locales
   const { finishedOpponents, scheduledOpponents } = useMemo(() => {
     const finished = new Set<string>();
     const scheduled = new Set<string>();
-
     if (!selectedTeam) return { finishedOpponents: finished, scheduledOpponents: scheduled };
 
-    for (const m of matches) {
+    const consider = (m: Match) => {
       const isSelectedHome = m.homeTeam?.id === selectedTeam.id;
       const isSelectedAway = m.awayTeam?.id === selectedTeam.id;
       if (isSelectedHome || isSelectedAway) {
         const opponentId = isSelectedHome ? m.awayTeam?.id : m.homeTeam?.id;
         if (opponentId) {
           if (m.status === 'finished') finished.add(opponentId);
-          else scheduled.add(opponentId);
+          else if (m.status === 'scheduled') scheduled.add(opponentId);
         }
       }
-    }
-    return { finishedOpponents: finished, scheduledOpponents: scheduled };
-  }, [matches, selectedTeam]);
+    };
 
-  const getTeamStatus = (
-    teamId: string
-  ): 'played' | 'scheduled' | 'remaining' | 'self' | undefined => {
+    // Partidos locales (fase actual)
+    matches.forEach(consider);
+    // Partidos de BD (fase actual)
+    dbMatches.forEach(consider);
+
+    return { finishedOpponents: finished, scheduledOpponents: scheduled };
+  }, [matches, dbMatches, selectedTeam]);
+
+  const getTeamStatus = (teamId: string): 'played' | 'scheduled' | 'remaining' | 'self' | undefined => {
     if (!selectedTeam) return undefined;
     if (teamId === selectedTeam.id) return 'self';
     if (finishedOpponents.has(teamId)) return 'played';
@@ -472,11 +488,9 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
 
   return (
     <div className="scheduling-panel">
-      {/* Contenedor de precarga de imágenes */}
+      {/* Preload imágenes de canchas */}
       <div style={{ display: 'none' }}>
-        {filteredVenues.flatMap((venue: Venue) => venue.images).map((img: string) => (
-          <img key={img} src={img} alt="preload" />
-        ))}
+        {filteredVenues.flatMap(v => v.images).map(img => (<img key={img} src={img} alt="preload" />))}
       </div>
 
       <div className="panel-header">
@@ -488,7 +502,7 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
       </div>
 
       <div className="phase-tabs">
-        {tournament.phases.map((phase: string) => (
+        {tournament.phases.map(phase => (
           <button
             key={phase}
             className={`phase-tab ${selectedPhase === phase ? 'active' : ''}`}
@@ -507,29 +521,52 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
               Seleccionado: <strong>{selectedTeam.name}</strong> — Jugados: borde verde, Programados: borde naranja, Pendientes: borde gris.
             </div>
           )}
+
           <TeamsTable
             teams={availableTeams}
             onDragStart={handleDragStart}
             onSelectTeam={handleSelectTeam}
             getTeamStatus={getTeamStatus}
           />
+
           <div className="scheduling-instructions">
             <h5>📋 Instrucciones:</h5>
             <ul>
               <li>Arrastra los equipos desde la tabla a los espacios de los partidos</li>
               <li>Selecciona la cancha y horario para cada partido</li>
             </ul>
-            <button
-              className="btn-primary add-match-btn"
-              onClick={addMatch}
-            >
-              ➕ Añadir Partido
-            </button>
+            <button className="btn-primary add-match-btn" onClick={addMatch}>➕ Añadir Partido</button>
           </div>
         </div>
 
         <div className="matches-container">
           <h4>Partidos de: {selectedPhase}</h4>
+
+          {/* Partidos ya existentes en BD */}
+          {dbMatches.length > 0 && (
+            <div style={{ marginBottom: 12 }}>
+              <strong>Programados en BD:</strong>
+              <div className="matches-grid">
+                {dbMatches.map(dm => (
+                  <MatchCard
+                    key={dm.id}
+                    match={dm}
+                    venues={filteredVenues}
+                    onDrop={handleDrop}
+                    onDragOver={handleDragOver}
+                    onRemoveTeam={removeTeamFromMatch}
+                    onUpdateVenue={() => {}}
+                    onUpdateDateTime={() => {}}
+                    onUpdateResult={() => {}}
+                    onSave={() => {}}
+                    onDelete={() => {}}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Partidos locales a programar/guardar */}
           <div className="matches-grid">
             {matches.map(match => (
               <MatchCard
@@ -548,9 +585,9 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
             ))}
           </div>
 
-          {matches.length === 0 && (
+          {dbMatches.length === 0 && matches.length === 0 && (
             <div className="no-matches">
-              <p>No hay partidos para esta fase. Haz clic en "Añadir Partido" para crear uno.</p>
+              <p>No hay partidos para esta fase. Haz clic en “Añadir Partido” para crear uno.</p>
             </div>
           )}
         </div>
@@ -559,7 +596,19 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
   );
 };
 
-// Props del componente de tarjeta de partido
+// ----------------- Vista previa de cancha -----------------
+const VenuePreview: React.FC<{ venue: Venue }> = ({ venue }) => {
+  return (
+    <div className="venue-preview">
+      <strong>{venue.name}</strong>
+      <div className="venue-images">
+        {venue.images.map(src => (<img key={src} src={src} alt={venue.name} />))}
+      </div>
+    </div>
+  );
+};
+
+// ----------------- Tarjeta de partido -----------------
 interface MatchCardProps {
   match: Match;
   venues: Venue[];
@@ -573,21 +622,6 @@ interface MatchCardProps {
   onDelete: (matchId: string) => void;
 }
 
-// Vista previa sencilla de cancha
-const VenuePreview: React.FC<{ venue: Venue }> = ({ venue }) => {
-  return (
-    <div className="venue-preview">
-      <strong>{venue.name}</strong>
-      <div className="venue-images">
-        {venue.images.map((src: string) => (
-          <img key={src} src={src} alt={venue.name} />
-        ))}
-      </div>
-    </div>
-  );
-};
-
-// Componente para una tarjeta de partido individual
 const MatchCard: React.FC<MatchCardProps> = ({
   match,
   venues,
@@ -596,7 +630,7 @@ const MatchCard: React.FC<MatchCardProps> = ({
   onRemoveTeam,
   onUpdateVenue,
   onUpdateDateTime,
-  onUpdateResult, // no lo usamos porque se eliminó el marcador visual
+  onUpdateResult,
   onSave,
   onDelete
 }) => {
@@ -604,7 +638,7 @@ const MatchCard: React.FC<MatchCardProps> = ({
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
 
   const handleVenueHover = (venueId: string) => {
-    const venue = venues.find((v: Venue) => v.id === venueId);
+    const venue = venues.find(v => v.id === venueId);
     if (venue) {
       setSelectedVenue(venue);
       setShowPreview(true);
@@ -621,10 +655,7 @@ const MatchCard: React.FC<MatchCardProps> = ({
   return (
     <div className={`match-card ${isComplete ? 'complete' : 'incomplete'}`}>
       <div className="match-teams" onDragOver={onDragOver}>
-        <div
-          className={`team-slot ${match.homeTeam ? 'filled' : 'empty'}`}
-          onDrop={(e) => onDrop(e, match.id, 'home')}
-        >
+        <div className={`team-slot ${match.homeTeam ? 'filled' : 'empty'}`} onDrop={(e) => onDrop(e, match.id, 'home')}>
           {match.homeTeam ? (
             <div className="team-info">
               <img src={match.homeTeam.logo} alt={match.homeTeam.name} />
@@ -636,12 +667,7 @@ const MatchCard: React.FC<MatchCardProps> = ({
           )}
         </div>
 
-        <span className="vs-label">VS</span>
-
-        <div
-          className={`team-slot ${match.awayTeam ? 'filled' : 'empty'}`}
-          onDrop={(e) => onDrop(e, match.id, 'away')}
-        >
+        <div className={`team-slot ${match.awayTeam ? 'filled' : 'empty'}`} onDrop={(e) => onDrop(e, match.id, 'away')}>
           {match.awayTeam ? (
             <div className="team-info">
               <img src={match.awayTeam.logo} alt={match.awayTeam.name} />
@@ -654,53 +680,41 @@ const MatchCard: React.FC<MatchCardProps> = ({
         </div>
       </div>
 
-      <div className="match-details">
-        <div className="detail-row">
+      <div className="match-settings">
+        <div className="field">
           <label>Cancha</label>
           <select
             value={match.venue || ''}
             onChange={(e) => onUpdateVenue(match.id, e.target.value)}
-            onMouseEnter={() => match.venue && handleVenueHover(match.venue)}
+            onMouseEnter={() => { if (match.venue) handleVenueHover(match.venue); }}
             onMouseLeave={handleVenueLeave}
           >
-            <option value="">Selecciona una...</option>
-            {venues.map((v: Venue) => (
-              <option key={v.id} value={v.id}>{v.name}</option>
-            ))}
+            <option value="">Selecciona cancha</option>
+            {venues.map(v => (<option key={v.id} value={v.id}>{v.name}</option>))}
           </select>
         </div>
 
-        {showPreview && selectedVenue && (
-          <VenuePreview venue={selectedVenue} />
-        )}
-
-        <div className="detail-row">
+        <div className="field">
           <label>Fecha</label>
-          <input
-            type="date"
-            value={match.date || ''}
-            onChange={(e) => onUpdateDateTime(match.id, e.target.value, match.time || '')}
-          />
+          <input type="date" value={match.date || ''} onChange={(e) => onUpdateDateTime(match.id, e.target.value, match.time || '')} />
         </div>
 
-        <div className="detail-row">
+        <div className="field">
           <label>Hora</label>
-          <input
-            type="time"
-            value={match.time || ''}
-            onChange={(e) => onUpdateDateTime(match.id, match.date || '', e.target.value)}
-          />
+          <input type="time" value={match.time || ''} onChange={(e) => onUpdateDateTime(match.id, match.date || '', e.target.value)} />
+        </div>
+
+        <div className="actions">
+          <button className="btn-primary" onClick={() => onSave(match.id)} disabled={!isComplete}>Guardar</button>
+          <button className="btn-secondary" onClick={() => onDelete(match.id)}>Eliminar</button>
         </div>
       </div>
 
-      <div className="match-actions">
-        <button className="btn-primary" onClick={() => onSave(match.id)} disabled={!isComplete}>
-          💾 Guardar Partido
-        </button>
-        <button className="btn-danger" onClick={() => onDelete(match.id)}>
-          🗑️ Eliminar
-        </button>
-      </div>
+      {showPreview && selectedVenue && (
+        <div className="venue-preview-container">
+          <VenuePreview venue={selectedVenue} />
+        </div>
+      )}
     </div>
   );
 };
