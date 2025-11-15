@@ -30,7 +30,7 @@ interface Match {
   awayTeam: Team | null;
   date?: string;
   time?: string;
-  venue?: string;
+  venue?: string;    // id de cancha (mock) o nombre
   round?: number;
   group?: string;
   homeScore?: number;
@@ -199,8 +199,8 @@ interface SchedulingPanelProps {
 }
 
 const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack }) => {
-  const [matches, setMatches] = useState<Match[]>([]);        // partidos locales (sin guardar o recién creados)
-  const [dbMatches, setDbMatches] = useState<Match[]>([]);    // partidos existentes en BD
+  const [matches, setMatches] = useState<Match[]>([]);        // partidos locales (forms)
+  const [dbMatches, setDbMatches] = useState<Match[]>([]);    // partidos existentes en BD (solo lectura)
   const [availableTeams, setAvailableTeams] = useState<Team[]>([]);
   const [venues] = useState<Venue[]>(mockVenues);
   const [selectedPhase, setSelectedPhase] = useState<string>(tournament.phases[0]);
@@ -254,7 +254,6 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
       const normalized: Match[] = (Array.isArray(list) ? list : [])
         .filter((m: any) => (m?.phase ?? 'Todos contra Todos') === selectedPhase)
         .map((m: any) => {
-          // Mapea equipos si vienen anidados; si no, resuelve por id con availableTeams
           const homeFromApi = m?.homeTeam ?? null;
           const awayFromApi = m?.awayTeam ?? null;
 
@@ -292,13 +291,8 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
   }, [tournament.id, selectedPhase, availableTeams]);
 
   // Cargas iniciales y al cambiar fase
-  useEffect(() => {
-    loadRegisteredTeams();
-  }, [loadRegisteredTeams]);
-
-  useEffect(() => {
-    loadExistingMatches();
-  }, [loadExistingMatches]);
+  useEffect(() => { loadRegisteredTeams(); }, [loadRegisteredTeams]);
+  useEffect(() => { loadExistingMatches(); }, [loadExistingMatches]);
 
   // Refrescar al volver la pestaña
   useEffect(() => {
@@ -308,12 +302,9 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
   }, [loadRegisteredTeams, loadExistingMatches]);
 
   // Limpiar partidos locales al cambiar fase
-  useEffect(() => {
-    setMatches([]);
-    setSelectedTeam(null);
-  }, [selectedPhase]);
+  useEffect(() => { setMatches([]); setSelectedTeam(null); }, [selectedPhase]);
 
-  // Añadir partido local
+  // Añadir partido local (muestra formulario)
   const addMatch = () => {
     const newMatch: Match = {
       id: `match-${selectedPhase}-${matches.length + 1}`,
@@ -325,7 +316,7 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
     setMatches(prev => [...prev, newMatch]);
   };
 
-  // Drag & drop
+  // Drag & drop (solo en formularios locales)
   const handleDragStart = (team: Team) => setDraggedTeam(team);
   const handleDragOver = (e: React.DragEvent) => e.preventDefault();
 
@@ -391,7 +382,6 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
       return;
     }
 
-    // Evitar duplicado en BD para misma fase y equipos
     const existsDuplicate = dbMatches.some(dm =>
       (dm.phase === match.phase) &&
       (dm.homeTeam?.dbId === homeDbId && dm.awayTeam?.dbId === awayDbId)
@@ -423,8 +413,7 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
       const created = await resp.json();
       setMatches(prev => prev.map(m => m.id === matchId ? { ...m, dbId: Number(created?.id) } : m));
       toast.success('Partido guardado en la base de datos');
-      // Recarga partidos de BD para recalcular estados
-      loadExistingMatches();
+      loadExistingMatches(); // recargar BD
     } catch (e) {
       console.error(e);
       toast.error('No se pudo guardar el partido');
@@ -433,7 +422,6 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
 
   // Eliminar partido
   const deleteMatch = async (matchId: string) => {
-    // Si es local sin dbId, solo eliminar de locales
     const localMatch = matches.find(m => m.id === matchId);
     if (localMatch?.dbId) {
       try {
@@ -470,10 +458,8 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
       }
     };
 
-    // Partidos locales (fase actual)
-    matches.forEach(consider);
-    // Partidos de BD (fase actual)
-    dbMatches.forEach(consider);
+    matches.forEach(consider);    // locales (forms)
+    dbMatches.forEach(consider);  // BD (read-only)
 
     return { finishedOpponents: finished, scheduledOpponents: scheduled };
   }, [matches, dbMatches, selectedTeam]);
@@ -481,9 +467,9 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
   const getTeamStatus = (teamId: string): 'played' | 'scheduled' | 'remaining' | 'self' | undefined => {
     if (!selectedTeam) return undefined;
     if (teamId === selectedTeam.id) return 'self';
-    if (finishedOpponents.has(teamId)) return 'played';
-    if (scheduledOpponents.has(teamId)) return 'scheduled';
-    return 'remaining';
+    if (finishedOpponents.has(teamId)) return 'played';      // verde
+    if (scheduledOpponents.has(teamId)) return 'scheduled';  // naranja
+    return 'remaining';                                      // rojo (ajústalo en scheduling.css)
   };
 
   return (
@@ -518,10 +504,9 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
           <h4>Equipos Disponibles</h4>
           {selectedTeam && (
             <div style={{ fontSize: 12, color: '#555', marginBottom: 8 }}>
-              Seleccionado: <strong>{selectedTeam.name}</strong> — Jugados: borde verde, Programados: borde naranja, Pendientes: borde gris.
+              Seleccionado: <strong>{selectedTeam.name}</strong> — Verde: jugó, Naranja: programado, Rojo: pendiente.
             </div>
           )}
-
           <TeamsTable
             teams={availableTeams}
             onDragStart={handleDragStart}
@@ -532,8 +517,9 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
           <div className="scheduling-instructions">
             <h5>📋 Instrucciones:</h5>
             <ul>
-              <li>Arrastra los equipos desde la tabla a los espacios de los partidos</li>
-              <li>Selecciona la cancha y horario para cada partido</li>
+              <li>Haz clic en “Añadir Partido” para crear el formulario.</li>
+              <li>Arrastra equipos a los espacios del partido.</li>
+              <li>Selecciona cancha y horario, y guarda.</li>
             </ul>
             <button className="btn-primary add-match-btn" onClick={addMatch}>➕ Añadir Partido</button>
           </div>
@@ -542,7 +528,7 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
         <div className="matches-container">
           <h4>Partidos de: {selectedPhase}</h4>
 
-          {/* Partidos ya existentes en BD */}
+          {/* Partidos ya existentes en BD (solo lectura, sin formularios) */}
           {dbMatches.length > 0 && (
             <div style={{ marginBottom: 12 }}>
               <strong>Programados en BD:</strong>
@@ -552,38 +538,41 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
                     key={dm.id}
                     match={dm}
                     venues={filteredVenues}
-                    onDrop={handleDrop}
-                    onDragOver={handleDragOver}
-                    onRemoveTeam={removeTeamFromMatch}
+                    onDrop={() => {}}
+                    onDragOver={() => {}}
+                    onRemoveTeam={() => {}}
                     onUpdateVenue={() => {}}
                     onUpdateDateTime={() => {}}
                     onUpdateResult={() => {}}
                     onSave={() => {}}
                     onDelete={() => {}}
+                    readOnly
                   />
                 ))}
               </div>
             </div>
           )}
 
-          {/* Partidos locales a programar/guardar */}
-          <div className="matches-grid">
-            {matches.map(match => (
-              <MatchCard
-                key={match.id}
-                match={match}
-                venues={filteredVenues}
-                onDrop={handleDrop}
-                onDragOver={handleDragOver}
-                onRemoveTeam={removeTeamFromMatch}
-                onUpdateVenue={updateMatchVenue}
-                onUpdateDateTime={updateMatchDateTime}
-                onUpdateResult={updateMatchResult}
-                onSave={saveMatchToDB}
-                onDelete={deleteMatch}
-              />
-            ))}
-          </div>
+          {/* Formularios locales: SOLO aparecen si pulsas “Añadir Partido” */}
+          {matches.length > 0 && (
+            <div className="matches-grid">
+              {matches.map(match => (
+                <MatchCard
+                  key={match.id}
+                  match={match}
+                  venues={filteredVenues}
+                  onDrop={handleDrop}
+                  onDragOver={handleDragOver}
+                  onRemoveTeam={removeTeamFromMatch}
+                  onUpdateVenue={updateMatchVenue}
+                  onUpdateDateTime={updateMatchDateTime}
+                  onUpdateResult={updateMatchResult}
+                  onSave={saveMatchToDB}
+                  onDelete={deleteMatch}
+                />
+              ))}
+            </div>
+          )}
 
           {dbMatches.length === 0 && matches.length === 0 && (
             <div className="no-matches">
@@ -620,6 +609,7 @@ interface MatchCardProps {
   onUpdateResult: (matchId: string, homeScore: number, awayScore: number) => void;
   onSave: (matchId: string) => void;
   onDelete: (matchId: string) => void;
+  readOnly?: boolean;
 }
 
 const MatchCard: React.FC<MatchCardProps> = ({
@@ -632,7 +622,8 @@ const MatchCard: React.FC<MatchCardProps> = ({
   onUpdateDateTime,
   onUpdateResult,
   onSave,
-  onDelete
+  onDelete,
+  readOnly = false,
 }) => {
   const [showPreview, setShowPreview] = useState<boolean>(false);
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
@@ -653,64 +644,94 @@ const MatchCard: React.FC<MatchCardProps> = ({
   const isComplete = match.homeTeam && match.awayTeam && match.venue && match.date && match.time;
 
   return (
-    <div className={`match-card ${isComplete ? 'complete' : 'incomplete'}`}>
-      <div className="match-teams" onDragOver={onDragOver}>
-        <div className={`team-slot ${match.homeTeam ? 'filled' : 'empty'}`} onDrop={(e) => onDrop(e, match.id, 'home')}>
+    <div className={`match-card ${readOnly ? 'readonly' : isComplete ? 'complete' : 'incomplete'}`}>
+      {/* Equipos */}
+      <div className="match-teams" onDragOver={!readOnly ? onDragOver : undefined}>
+        <div
+          className={`team-slot ${match.homeTeam ? 'filled' : 'empty'}`}
+          onDrop={!readOnly ? (e) => onDrop(e, match.id, 'home') : undefined}
+        >
           {match.homeTeam ? (
             <div className="team-info">
               <img src={match.homeTeam.logo} alt={match.homeTeam.name} />
               <span className="team-name">{match.homeTeam.name}</span>
-              <button className="btn-small btn-danger" onClick={() => onRemoveTeam(match.id, 'home')}>✖</button>
+              {!readOnly && (
+                <button className="btn-small btn-danger" onClick={() => onRemoveTeam(match.id, 'home')}>✖</button>
+              )}
             </div>
           ) : (
-            <span className="empty-placeholder">Arrastra equipo local aquí</span>
+            <span className="empty-placeholder">{readOnly ? 'Sin equipo local' : 'Arrastra equipo local aquí'}</span>
           )}
         </div>
 
-        <div className={`team-slot ${match.awayTeam ? 'filled' : 'empty'}`} onDrop={(e) => onDrop(e, match.id, 'away')}>
+        <div
+          className={`team-slot ${match.awayTeam ? 'filled' : 'empty'}`}
+          onDrop={!readOnly ? (e) => onDrop(e, match.id, 'away') : undefined}
+        >
           {match.awayTeam ? (
             <div className="team-info">
               <img src={match.awayTeam.logo} alt={match.awayTeam.name} />
               <span className="team-name">{match.awayTeam.name}</span>
-              <button className="btn-small btn-danger" onClick={() => onRemoveTeam(match.id, 'away')}>✖</button>
+              {!readOnly && (
+                <button className="btn-small btn-danger" onClick={() => onRemoveTeam(match.id, 'away')}>✖</button>
+              )}
             </div>
           ) : (
-            <span className="empty-placeholder">Arrastra equipo visitante aquí</span>
+            <span className="empty-placeholder">{readOnly ? 'Sin equipo visitante' : 'Arrastra equipo visitante aquí'}</span>
           )}
         </div>
       </div>
 
-      <div className="match-settings">
-        <div className="field">
-          <label>Cancha</label>
-          <select
-            value={match.venue || ''}
-            onChange={(e) => onUpdateVenue(match.id, e.target.value)}
-            onMouseEnter={() => { if (match.venue) handleVenueHover(match.venue); }}
-            onMouseLeave={handleVenueLeave}
-          >
-            <option value="">Selecciona cancha</option>
-            {venues.map(v => (<option key={v.id} value={v.id}>{v.name}</option>))}
-          </select>
-        </div>
+      {/* Ajustes */}
+      {!readOnly ? (
+        <div className="match-settings">
+          <div className="field">
+            <label>Cancha</label>
+            <select
+              value={match.venue || ''}
+              onChange={(e) => onUpdateVenue(match.id, e.target.value)}
+              onMouseEnter={() => { if (match.venue) handleVenueHover(match.venue); }}
+              onMouseLeave={handleVenueLeave}
+            >
+              <option value="">Selecciona cancha</option>
+              {venues.map(v => (<option key={v.id} value={v.id}>{v.name}</option>))}
+            </select>
+          </div>
 
-        <div className="field">
-          <label>Fecha</label>
-          <input type="date" value={match.date || ''} onChange={(e) => onUpdateDateTime(match.id, e.target.value, match.time || '')} />
-        </div>
+          <div className="field">
+            <label>Fecha</label>
+            <input type="date" value={match.date || ''} onChange={(e) => onUpdateDateTime(match.id, e.target.value, match.time || '')} />
+          </div>
 
-        <div className="field">
-          <label>Hora</label>
-          <input type="time" value={match.time || ''} onChange={(e) => onUpdateDateTime(match.id, match.date || '', e.target.value)} />
-        </div>
+          <div className="field">
+            <label>Hora</label>
+            <input type="time" value={match.time || ''} onChange={(e) => onUpdateDateTime(match.id, match.date || '', e.target.value)} />
+          </div>
 
-        <div className="actions">
-          <button className="btn-primary" onClick={() => onSave(match.id)} disabled={!isComplete}>Guardar</button>
-          <button className="btn-secondary" onClick={() => onDelete(match.id)}>Eliminar</button>
+          <div className="actions">
+            <button className="btn-primary" onClick={() => onSave(match.id)} disabled={!isComplete}>Guardar</button>
+            <button className="btn-secondary" onClick={() => onDelete(match.id)}>Eliminar</button>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="match-settings readonly-summary">
+          <div className="readonly-item">
+            <strong>Cancha:</strong>{' '}
+            {match.venue ? (venues.find(v => v.id === match.venue)?.name ?? match.venue) : 'Sin cancha'}
+          </div>
+          <div className="readonly-item">
+            <strong>Fecha:</strong> {match.date ?? 'Sin fecha'}
+          </div>
+          <div className="readonly-item">
+            <strong>Hora:</strong> {match.time ?? 'Sin hora'}
+          </div>
+          <div className="readonly-item">
+            <strong>Estado:</strong> {match.status === 'finished' ? 'Finalizado' : 'Programado'}
+          </div>
+        </div>
+      )}
 
-      {showPreview && selectedVenue && (
+      {showPreview && selectedVenue && !readOnly && (
         <div className="venue-preview-container">
           <VenuePreview venue={selectedVenue} />
         </div>
