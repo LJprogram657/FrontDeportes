@@ -528,30 +528,8 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
         <div className="matches-container">
           <h4>Partidos de: {selectedPhase}</h4>
 
-          {/* Partidos ya existentes en BD (solo lectura, sin formularios) */}
-          {dbMatches.length > 0 && (
-            <div style={{ marginBottom: 12 }}>
-              <strong>Programados en BD:</strong>
-              <div className="matches-grid">
-                {dbMatches.map(dm => (
-                  <MatchCard
-                    key={dm.id}
-                    match={dm}
-                    venues={filteredVenues}
-                    onDrop={() => {}}
-                    onDragOver={() => {}}
-                    onRemoveTeam={() => {}}
-                    onUpdateVenue={() => {}}
-                    onUpdateDateTime={() => {}}
-                    onUpdateResult={() => {}}
-                    onSave={() => {}}
-                    onDelete={() => {}}
-                    readOnly
-                  />
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Ocultamos partidos existentes en BD para estética, pero se siguen usando en la lógica */}
+          {/* // (Antes aquí se renderizaba "Programados en BD") */}
 
           {/* Formularios locales: SOLO aparecen si pulsas “Añadir Partido” */}
           {matches.length > 0 && (
@@ -574,7 +552,8 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
             </div>
           )}
 
-          {dbMatches.length === 0 && matches.length === 0 && (
+          {/* Mensaje vacío solo cuando no hay formularios locales */}
+          {matches.length === 0 && (
             <div className="no-matches">
               <p>No hay partidos para esta fase. Haz clic en “Añadir Partido” para crear uno.</p>
             </div>
