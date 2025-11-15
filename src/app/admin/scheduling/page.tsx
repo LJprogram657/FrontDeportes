@@ -90,7 +90,7 @@ function TeamCard({
   };
   return (
     <div
-      className={`flex items-center gap-3 p-2 border rounded-md bg-white hover:bg-gray-50 cursor-pointer`}
+      className={`flex items-center gap-3 p-2 border rounded-md bg-white hover:bg-gray-50 cursor-pointer shadow-sm`}
       onClick={onClick}
       draggable={draggable}
       onDragStart={draggable ? handleDragStart : undefined}
@@ -576,7 +576,7 @@ export default function SchedulingPage() {
           </div>
 
           {/* Datos del partido */}
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
             <div>
               <label className="text-sm text-gray-700">Cancha / Sede</label>
               <input
