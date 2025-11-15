@@ -173,12 +173,10 @@ const TournamentSelector: React.FC<TournamentSelectorProps> = ({ tournaments, on
 interface TeamsTableProps {
   teams: Team[];
   onDragStart: (team: Team) => void;
-  onSelectTeam?: (team: Team) => void; // NUEVO
-  getTeamStatus?: (teamId: string) => 'played' | 'scheduled' | 'remaining' | 'self' | undefined; // NUEVO
 }
 
 // Dentro de TeamsTable
-const TeamsTable: React.FC<TeamsTableProps> = ({ teams, onDragStart, onSelectTeam, getTeamStatus }) => {
+const TeamsTable: React.FC<TeamsTableProps> = ({ teams, onDragStart }) => {
   return (
     <div style={{ marginBottom: '1rem' }}>
       {teams.length === 0 ? (
@@ -187,30 +185,21 @@ const TeamsTable: React.FC<TeamsTableProps> = ({ teams, onDragStart, onSelectTea
         </div>
       ) : (
         <div className="teams-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '12px' }}>
-          {teams.map(team => {
-            const status = getTeamStatus?.(team.id);
-            const extraClass =
-              status === 'played' ? 'played' :
-              status === 'scheduled' ? 'scheduled' :
-              status === 'self' ? 'selected' :
-              'remaining';
-            return (
-              <div
-                key={team.id}
-                className={`team-item ${extraClass}`}
-                draggable
-                onDragStart={() => onDragStart(team)}
-                onClick={() => onSelectTeam?.(team)}
-                title="Clic para seleccionar y ver jugados/pendientes"
-              >
-                <img src={team.logo} alt={team.name} />
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span className="team-name" style={{ fontWeight: 700 }}>{team.name}</span>
-                  <span style={{ fontSize: 12, color: '#6c757d' }}>Arrastra a un partido</span>
-                </div>
+          {teams.map(team => (
+            <div
+              key={team.id}
+              className="team-item"
+              draggable
+              onDragStart={() => onDragStart(team)}
+              title="Arrastra esta tarjeta hacia un partido"
+            >
+              <img src={team.logo} alt={team.name} />
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span className="team-name" style={{ fontWeight: 700 }}>{team.name}</span>
+                <span style={{ fontSize: 12, color: '#6c757d' }}>Arrastra a un partido</span>
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       )}
     </div>
