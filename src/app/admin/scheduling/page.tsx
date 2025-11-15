@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import '../../styles/admin-dashboard.css';
 import '../../styles/scheduling.css';
 import { toast } from 'sonner';
@@ -177,7 +177,6 @@ interface TeamsTableProps {
   getTeamStatus?: (teamId: string) => 'played' | 'scheduled' | 'remaining' | 'self' | undefined; // NUEVO
 }
 
-// Dentro de TeamsTable
 const TeamsTable: React.FC<TeamsTableProps> = ({ teams, onDragStart, onSelectTeam, getTeamStatus }) => {
   return (
     <div style={{ marginBottom: '1rem' }}>
@@ -186,14 +185,14 @@ const TeamsTable: React.FC<TeamsTableProps> = ({ teams, onDragStart, onSelectTea
           No hay equipos registrados para este torneo todavía.
         </div>
       ) : (
-        <div className="teams-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '12px' }}>
+        <div className="teams-grid">
           {teams.map(team => {
             const status = getTeamStatus?.(team.id);
             const extraClass =
               status === 'played' ? 'played' :
               status === 'scheduled' ? 'scheduled' :
               status === 'self' ? 'selected' :
-              'remaining';
+              status ? 'remaining' : '';
             return (
               <div
                 key={team.id}
@@ -223,13 +222,15 @@ interface SchedulingPanelProps {
   onBack: () => void;
 }
 
-// Dentro del componente SchedulingPanel
 const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack }) => {
   const [matches, setMatches] = useState<Match[]>([]);
   const [availableTeams, setAvailableTeams] = useState<Team[]>([]);
   const [venues] = useState<Venue[]>(mockVenues);
   const [selectedPhase, setSelectedPhase] = useState<string>(tournament.phases[0]);
   const [draggedTeam, setDraggedTeam] = useState<Team | null>(null);
+
+  // Selección de equipo para resaltar oponentes
+  const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
 
   // Header de autorización para rutas protegidas
   const authHeaders = (): HeadersInit => {
@@ -434,6 +435,41 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
     }
   };
 
+  // Seleccionar equipo y calcular estado de oponentes
+  const handleSelectTeam = (team: Team) => {
+    setSelectedTeam(prev => (prev?.id === team.id ? null : team));
+  };
+
+  const { finishedOpponents, scheduledOpponents } = useMemo(() => {
+    const finished = new Set<string>();
+    const scheduled = new Set<string>();
+
+    if (!selectedTeam) return { finishedOpponents: finished, scheduledOpponents: scheduled };
+
+    for (const m of matches) {
+      const isSelectedHome = m.homeTeam?.id === selectedTeam.id;
+      const isSelectedAway = m.awayTeam?.id === selectedTeam.id;
+      if (isSelectedHome || isSelectedAway) {
+        const opponentId = isSelectedHome ? m.awayTeam?.id : m.homeTeam?.id;
+        if (opponentId) {
+          if (m.status === 'finished') finished.add(opponentId);
+          else scheduled.add(opponentId);
+        }
+      }
+    }
+    return { finishedOpponents: finished, scheduledOpponents: scheduled };
+  }, [matches, selectedTeam]);
+
+  const getTeamStatus = (
+    teamId: string
+  ): 'played' | 'scheduled' | 'remaining' | 'self' | undefined => {
+    if (!selectedTeam) return undefined;
+    if (teamId === selectedTeam.id) return 'self';
+    if (finishedOpponents.has(teamId)) return 'played';
+    if (scheduledOpponents.has(teamId)) return 'scheduled';
+    return 'remaining';
+  };
+
   return (
     <div className="scheduling-panel">
       {/* Contenedor de precarga de imágenes */}
@@ -466,10 +502,17 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
       <div className="scheduler-layout">
         <div className="teams-list-container">
           <h4>Equipos Disponibles</h4>
-
-          {/* Mini tabla dinámica con filas arrastrables */}
-          <TeamsTable teams={availableTeams} onDragStart={handleDragStart} />
-
+          {selectedTeam && (
+            <div style={{ fontSize: 12, color: '#555', marginBottom: 8 }}>
+              Seleccionado: <strong>{selectedTeam.name}</strong> — Jugados: borde verde, Programados: borde naranja, Pendientes: borde gris.
+            </div>
+          )}
+          <TeamsTable
+            teams={availableTeams}
+            onDragStart={handleDragStart}
+            onSelectTeam={handleSelectTeam}
+            getTeamStatus={getTeamStatus}
+          />
           <div className="scheduling-instructions">
             <h5>📋 Instrucciones:</h5>
             <ul>
@@ -553,7 +596,7 @@ const MatchCard: React.FC<MatchCardProps> = ({
   onRemoveTeam,
   onUpdateVenue,
   onUpdateDateTime,
-  onUpdateResult, // no lo usamos porque se eliminó el marcador
+  onUpdateResult, // no lo usamos porque se eliminó el marcador visual
   onSave,
   onDelete
 }) => {
@@ -620,8 +663,8 @@ const MatchCard: React.FC<MatchCardProps> = ({
             onMouseEnter={() => match.venue && handleVenueHover(match.venue)}
             onMouseLeave={handleVenueLeave}
           >
-            <option value="">Selecciona una cancha</option>
-            {venues.map(v => (
+            <option value="">Selecciona una...</option>
+            {venues.map((v: Venue) => (
               <option key={v.id} value={v.id}>{v.name}</option>
             ))}
           </select>
@@ -648,8 +691,6 @@ const MatchCard: React.FC<MatchCardProps> = ({
             onChange={(e) => onUpdateDateTime(match.id, match.date || '', e.target.value)}
           />
         </div>
-
-        {/* Marcador eliminado */}
       </div>
 
       <div className="match-actions">

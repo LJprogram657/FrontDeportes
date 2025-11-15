@@ -105,11 +105,31 @@
   background: #f8f9fa;
 }
 
+/* Layout estable: panel izquierdo fijo */
 .scheduler-layout {
   display: grid;
   grid-template-columns: 280px 1fr;
   gap: 32px;
 }
+
+/* Grilla de equipos: 1 columna en panel estrecho */
+.teams-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+/* Resaltado por estado al seleccionar un equipo */
+.team-item.selected {
+  border: 2px solid #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.12);
+}
+.team-item.played { border: 2px solid #28a745; }
+.team-item.scheduled { border: 2px solid #fd7e14; }
+.team-item.remaining { border: 1px solid #eee; }
+
+/* Mantener texto negro en nombres */
+.team-item .team-name { color: #000 !important; }
 
 /* Lista de equipos */
 .teams-list-container {
