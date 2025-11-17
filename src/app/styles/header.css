@@ -18,12 +18,12 @@
     flex-wrap: nowrap;
 }
 
+/* Estilos para la navegación */
 .header nav { 
     flex: 1; 
     min-width: 0; 
-    overflow: hidden; 
+    overflow: visible;             /* antes: hidden → cortaba el menú */
 }
-
 .header nav ul {
     list-style: none;
     display: flex;
@@ -161,4 +161,13 @@
     .header nav ul { gap: 0.5rem; }
     .header .nav-link { font-size: 0.85rem; }
     .header .container { padding: 0 1rem; }
+}
+
+/* Mobile: permitir desplazamiento horizontal del menú si no cabe en una línea */
+@media (max-width: 768px) {
+    .header nav { 
+        overflow-x: auto; 
+        -webkit-overflow-scrolling: touch;
+    }
+    .header nav::-webkit-scrollbar { display: none; }
 }
