@@ -22,7 +22,7 @@
 .header nav { 
     flex: 1; 
     min-width: 0; 
-    overflow: visible;             /* antes: hidden → cortaba el menú */
+    overflow: visible;
 }
 .header nav ul {
     list-style: none;
@@ -177,8 +177,20 @@
 
 @media (max-width: 768px) {
     .header nav { 
-        overflow-x: auto; 
+        overflow-x: auto;
         -webkit-overflow-scrolling: touch;
     }
     .header nav::-webkit-scrollbar { display: none; }
+
+    /* Botones compactos en móvil (724px incluido) */
+    .btn-login { 
+        padding: 8px 16px; 
+        border-radius: 20px; 
+        font-size: 0.9rem; 
+    }
+    .btn-register { 
+        padding: 6px 12px; 
+        font-size: 0.9rem;
+        border-width: 2px;
+    }
 }

@@ -241,7 +241,7 @@ const Tournaments: React.FC = () => {
       <div className="container">
         <h1 className="main-title">Todos los Torneos Disponibles</h1>
 
-        {/* Masculino: card con logo+nombre+tabla */}
+        {/* Masculinos */}
         <div className="tournament-category-section">
           <h2 className="category-title">Torneos Masculinos</h2>
           <div style={{ maxWidth: '1120px', margin: '0 auto', padding: '0 16px' }}>
@@ -307,7 +307,7 @@ const Tournaments: React.FC = () => {
           </div>
         </div>
 
-        {/* Femenino: card con logo+nombre+tabla */}
+        {/* Femeninos */}
         <div className="tournament-category-section">
           <h2 className="category-title">Torneos Femeninos</h2>
           <div style={{ maxWidth: '1120px', margin: '0 auto', padding: '0 16px' }}>

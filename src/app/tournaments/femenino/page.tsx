@@ -155,7 +155,7 @@ function computeStandings(matches: Match[]): Standing[] {
   return table;
 }
 
-function FemeninoPage() {
+export default function FemeninoPage() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -345,44 +345,45 @@ function FemeninoPage() {
             </div>
 
             {standings.length > 0 ? (
-              <table className="standings-table" style={{ width: '100%', fontSize: '0.95rem' }}>
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Equipo</th>
-                    <th>J</th>
-                    <th>G</th>
-                    <th>E</th>
-                    <th>P</th>
-                    <th>GF</th>
-                    <th>GC</th>
-                    <th>DG</th>
-                    <th>Pts</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {standings.map((s, idx) => (
-                    <tr key={`${s.team.name}-${idx}`}>
-                      <td>{idx + 1}</td>
-                      <td>{s.team.name}</td>
-                      <td>{s.played}</td>
-                      <td>{s.wins}</td>
-                      <td>{s.draws}</td>
-                      <td>{s.losses}</td>
-                      <td>{s.goalsFor}</td>
-                      <td>{s.goalsAgainst}</td>
-                      <td>{s.goalDiff}</td>
-                      <td>{s.points}</td>
+              <div className="table-responsive">
+                <table className="standings-table" style={{ width: '100%', fontSize: '0.95rem' }}>
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Equipo</th>
+                      <th>J</th>
+                      <th>G</th>
+                      <th>E</th>
+                      <th>P</th>
+                      <th>GF</th>
+                      <th>GC</th>
+                      <th>DG</th>
+                      <th>Pts</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {standings.map((s, idx) => (
+                      <tr key={`${s.team.name}-${idx}`}>
+                        <td>{idx + 1}</td>
+                        <td>{s.team.name}</td>
+                        <td>{s.played}</td>
+                        <td>{s.wins}</td>
+                        <td>{s.draws}</td>
+                        <td>{s.losses}</td>
+                        <td>{s.goalsFor}</td>
+                        <td>{s.goalsAgainst}</td>
+                        <td>{s.goalDiff}</td>
+                        <td>{s.points}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             ) : (
               <p style={{ margin: '12px 0' }}>No hay posiciones disponibles.</p>
             )}
 
             <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: '1fr', gap: '12px' }}>
-              {/* Máximo Goleador */}
               <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid #1f2937', borderRadius: '10px', padding: '12px' }}>
                 <h3 style={{ margin: 0, marginBottom: '8px' }}>Máximo Goleador</h3>
                 {topScorer ? (
@@ -401,7 +402,6 @@ function FemeninoPage() {
                 )}
               </div>
 
-              {/* Valla menos vencida */}
               <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid #1f2937', borderRadius: '10px', padding: '12px' }}>
                 <h3 style={{ margin: 0, marginBottom: '8px' }}>Valla menos vencida</h3>
                 {bestDefense ? (
@@ -413,7 +413,6 @@ function FemeninoPage() {
                 )}
               </div>
 
-              {/* Próximos Partidos */}
               <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid #1f2937', borderRadius: '10px', padding: '12px' }}>
                 <h3 style={{ margin: 0, marginBottom: '8px' }}>Próximos Partidos</h3>
                 {upcomingMatches.length > 0 ? (
@@ -440,5 +439,3 @@ function FemeninoPage() {
     </div>
   );
 }
-
-export default FemeninoPage;

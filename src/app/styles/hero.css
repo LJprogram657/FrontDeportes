@@ -47,7 +47,6 @@
 }
 
 .hero-content h1 {
-    /* antes: 48px fijo → ahora se adapta (724px incluido) */
     font-size: clamp(26px, 6vw, 48px);
     font-weight: 700;
     margin-bottom: 20px;
@@ -55,7 +54,6 @@
 }
 
 .hero-content p {
-    /* antes: 20px fijo → ahora se adapta */
     font-size: clamp(14px, 3.2vw, 20px);
     margin-bottom: 30px;
 }
