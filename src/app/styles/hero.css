@@ -47,14 +47,16 @@
 }
 
 .hero-content h1 {
-    font-size: 48px;
+    /* antes: 48px fijo → ahora se adapta (724px incluido) */
+    font-size: clamp(26px, 6vw, 48px);
     font-weight: 700;
     margin-bottom: 20px;
     text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.7);
 }
 
 .hero-content p {
-    font-size: 20px;
+    /* antes: 20px fijo → ahora se adapta */
+    font-size: clamp(14px, 3.2vw, 20px);
     margin-bottom: 30px;
 }
 
@@ -102,4 +104,10 @@
 
 .hero-buttons .btn:hover {
     filter: brightness(1.2);
+}
+
+@media (max-width: 768px) {
+    .hero { height: 70vh; }
+    .hero-buttons { gap: 12px; }
+    .slider-nav { bottom: 20px; }
 }

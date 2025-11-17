@@ -92,7 +92,7 @@
 .btn-register {
     background: transparent;
     border: 2px solid var(--primary-red);
-    white-space: nowrap; /* Evita que el texto del botón se rompa */
+    white-space: nowrap;
 }
 
 .btn-login {
@@ -103,7 +103,7 @@
     font-weight: bold;
     transition: background-color 0.3s, transform 0.2s;
     border: none;
-    white-space: nowrap; /* Evita que el texto del botón se rompa */
+    white-space: nowrap;
 }
 
 .btn-login:hover {
@@ -161,9 +161,20 @@
     .header nav ul { gap: 0.5rem; }
     .header .nav-link { font-size: 0.85rem; }
     .header .container { padding: 0 1rem; }
+
+    /* Ajustes de botones en móvil/tablet (724px incluido) */
+    .btn-login { 
+        padding: 8px 16px; 
+        border-radius: 20px; 
+        font-size: 0.9rem; 
+    }
+    .btn-register { 
+        border-width: 2px; 
+        padding: 6px 12px; 
+        font-size: 0.9rem;
+    }
 }
 
-/* Mobile: permitir desplazamiento horizontal del menú si no cabe en una línea */
 @media (max-width: 768px) {
     .header nav { 
         overflow-x: auto; 
