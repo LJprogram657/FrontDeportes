@@ -33,6 +33,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className={`${geistSans.variable} ${geistMono.variable}`}>
+      {/* Agregar viewport para responsividad real en móviles */}
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+      </head>
       <body className={`${geistSans.className} ${geistMono.variable}`}>
         <AuthProvider>
           <MainLayout>
