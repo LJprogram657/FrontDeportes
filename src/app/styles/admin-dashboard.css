@@ -197,8 +197,8 @@
 .admin-dashboard .registrations-list { margin-top: 10px; }
 .admin-dashboard .no-registrations { background: #f8f9fa; border: 1px dashed #e9ecef; border-radius: 12px; padding: 30px; text-align: center; color: #666; }
 
-.admin-dashboard .registrations-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px; }
-.admin-dashboard .registration-card { background: #fff; border: 2px solid #e9ecef; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 14px; transition: .2s; }
+.admin-dashboard .registrations-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+.admin-dashboard .registration-card { background: #fff; border: 2px solid #e9ecef; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 14px; transition: .2s; min-height: 220px; height: 100%; }
 .admin-dashboard .registration-card:hover { border-color: var(--primary-red); box-shadow: 0 6px 16px rgba(0,0,0,0.08); }
 
 .admin-dashboard .registration-header { display: flex; justify-content: space-between; align-items: center; gap: 10px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
