@@ -197,8 +197,8 @@
 .admin-dashboard .registrations-list { margin-top: 10px; }
 .admin-dashboard .no-registrations { background: #f8f9fa; border: 1px dashed #e9ecef; border-radius: 12px; padding: 30px; text-align: center; color: #666; }
 
-.admin-dashboard .registrations-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
-.admin-dashboard .registration-card { background: #fff; border: 2px solid #e9ecef; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 14px; transition: .2s; min-height: 220px; height: 100%; }
+.admin-dashboard .registrations-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; align-items: stretch; grid-auto-rows: minmax(260px, auto); }
+.admin-dashboard .registration-card { background: #fff; border: 2px solid #e9ecef; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 14px; transition: .2s; min-height: 260px; height: 100%; box-sizing: border-box; }
 .admin-dashboard .registration-card:hover { border-color: var(--primary-red); box-shadow: 0 6px 16px rgba(0,0,0,0.08); }
 
 .admin-dashboard .registration-header { display: flex; justify-content: space-between; align-items: center; gap: 10px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
@@ -209,6 +209,9 @@
 .admin-dashboard .tournament-logo-small { width: 34px; height: 34px; border-radius: 50%; object-fit: contain; background: #fff; padding: 4px; border: 1px solid #eee; }
 
 .admin-dashboard .registration-details p { margin: 6px 0; color: #555; }
+/* Hace que el bloque de detalles ocupe el espacio disponible
+   y las acciones queden alineadas al fondo para tarjetas uniformes */
+.admin-dashboard .registration-details { flex: 1; }
 
 .admin-dashboard .status-badge { padding: 6px 10px; border-radius: 999px; font-size: .8rem; font-weight: 700; }
 .admin-dashboard .status-badge.pending { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
