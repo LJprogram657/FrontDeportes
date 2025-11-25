@@ -267,38 +267,40 @@ const Tournaments: React.FC = () => {
                 </div>
 
                 {masculineStandings.length > 0 ? (
-                  <table className="standings-table" style={{ width: '100%', fontSize: '1.1rem' }}>
-                    <thead>
-                      <tr>
-                        <th style={cellStyle}>#</th>
-                        <th style={cellStyle}>Equipo</th>
-                        <th style={cellStyle}>J</th>
-                        <th style={cellStyle}>G</th>
-                        <th style={cellStyle}>E</th>
-                        <th style={cellStyle}>P</th>
-                        <th style={cellStyle}>GF</th>
-                        <th style={cellStyle}>GC</th>
-                        <th style={cellStyle}>DG</th>
-                        <th style={cellStyle}>Pts</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {masculineStandings.map((s, idx) => (
-                        <tr key={`m-${s.team.name}-${idx}`}>
-                          <td style={cellStyle}>{idx + 1}</td>
-                          <td style={cellStyle}>{s.team.name}</td>
-                          <td style={cellStyle}>{s.played}</td>
-                          <td style={cellStyle}>{s.wins}</td>
-                          <td style={cellStyle}>{s.draws}</td>
-                          <td style={cellStyle}>{s.losses}</td>
-                          <td style={cellStyle}>{s.goalsFor}</td>
-                          <td style={cellStyle}>{s.goalsAgainst}</td>
-                          <td style={cellStyle}>{s.goalDiff}</td>
-                          <td style={cellStyle}>{s.points}</td>
+                  <div className="table-responsive">
+                    <table className="standings-table" style={{ width: '100%', fontSize: '1.1rem' }}>
+                      <thead>
+                        <tr>
+                          <th style={cellStyle}>#</th>
+                          <th style={cellStyle}>Equipo</th>
+                          <th style={cellStyle}>J</th>
+                          <th style={cellStyle}>G</th>
+                          <th style={cellStyle}>E</th>
+                          <th style={cellStyle}>P</th>
+                          <th style={cellStyle}>GF</th>
+                          <th style={cellStyle}>GC</th>
+                          <th style={cellStyle}>DG</th>
+                          <th style={cellStyle}>Pts</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {masculineStandings.map((s, idx) => (
+                          <tr key={`m-${s.team.name}-${idx}`}>
+                            <td style={cellStyle}>{idx + 1}</td>
+                            <td style={cellStyle}>{s.team.name}</td>
+                            <td style={cellStyle}>{s.played}</td>
+                            <td style={cellStyle}>{s.wins}</td>
+                            <td style={cellStyle}>{s.draws}</td>
+                            <td style={cellStyle}>{s.losses}</td>
+                            <td style={cellStyle}>{s.goalsFor}</td>
+                            <td style={cellStyle}>{s.goalsAgainst}</td>
+                            <td style={cellStyle}>{s.goalDiff}</td>
+                            <td style={cellStyle}>{s.points}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 ) : (
                   <p style={{ margin: '12px 0' }}>No hay posiciones disponibles.</p>
                 )}
@@ -333,38 +335,40 @@ const Tournaments: React.FC = () => {
                 </div>
 
                 {feminineStandings.length > 0 ? (
-                  <table className="standings-table" style={{ width: '100%', fontSize: '1.1rem' }}>
-                    <thead>
-                      <tr>
-                        <th style={cellStyle}>#</th>
-                        <th style={cellStyle}>Equipo</th>
-                        <th style={cellStyle}>J</th>
-                        <th style={cellStyle}>G</th>
-                        <th style={cellStyle}>E</th>
-                        <th style={cellStyle}>P</th>
-                        <th style={cellStyle}>GF</th>
-                        <th style={cellStyle}>GC</th>
-                        <th style={cellStyle}>DG</th>
-                        <th style={cellStyle}>Pts</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {feminineStandings.map((s, idx) => (
-                        <tr key={`f-${s.team.name}-${idx}`}>
-                          <td style={cellStyle}>{idx + 1}</td>
-                          <td style={cellStyle}>{s.team.name}</td>
-                          <td style={cellStyle}>{s.played}</td>
-                          <td style={cellStyle}>{s.wins}</td>
-                          <td style={cellStyle}>{s.draws}</td>
-                          <td style={cellStyle}>{s.losses}</td>
-                          <td style={cellStyle}>{s.goalsFor}</td>
-                          <td style={cellStyle}>{s.goalsAgainst}</td>
-                          <td style={cellStyle}>{s.goalDiff}</td>
-                          <td style={cellStyle}>{s.points}</td>
+                  <div className="table-responsive">
+                    <table className="standings-table" style={{ width: '100%', fontSize: '1.1rem' }}>
+                      <thead>
+                        <tr>
+                          <th style={cellStyle}>#</th>
+                          <th style={cellStyle}>Equipo</th>
+                          <th style={cellStyle}>J</th>
+                          <th style={cellStyle}>G</th>
+                          <th style={cellStyle}>E</th>
+                          <th style={cellStyle}>P</th>
+                          <th style={cellStyle}>GF</th>
+                          <th style={cellStyle}>GC</th>
+                          <th style={cellStyle}>DG</th>
+                          <th style={cellStyle}>Pts</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {feminineStandings.map((s, idx) => (
+                          <tr key={`f-${s.team.name}-${idx}`}>
+                            <td style={cellStyle}>{idx + 1}</td>
+                            <td style={cellStyle}>{s.team.name}</td>
+                            <td style={cellStyle}>{s.played}</td>
+                            <td style={cellStyle}>{s.wins}</td>
+                            <td style={cellStyle}>{s.draws}</td>
+                            <td style={cellStyle}>{s.losses}</td>
+                            <td style={cellStyle}>{s.goalsFor}</td>
+                            <td style={cellStyle}>{s.goalsAgainst}</td>
+                            <td style={cellStyle}>{s.goalDiff}</td>
+                            <td style={cellStyle}>{s.points}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 ) : (
                   <p style={{ margin: '12px 0' }}>No hay posiciones disponibles.</p>
                 )}

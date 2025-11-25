@@ -349,38 +349,40 @@ function MasculinoPage() {
               </div>
 
               {standings.length > 0 ? (
-                <table className="standings-table" style={{ width: '100%', fontSize: '0.95rem' }}>
-                  <thead>
-                    <tr>
-                      <th>#</th>
-                      <th>Equipo</th>
-                      <th>J</th>
-                      <th>G</th>
-                      <th>E</th>
-                      <th>P</th>
-                      <th>GF</th>
-                      <th>GC</th>
-                      <th>DG</th>
-                      <th>Pts</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {standings.map((s, idx) => (
-                      <tr key={`${s.team.name}-${idx}`}>
-                        <td>{idx + 1}</td>
-                        <td>{s.team.name}</td>
-                        <td>{s.played}</td>
-                        <td>{s.wins}</td>
-                        <td>{s.draws}</td>
-                        <td>{s.losses}</td>
-                        <td>{s.goalsFor}</td>
-                        <td>{s.goalsAgainst}</td>
-                        <td>{s.goalDiff}</td>
-                        <td>{s.points}</td>
+                <div className="table-responsive">
+                  <table className="standings-table" style={{ width: '100%', fontSize: '0.95rem' }}>
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Equipo</th>
+                        <th>J</th>
+                        <th>G</th>
+                        <th>E</th>
+                        <th>P</th>
+                        <th>GF</th>
+                        <th>GC</th>
+                        <th>DG</th>
+                        <th>Pts</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {standings.map((s, idx) => (
+                        <tr key={`${s.team.name}-${idx}`}>
+                          <td>{idx + 1}</td>
+                          <td>{s.team.name}</td>
+                          <td>{s.played}</td>
+                          <td>{s.wins}</td>
+                          <td>{s.draws}</td>
+                          <td>{s.losses}</td>
+                          <td>{s.goalsFor}</td>
+                          <td>{s.goalsAgainst}</td>
+                          <td>{s.goalDiff}</td>
+                          <td>{s.points}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               ) : (
                 <p style={{ margin: '12px 0' }}>No hay posiciones disponibles.</p>
               )}

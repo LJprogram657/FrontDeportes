@@ -23,6 +23,12 @@ body {
     min-height: 100vh;
 }
 
+/* Base responsive: caja coherente y medios fluidos */
+*, *::before, *::after { box-sizing: border-box; }
+img, video, canvas { max-width: 100%; height: auto; }
+/* Evita zoom inicial y scroll lateral por elementos muy anchos */
+.container { width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+
 .main-container {
     flex: 1;
     display: flex;

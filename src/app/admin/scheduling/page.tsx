@@ -547,6 +547,7 @@ const SchedulingPanel: React.FC<SchedulingPanelProps> = ({ tournament, onBack })
                   onUpdateResult={updateMatchResult}
                   onSave={saveMatchToDB}
                   onDelete={deleteMatch}
+                  tournamentSport={tournament.sport}
                 />
               ))}
             </div>
@@ -589,6 +590,7 @@ interface MatchCardProps {
   onSave: (matchId: string) => void;
   onDelete: (matchId: string) => void;
   readOnly?: boolean;
+  tournamentSport?: string; // 'futbol.salon' | 'futbol.7'
 }
 
 const MatchCard: React.FC<MatchCardProps> = ({
@@ -603,6 +605,7 @@ const MatchCard: React.FC<MatchCardProps> = ({
   onSave,
   onDelete,
   readOnly = false,
+  tournamentSport,
 }) => {
   const [showPreview, setShowPreview] = useState<boolean>(false);
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
@@ -621,6 +624,7 @@ const MatchCard: React.FC<MatchCardProps> = ({
   };
 
   const isComplete = match.homeTeam && match.awayTeam && match.venue && match.date && match.time;
+  const modalityParam = tournamentSport === 'futbol.7' ? 'futbol7' : 'futsal';
 
   return (
     <div className={`match-card ${readOnly ? 'readonly' : isComplete ? 'complete' : 'incomplete'}`}>
@@ -690,6 +694,18 @@ const MatchCard: React.FC<MatchCardProps> = ({
           <div className="actions">
             <button className="btn-primary" onClick={() => onSave(match.id)} disabled={!isComplete}>Guardar</button>
             <button className="btn-secondary" onClick={() => onDelete(match.id)}>Eliminar</button>
+            <button
+              className="btn-secondary"
+              disabled={!match.dbId || !isComplete}
+              onClick={() => {
+                if (match.dbId) {
+                  const url = `/api/planilla/${match.dbId}?modality=${modalityParam}`;
+                  window.open(url, '_blank');
+                }
+              }}
+            >
+              Descargar planilla
+            </button>
           </div>
         </div>
       ) : (
