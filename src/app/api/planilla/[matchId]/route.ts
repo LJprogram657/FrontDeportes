@@ -34,45 +34,65 @@ export async function GET(req: NextRequest, { params }: { params: { matchId: str
     const page = pages[0];
     const { width, height } = page.getSize();
 
+    // Coordenadas calibradas para la planilla (aprox. A4 595 x 842).
+    // Ajustadas para caer en las casillas del encabezado y las columnas de jugadores.
+    const coords = {
+      titulo: { x: 48, y: height - 36 },
+      torneo: { x: 210, y: height - 74 },
+      fecha: { x: 70, y: height - 102 },
+      hora: { x: 260, y: height - 102 },
+      cancha: { x: 70, y: height - 122 },
+      equipoLocal: { x: 70, y: height - 152 },
+      equipoVisitante: { x: width / 2 + 18, y: height - 152 },
+      jugadoresLocalStart: { x: 70, y: height - 174 },
+      jugadoresVisitanteStart: { x: width / 2 + 18, y: height - 174 },
+      jugadoresLineHeight: 12,
+      jugadoresMax: 20,
+    } as const;
+
     const title = `PLANILLA ${modality === 'futbol7' ? 'FÚTBOL 7' : 'FÚTBOL SALÓN'}`;
-    page.drawText(title, { x: 50, y: height - 40, size: 16, font, color: rgb(0, 0, 0) });
+    page.drawText(title, { x: coords.titulo.x, y: coords.titulo.y, size: 14, font, color: rgb(0, 0, 0) });
 
     if (match) {
-      const torneo = match.tournament?.name ? `Torneo: ${match.tournament.name}` : '';
+      const torneoName = match.tournament?.name || '';
       const localName = match.homeTeam?.name || 'Equipo Local';
       const awayName = match.awayTeam?.name || 'Equipo Visitante';
-      const venue = match.venue ? `Cancha: ${match.venue}` : 'Cancha: —';
-      const dateStr = match.date ? new Date(match.date).toLocaleDateString() : '—';
-      const timeStr = match.time || '—';
+      const venue = match.venue || '';
+      const dateStr = match.date ? new Date(match.date).toLocaleDateString() : '';
+      const timeStr = match.time || '';
 
-      let y = height - 65;
-      if (torneo) {
-        page.drawText(torneo, { x: 50, y, size: 12, font });
-        y -= 18;
+      if (torneoName) {
+        page.drawText(`TORNEO: ${torneoName}`, { x: coords.torneo.x, y: coords.torneo.y, size: 10.5, font });
       }
-      page.drawText(`Fecha: ${dateStr}   Hora: ${timeStr}`, { x: 50, y, size: 12, font });
-      y -= 18;
-      page.drawText(venue, { x: 50, y, size: 12, font });
-      y -= 24;
-      page.drawText(`Local: ${localName}`, { x: 50, y, size: 12, font });
-      page.drawText(`Visitante: ${awayName}`, { x: width / 2 + 20, y, size: 12, font });
-      y -= 18;
+      if (dateStr) {
+        page.drawText(`Fecha: ${dateStr}`, { x: coords.fecha.x, y: coords.fecha.y, size: 10.5, font });
+      }
+      if (timeStr) {
+        page.drawText(`Hora: ${timeStr}`, { x: coords.hora.x, y: coords.hora.y, size: 10.5, font });
+      }
+      if (venue) {
+        page.drawText(`Cancha: ${venue}`, { x: coords.cancha.x, y: coords.cancha.y, size: 10.5, font });
+      }
 
-      const leftStartY = y - 10;
-      const rightStartY = y - 10;
-      const lineHeight = 14;
-      page.drawText('Jugadores Local', { x: 50, y: leftStartY + 16, size: 12, font });
-      page.drawText('Jugadores Visitante', { x: width / 2 + 20, y: rightStartY + 16, size: 12, font });
+      // Encabezado de equipo A/B en las líneas rojas
+      page.drawText(`EQUIPO A: ${localName}`, { x: coords.equipoLocal.x, y: coords.equipoLocal.y, size: 11, font });
+      page.drawText(`EQUIPO B: ${awayName}`, { x: coords.equipoVisitante.x, y: coords.equipoVisitante.y, size: 11, font });
 
+      // Listados de jugadores en las dos columnas principales
       const homePlayers = match.homeTeam?.players || [];
       const awayPlayers = match.awayTeam?.players || [];
-      homePlayers.slice(0, 18).forEach((p, i) => {
-        const text = `${i + 1}. ${p.name} ${p.lastName} (${p.cedula})`;
-        page.drawText(text, { x: 50, y: leftStartY - i * lineHeight, size: 10, font });
+      const maxRows = coords.jugadoresMax;
+      const lh = coords.jugadoresLineHeight;
+
+      homePlayers.slice(0, maxRows).forEach((p, i) => {
+        const text = `${i + 1}. ${p.name} ${p.lastName} (${p.cedula ?? ''})`;
+        const y = coords.jugadoresLocalStart.y - i * lh;
+        page.drawText(text, { x: coords.jugadoresLocalStart.x, y, size: 9.5, font });
       });
-      awayPlayers.slice(0, 18).forEach((p, i) => {
-        const text = `${i + 1}. ${p.name} ${p.lastName} (${p.cedula})`;
-        page.drawText(text, { x: width / 2 + 20, y: rightStartY - i * lineHeight, size: 10, font });
+      awayPlayers.slice(0, maxRows).forEach((p, i) => {
+        const text = `${i + 1}. ${p.name} ${p.lastName} (${p.cedula ?? ''})`;
+        const y = coords.jugadoresVisitanteStart.y - i * lh;
+        page.drawText(text, { x: coords.jugadoresVisitanteStart.x, y, size: 9.5, font });
       });
     }
 
