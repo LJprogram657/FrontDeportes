@@ -55,32 +55,40 @@ export async function GET(req: NextRequest, { params }: { params: { matchId: str
       const dateStr = match.date ? new Date(match.date).toLocaleDateString() : '';
       const timeStr = match.time || '';
 
-      // Fecha y Hora: recolocados para coincidir mejor con el encabezado.
+      // Fecha y Hora: sólo valores dentro de sus casillas (sin prefijo "Fecha:"/"Hora:").
       if (dateStr) {
-        page.drawText(`Fecha: ${dateStr}`, { x: 72, y: height - 108, size: 10.5, font });
+        page.drawText(`${dateStr}`, { x: 118, y: height - 108, size: 10.5, font });
       }
       if (timeStr) {
-        page.drawText(`Hora: ${timeStr}`, { x: 260, y: height - 108, size: 10.5, font });
+        page.drawText(`${timeStr}`, { x: 340, y: height - 108, size: 10.5, font });
       }
 
-      // Sólo nombres de jugadores en columnas, reubicados más abajo dentro de la tabla.
+      // Sólo nombres y apellidos en dos columnas, centrados horizontalmente en la celda.
       const homePlayers = match.homeTeam?.players || [];
       const awayPlayers = match.awayTeam?.players || [];
-      const lh = 12;
+      const fontSize = 10.5;
+      const lineHeight = 16; // altura entre filas
       const maxRows = 20;
 
-      const leftStart = { x: 72, y: height - 320 };
-      const rightStart = { x: width / 2 + 18, y: height - 320 };
+      // Cajas aproximadas del campo "NOMBRE Y APELLIDO" en cada mitad
+      const leftBox = { x: 78, width: 230, startY: height - 355 };
+      const rightBox = { x: width / 2 + 24, width: 230, startY: height - 355 };
+
+      const drawCentered = (txt: string, boxX: number, boxWidth: number, y: number) => {
+        const tw = font.widthOfTextAtSize(txt, fontSize);
+        const x = boxX + Math.max(0, (boxWidth - tw) / 2);
+        page.drawText(txt, { x, y, size: fontSize, font });
+      };
 
       homePlayers.slice(0, maxRows).forEach((p, i) => {
-        const text = `${i + 1}. ${p.name} ${p.lastName} (${p.cedula ?? ''})`;
-        const y = leftStart.y - i * lh;
-        page.drawText(text, { x: leftStart.x, y, size: 9.5, font });
+        const text = `${i + 1}. ${p.name} ${p.lastName}`;
+        const y = leftBox.startY - i * lineHeight;
+        drawCentered(text, leftBox.x, leftBox.width, y);
       });
       awayPlayers.slice(0, maxRows).forEach((p, i) => {
-        const text = `${i + 1}. ${p.name} ${p.lastName} (${p.cedula ?? ''})`;
-        const y = rightStart.y - i * lh;
-        page.drawText(text, { x: rightStart.x, y, size: 9.5, font });
+        const text = `${i + 1}. ${p.name} ${p.lastName}`;
+        const y = rightBox.startY - i * lineHeight;
+        drawCentered(text, rightBox.x, rightBox.width, y);
       });
     }
 
