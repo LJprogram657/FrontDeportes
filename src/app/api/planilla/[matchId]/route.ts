@@ -71,8 +71,9 @@ export async function GET(req: NextRequest, { params }: { params: { matchId: str
         fontSize: 10.5,
         rowHeight: 18, // alto de cada fila
         maxRows: 18,
-        left: { x: 78, width: 230, topY: height - 440 },
-        right: { x: width / 2 + 24, width: 230, topY: height - 440 },
+        // Ajuste: mover el bloque más arriba y ajustar ancho para centrar dentro de "NOMBRE Y APELLIDO"
+        left: { x: 86, width: 226, topY: height - 250 },
+        right: { x: width / 2 + 30, width: 226, topY: height - 250 },
       } as const;
 
       const fitToWidth = (text: string, width: number) => {
