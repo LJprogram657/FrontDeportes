@@ -50,49 +50,37 @@ export async function GET(req: NextRequest, { params }: { params: { matchId: str
       jugadoresMax: 20,
     } as const;
 
-    const title = `PLANILLA ${modality === 'futbol7' ? 'FÚTBOL 7' : 'FÚTBOL SALÓN'}`;
-    page.drawText(title, { x: coords.titulo.x, y: coords.titulo.y, size: 14, font, color: rgb(0, 0, 0) });
-
+    // No dibujamos título ni otros campos para evitar solapamientos.
     if (match) {
-      const torneoName = match.tournament?.name || '';
-      const localName = match.homeTeam?.name || 'Equipo Local';
-      const awayName = match.awayTeam?.name || 'Equipo Visitante';
-      const venue = match.venue || '';
       const dateStr = match.date ? new Date(match.date).toLocaleDateString() : '';
       const timeStr = match.time || '';
 
-      if (torneoName) {
-        page.drawText(`TORNEO: ${torneoName}`, { x: coords.torneo.x, y: coords.torneo.y, size: 10.5, font });
-      }
+      // Fecha y Hora: recolocados para coincidir mejor con el encabezado.
       if (dateStr) {
-        page.drawText(`Fecha: ${dateStr}`, { x: coords.fecha.x, y: coords.fecha.y, size: 10.5, font });
+        page.drawText(`Fecha: ${dateStr}`, { x: 72, y: height - 108, size: 10.5, font });
       }
       if (timeStr) {
-        page.drawText(`Hora: ${timeStr}`, { x: coords.hora.x, y: coords.hora.y, size: 10.5, font });
-      }
-      if (venue) {
-        page.drawText(`Cancha: ${venue}`, { x: coords.cancha.x, y: coords.cancha.y, size: 10.5, font });
+        page.drawText(`Hora: ${timeStr}`, { x: 260, y: height - 108, size: 10.5, font });
       }
 
-      // Encabezado de equipo A/B en las líneas rojas
-      page.drawText(`EQUIPO A: ${localName}`, { x: coords.equipoLocal.x, y: coords.equipoLocal.y, size: 11, font });
-      page.drawText(`EQUIPO B: ${awayName}`, { x: coords.equipoVisitante.x, y: coords.equipoVisitante.y, size: 11, font });
-
-      // Listados de jugadores en las dos columnas principales
+      // Sólo nombres de jugadores en columnas, reubicados más abajo dentro de la tabla.
       const homePlayers = match.homeTeam?.players || [];
       const awayPlayers = match.awayTeam?.players || [];
-      const maxRows = coords.jugadoresMax;
-      const lh = coords.jugadoresLineHeight;
+      const lh = 12;
+      const maxRows = 20;
+
+      const leftStart = { x: 72, y: height - 320 };
+      const rightStart = { x: width / 2 + 18, y: height - 320 };
 
       homePlayers.slice(0, maxRows).forEach((p, i) => {
         const text = `${i + 1}. ${p.name} ${p.lastName} (${p.cedula ?? ''})`;
-        const y = coords.jugadoresLocalStart.y - i * lh;
-        page.drawText(text, { x: coords.jugadoresLocalStart.x, y, size: 9.5, font });
+        const y = leftStart.y - i * lh;
+        page.drawText(text, { x: leftStart.x, y, size: 9.5, font });
       });
       awayPlayers.slice(0, maxRows).forEach((p, i) => {
         const text = `${i + 1}. ${p.name} ${p.lastName} (${p.cedula ?? ''})`;
-        const y = coords.jugadoresVisitanteStart.y - i * lh;
-        page.drawText(text, { x: coords.jugadoresVisitanteStart.x, y, size: 9.5, font });
+        const y = rightStart.y - i * lh;
+        page.drawText(text, { x: rightStart.x, y, size: 9.5, font });
       });
     }
 
