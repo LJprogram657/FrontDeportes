@@ -63,32 +63,45 @@ export async function GET(req: NextRequest, { params }: { params: { matchId: str
         page.drawText(`${timeStr}`, { x: 340, y: height - 108, size: 10.5, font });
       }
 
-      // Sólo nombres y apellidos en dos columnas, centrados horizontalmente en la celda.
+      // Sólo nombres y apellidos en dos columnas, centrados en cada fila de la tabla.
       const homePlayers = match.homeTeam?.players || [];
       const awayPlayers = match.awayTeam?.players || [];
-      const fontSize = 10.5;
-      const lineHeight = 16; // altura entre filas
-      const maxRows = 20;
 
-      // Cajas aproximadas del campo "NOMBRE Y APELLIDO" en cada mitad
-      const leftBox = { x: 78, width: 230, startY: height - 355 };
-      const rightBox = { x: width / 2 + 24, width: 230, startY: height - 355 };
+      const playerArea = {
+        fontSize: 10.5,
+        rowHeight: 18, // alto de cada fila
+        maxRows: 18,
+        left: { x: 78, width: 230, topY: height - 440 },
+        right: { x: width / 2 + 24, width: 230, topY: height - 440 },
+      } as const;
 
-      const drawCentered = (txt: string, boxX: number, boxWidth: number, y: number) => {
-        const tw = font.widthOfTextAtSize(txt, fontSize);
-        const x = boxX + Math.max(0, (boxWidth - tw) / 2);
-        page.drawText(txt, { x, y, size: fontSize, font });
+      const fitToWidth = (text: string, width: number) => {
+        let t = text;
+        let w = font.widthOfTextAtSize(t, playerArea.fontSize);
+        if (w <= width) return t;
+        while (t.length > 3 && w > width) {
+          t = t.slice(0, t.length - 1);
+          w = font.widthOfTextAtSize(t + '…', playerArea.fontSize);
+        }
+        return t + '…';
       };
 
-      homePlayers.slice(0, maxRows).forEach((p, i) => {
-        const text = `${i + 1}. ${p.name} ${p.lastName}`;
-        const y = leftBox.startY - i * lineHeight;
-        drawCentered(text, leftBox.x, leftBox.width, y);
+      const drawRowCentered = (txt: string, x: number, boxWidth: number, rowIndex: number, topY: number) => {
+        const safe = fitToWidth(txt, boxWidth);
+        const tw = font.widthOfTextAtSize(safe, playerArea.fontSize);
+        const cx = x + Math.max(0, (boxWidth - tw) / 2);
+        // centrar verticalmente en la fila (aprox. baseline en medio de la celda)
+        const baseline = topY - rowIndex * playerArea.rowHeight - (playerArea.rowHeight / 2) + (playerArea.fontSize * 0.35);
+        page.drawText(safe, { x: cx, y: baseline, size: playerArea.fontSize, font });
+      };
+
+      homePlayers.slice(0, playerArea.maxRows).forEach((p, i) => {
+        const text = `${p.name} ${p.lastName}`;
+        drawRowCentered(text, playerArea.left.x, playerArea.left.width, i, playerArea.left.topY);
       });
-      awayPlayers.slice(0, maxRows).forEach((p, i) => {
-        const text = `${i + 1}. ${p.name} ${p.lastName}`;
-        const y = rightBox.startY - i * lineHeight;
-        drawCentered(text, rightBox.x, rightBox.width, y);
+      awayPlayers.slice(0, playerArea.maxRows).forEach((p, i) => {
+        const text = `${p.name} ${p.lastName}`;
+        drawRowCentered(text, playerArea.right.x, playerArea.right.width, i, playerArea.right.topY);
       });
     }
 
