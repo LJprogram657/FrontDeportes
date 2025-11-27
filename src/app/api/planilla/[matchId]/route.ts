@@ -69,11 +69,11 @@ export async function GET(req: NextRequest, { params }: { params: { matchId: str
 
       const playerArea = {
         fontSize: 10.5,
-        rowHeight: 18, // alto de cada fila
+        rowHeight: 20, // alto de cada fila
         maxRows: 18,
-        // Ajuste: mover el bloque más arriba y ajustar ancho para centrar dentro de "NOMBRE Y APELLIDO"
-        left: { x: 86, width: 226, topY: height - 250 },
-        right: { x: width / 2 + 30, width: 226, topY: height - 250 },
+        // Ajuste fino: subir inicio ~40px y afinar x
+        left: { x: 84, width: 226, topY: height - 210 },
+        right: { x: width / 2 + 28, width: 226, topY: height - 210 },
       } as const;
 
       const fitToWidth = (text: string, width: number) => {
@@ -91,8 +91,8 @@ export async function GET(req: NextRequest, { params }: { params: { matchId: str
         const safe = fitToWidth(txt, boxWidth);
         const tw = font.widthOfTextAtSize(safe, playerArea.fontSize);
         const cx = x + Math.max(0, (boxWidth - tw) / 2);
-        // centrar verticalmente en la fila (aprox. baseline en medio de la celda)
-        const baseline = topY - rowIndex * playerArea.rowHeight - (playerArea.rowHeight / 2) + (playerArea.fontSize * 0.35);
+        // centrar verticalmente en la fila: baseline = top - idx*rowHeight - (rowHeight - fontSize)/2
+        const baseline = topY - rowIndex * playerArea.rowHeight - ((playerArea.rowHeight - playerArea.fontSize) / 2);
         page.drawText(safe, { x: cx, y: baseline, size: playerArea.fontSize, font });
       };
 
