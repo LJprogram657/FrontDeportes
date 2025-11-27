@@ -55,12 +55,30 @@ export async function GET(req: NextRequest, { params }: { params: { matchId: str
       const dateStr = match.date ? new Date(match.date).toLocaleDateString() : '';
       const timeStr = match.time || '';
 
-      // Fecha y Hora: sólo valores dentro de sus casillas (sin prefijo "Fecha:"/"Hora:").
+      // Intentar rellenar campos AcroForm si existen; si no, dibujar por coordenadas.
+      const form = doc.getForm();
+      const setIfPresent = (name: string, value: string) => {
+        try {
+          const field = form.getTextField(name);
+          field.setText(value);
+          return true;
+        } catch {
+          return false;
+        }
+      };
+
+      // Fecha y Hora: intentar FECHA/HORA con alias; fallback a drawText.
       if (dateStr) {
-        page.drawText(`${dateStr}`, { x: 118, y: height - 108, size: 10.5, font });
+        const dateFilled = ['FECHA', 'Fecha', 'fecha'].some(alias => setIfPresent(alias, dateStr));
+        if (!dateFilled) {
+          page.drawText(`${dateStr}`, { x: 118, y: height - 108, size: 10.5, font });
+        }
       }
       if (timeStr) {
-        page.drawText(`${timeStr}`, { x: 340, y: height - 108, size: 10.5, font });
+        const timeFilled = ['HORA', 'Hora', 'hora'].some(alias => setIfPresent(alias, timeStr));
+        if (!timeFilled) {
+          page.drawText(`${timeStr}`, { x: 340, y: height - 108, size: 10.5, font });
+        }
       }
 
       // Sólo nombres y apellidos en dos columnas, centrados en cada fila de la tabla.
@@ -97,12 +115,20 @@ export async function GET(req: NextRequest, { params }: { params: { matchId: str
       };
 
       homePlayers.slice(0, playerArea.maxRows).forEach((p, i) => {
-        const text = `${p.name} ${p.lastName}`;
-        drawRowCentered(text, playerArea.left.x, playerArea.left.width, i, playerArea.left.topY);
+        const text = `${p.name} ${p.lastName}`.trim();
+        const idx = String(i + 1).padStart(2, '0');
+        const set = setIfPresent(`A_NOMBRE_${idx}`, text);
+        if (!set) {
+          drawRowCentered(text, playerArea.left.x, playerArea.left.width, i, playerArea.left.topY);
+        }
       });
       awayPlayers.slice(0, playerArea.maxRows).forEach((p, i) => {
-        const text = `${p.name} ${p.lastName}`;
-        drawRowCentered(text, playerArea.right.x, playerArea.right.width, i, playerArea.right.topY);
+        const text = `${p.name} ${p.lastName}`.trim();
+        const idx = String(i + 1).padStart(2, '0');
+        const set = setIfPresent(`B_NOMBRE_${idx}`, text);
+        if (!set) {
+          drawRowCentered(text, playerArea.right.x, playerArea.right.width, i, playerArea.right.topY);
+        }
       });
     }
 
