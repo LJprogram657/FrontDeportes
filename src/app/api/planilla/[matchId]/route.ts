@@ -12,11 +12,30 @@ export async function GET(req: NextRequest, { params }: { params: { matchId: str
   const modalityParam = url.searchParams.get('modality');
   const modality = modalityParam === 'futbol7' ? 'futbol7' : 'futsal';
 
-  const fileName = modality === 'futbol7' ? 'planilla-futbol7.pdf' : 'planilla-futsal.pdf';
-  const filePath = path.join(process.cwd(), 'public', 'templates', fileName);
+  // Soporte a nuevo nombre de plantilla para futsal y fallback seguro
+  const candidateNames =
+    modality === 'futbol7'
+      ? ['planilla-futbol7.pdf']
+      : ['planilla-futsal.pdf edit.pdf', 'planilla-futsal.pdf'];
+
+  let fileName = candidateNames[0];
+  let filePath = path.join(process.cwd(), 'public', 'templates', fileName);
 
   try {
-    const fileBuffer = await fs.readFile(filePath);
+    // Intentar leer la primera plantilla existente según los candidatos
+    let fileBuffer: Buffer | undefined;
+    for (const name of candidateNames) {
+      const p = path.join(process.cwd(), 'public', 'templates', name);
+      try {
+        fileBuffer = await fs.readFile(p);
+        fileName = name;
+        filePath = p;
+        break;
+      } catch {}
+    }
+    if (!fileBuffer) {
+      fileBuffer = await fs.readFile(filePath);
+    }
 
     const matchId = Number(params.matchId);
     const match = await prisma.match.findUnique({
@@ -33,6 +52,25 @@ export async function GET(req: NextRequest, { params }: { params: { matchId: str
     const pages = doc.getPages();
     const page = pages[0];
     const { width, height } = page.getSize();
+
+    // Depuración opcional: listar nombres de campos del formulario
+    const debug = url.searchParams.get('debug');
+    const form = doc.getForm();
+    const formFields = (() => {
+      try {
+        return form.getFields();
+      } catch {
+        return [] as any[];
+      }
+    })();
+    if (debug === 'form') {
+      const names = formFields.map((f: any) => {
+        try { return f.getName(); } catch { return 'unknown'; }
+      });
+      return new Response(JSON.stringify({ template: fileName, fields: names }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
 
     // Coordenadas calibradas para la planilla (aprox. A4 595 x 842).
     // Ajustadas para caer en las casillas del encabezado y las columnas de jugadores.
@@ -56,7 +94,6 @@ export async function GET(req: NextRequest, { params }: { params: { matchId: str
       const timeStr = match.time || '';
 
       // Intentar rellenar campos AcroForm si existen; si no, dibujar por coordenadas.
-      const form = doc.getForm();
       const setIfPresent = (name: string, value: string) => {
         try {
           const field = form.getTextField(name);
@@ -67,15 +104,19 @@ export async function GET(req: NextRequest, { params }: { params: { matchId: str
         }
       };
 
-      // Fecha y Hora: intentar FECHA/HORA con alias; fallback a drawText.
+      // Fecha y Hora: intentar detectar por nombre (contiene "fecha"/"hora"); luego alias; fallback.
       if (dateStr) {
-        const dateFilled = ['FECHA', 'Fecha', 'fecha'].some(alias => setIfPresent(alias, dateStr));
+        const names = formFields.map((f: any) => { try { return f.getName(); } catch { return ''; } });
+        const auto = names.find(n => /fecha/i.test(n));
+        const dateFilled = (auto ? setIfPresent(auto, dateStr) : false) || ['FECHA', 'Fecha', 'fecha'].some(alias => setIfPresent(alias, dateStr));
         if (!dateFilled) {
           page.drawText(`${dateStr}`, { x: 118, y: height - 108, size: 10.5, font });
         }
       }
       if (timeStr) {
-        const timeFilled = ['HORA', 'Hora', 'hora'].some(alias => setIfPresent(alias, timeStr));
+        const names = formFields.map((f: any) => { try { return f.getName(); } catch { return ''; } });
+        const auto = names.find(n => /hora/i.test(n));
+        const timeFilled = (auto ? setIfPresent(auto, timeStr) : false) || ['HORA', 'Hora', 'hora'].some(alias => setIfPresent(alias, timeStr));
         if (!timeFilled) {
           page.drawText(`${timeStr}`, { x: 340, y: height - 108, size: 10.5, font });
         }
@@ -114,18 +155,53 @@ export async function GET(req: NextRequest, { params }: { params: { matchId: str
         page.drawText(safe, { x: cx, y: baseline, size: playerArea.fontSize, font });
       };
 
+      // Detección automática de nombres de campo por lado e índice
+      const allFieldNames = formFields.map((f: any) => { try { return f.getName(); } catch { return ''; } });
+      const mapByIndex = (side: 'A' | 'B') => {
+        const regexes = [
+          new RegExp(`^${side}[ _-]?NOMBRE[ _-]?(\\d{1,2})$`, 'i'),
+          new RegExp(`^NOMBRE[ _-]?${side}[ _-]?(\\d{1,2})$`, 'i'),
+          new RegExp(`^EQUIPO[ _-]?${side}[ _-]?(\\d{1,2})$`, 'i'),
+          new RegExp(`^${side}[ _-]?(\\d{1,2})$`, 'i'),
+          new RegExp(`^${side}(\\d{2})$`, 'i'),
+        ];
+        const map: Record<number, string> = {};
+        for (const n of allFieldNames) {
+          for (const rx of regexes) {
+            const m = n.match(rx);
+            if (m) {
+              const idx = Number(m[1]);
+              if (idx >= 1 && idx <= playerArea.maxRows && !(idx in map)) {
+                map[idx] = n;
+                break;
+              }
+            }
+          }
+        }
+        for (let i = 1; i <= playerArea.maxRows; i++) {
+          const key1 = `${side}_NOMBRE_${String(i).padStart(2, '0')}`;
+          const key2 = `${side}_NOMBRE_${i}`;
+          if (!map[i] && allFieldNames.includes(key1)) map[i] = key1;
+          if (!map[i] && allFieldNames.includes(key2)) map[i] = key2;
+        }
+        return map;
+      };
+
+      const mapA = mapByIndex('A');
+      const mapB = mapByIndex('B');
+
       homePlayers.slice(0, playerArea.maxRows).forEach((p, i) => {
         const text = `${p.name} ${p.lastName}`.trim();
-        const idx = String(i + 1).padStart(2, '0');
-        const set = setIfPresent(`A_NOMBRE_${idx}`, text);
+        const target = mapA[i + 1];
+        const set = target ? setIfPresent(target, text) : false;
         if (!set) {
           drawRowCentered(text, playerArea.left.x, playerArea.left.width, i, playerArea.left.topY);
         }
       });
       awayPlayers.slice(0, playerArea.maxRows).forEach((p, i) => {
         const text = `${p.name} ${p.lastName}`.trim();
-        const idx = String(i + 1).padStart(2, '0');
-        const set = setIfPresent(`B_NOMBRE_${idx}`, text);
+        const target = mapB[i + 1];
+        const set = target ? setIfPresent(target, text) : false;
         if (!set) {
           drawRowCentered(text, playerArea.right.x, playerArea.right.width, i, playerArea.right.topY);
         }
