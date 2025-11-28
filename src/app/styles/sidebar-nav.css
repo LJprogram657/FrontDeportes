@@ -139,3 +139,9 @@
 .sidebar-nav .back-button {
   width: 100%;
 }
+
+/* Responsividad: apilar sidebar encima del contenido en pantallas estrechas */
+@media (max-width: 1024px) {
+  .page-with-sidebar { flex-direction: column; }
+  .sidebar-nav { width: 100%; }
+}

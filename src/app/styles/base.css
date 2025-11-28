@@ -25,7 +25,8 @@ body {
 
 /* Base responsive: caja coherente y medios fluidos */
 *, *::before, *::after { box-sizing: border-box; }
-img, video, canvas { max-width: 100%; height: auto; }
+img, video, canvas, svg { max-width: 100%; height: auto; }
+iframe, embed { max-width: 100%; }
 /* Evita zoom inicial y scroll lateral por elementos muy anchos */
 .container { width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 20px; }
 
@@ -50,6 +51,19 @@ main {
 a {
     text-decoration: none;
     color: inherit;
+}
+
+/* Utilidades globales de responsividad */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Texto largo no debe romper el layout */
+.break-anywhere, .content-wrap {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 /* Estilos base para los botones */

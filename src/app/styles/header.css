@@ -56,6 +56,14 @@
 .header .nav-link::before { 
     content: none !important; 
 }
+
+/* Responsividad del header y navegación */
+@media (max-width: 640px) {
+  .header .container { flex-wrap: wrap; padding: 0 1rem; }
+  .header nav { width: 100%; }
+  .header nav ul { flex-wrap: wrap; gap: 0.75rem; }
+  .header .nav-link { white-space: normal; }
+}
 /* Evitar doble efecto: usamos solo border-bottom del <a> */
 .header .nav-link::after { 
     content: none; 
