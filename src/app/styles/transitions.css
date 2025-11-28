@@ -1,0 +1,60 @@
+/* Transiciones globales y animaciones de entrada de página */
+
+html, body {
+  scroll-behavior: smooth;
+}
+
+/* Animación de entrada estándar para cada vista */
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.page-enter {
+  animation: fadeSlideIn 280ms ease-out both;
+}
+
+/* Transiciones suaves para elementos interactivos */
+a, button, .btn, .nav-link, .nav-button,
+input, select, textarea,
+.card, .tournament-card, .modal, .modal-content,
+table, tr, td, th {
+  transition: background-color 180ms ease, color 180ms ease,
+              border-color 180ms ease, box-shadow 200ms ease,
+              transform 180ms ease, opacity 180ms ease;
+}
+
+/* Hover y enfoque sutil */
+.btn, .nav-link, .nav-button {
+  will-change: transform, box-shadow;
+}
+
+.btn:hover, .nav-link:hover, .nav-button:hover {
+  transform: translateY(-1px);
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.35);
+  border-color: rgba(239, 68, 68, 0.7);
+}
+
+/* Filas de tabla con realce suave */
+.standings-table tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+/* Modales: entrada suave */
+.modal-overlay {
+  animation: fadeSlideIn 220ms ease-out both;
+}
+
+.modal-content {
+  animation: fadeSlideIn 300ms ease-out both;
+}
+
+/* Tarjetas y bloques */
+.tournament-card, .phase-content, .bracket-container {
+  will-change: transform, opacity;
+}
+

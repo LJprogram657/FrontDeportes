@@ -15,6 +15,7 @@ import "./styles/breadcrumbs.css";
 import "./styles/sidebar-nav.css";
 import "./styles/logo.css";
 import "./styles/tournament-detail.css";
+import "./styles/transitions.css";
 
 const geistSans = GeistSans;
 

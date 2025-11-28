@@ -4,6 +4,7 @@ import React from 'react';
 import { usePathname } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import PageTransition from '@/components/PageTransition';
 
 const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const pathname = usePathname();
@@ -12,7 +13,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <>
       {!isAdminPage && <Header />}
-      <main>{children}</main>
+      <main><PageTransition>{children}</PageTransition></main>
       {!isAdminPage && <Footer />}
     </>
   );

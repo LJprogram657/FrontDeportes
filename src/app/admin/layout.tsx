@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import SidebarNav from '../../components/SidebarNav';
 import '../styles/admin-dashboard.css';
+import PageTransition from '@/components/PageTransition';
 
 const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isAuthenticated, logout } = useAuth();
@@ -52,7 +53,7 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           </div>
         </header>
         <main className="main-content">
-          {children}
+          <PageTransition>{children}</PageTransition>
         </main>
       </div>
     </div>
