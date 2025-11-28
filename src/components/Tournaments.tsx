@@ -256,7 +256,7 @@ const Tournaments: React.FC = () => {
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
                   <img
-                    src={masculineTournaments[0]?.logo || '/images/default-tournament.png'}
+                    src={masculineTournaments[0]?.logo || '/images/logo.png'}
                     alt={masculineTournaments[0]?.name || 'Torneo'}
                     style={{ width: '48px', height: '48px', objectFit: 'contain', borderRadius: '8px' }}
                   />
@@ -324,7 +324,7 @@ const Tournaments: React.FC = () => {
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
                   <img
-                    src={feminineTournaments[0]?.logo || '/images/default-tournament.png'}
+                    src={feminineTournaments[0]?.logo || '/images/logo.png'}
                     alt={feminineTournaments[0]?.name || 'Torneo'}
                     style={{ width: '48px', height: '48px', objectFit: 'contain', borderRadius: '8px' }}
                   />

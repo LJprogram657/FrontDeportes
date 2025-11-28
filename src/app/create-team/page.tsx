@@ -260,7 +260,7 @@ export default function CreateTeamPage() {
                     role="button"
                     tabIndex={0}
                   >
-                    <img className="tournament-logo" src={t.logo} alt={t.name} />
+                    <img className="tournament-logo" src={t.logo || '/images/logo.png'} alt={t.name} />
                     <div className="tournament-info">
                       <strong>{t.name}</strong>
                       <span className="tournament-code">{t.code}</span>
@@ -286,7 +286,7 @@ export default function CreateTeamPage() {
                     role="button"
                     tabIndex={0}
                   >
-                    <img className="tournament-logo" src={t.logo} alt={t.name} />
+                    <img className="tournament-logo" src={t.logo || '/images/logo.png'} alt={t.name} />
                     <div className="tournament-info">
                       <strong>{t.name}</strong>
                       <span className="tournament-code">{t.code}</span>

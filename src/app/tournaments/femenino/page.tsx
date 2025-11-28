@@ -330,7 +330,7 @@ export default function FemeninoPage() {
           <div className="tournament-card" style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
               <img
-                src={tournaments[0]?.logo || '/images/default-tournament.png'}
+                src={tournaments[0]?.logo || '/images/logo.png'}
                 alt={tournaments[0]?.name || 'Torneo'}
                 style={{ width: '48px', height: '48px', objectFit: 'contain', borderRadius: '8px' }}
               />

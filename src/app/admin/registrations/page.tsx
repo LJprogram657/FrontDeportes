@@ -35,6 +35,8 @@ interface TeamRegistration {
 export default function AdminRegistrationsPage() {
   const [registrations, setRegistrations] = useState<TeamRegistration[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [tournaments, setTournaments] = useState<Array<{ id: number; name: string; code: string; logo: string; category: 'masculino' | 'femenino'; status: 'active' | 'upcoming' | 'finished' }>>([]);
+  const [isLoadingTournaments, setIsLoadingTournaments] = useState(true);
   const [selectedTournament, setSelectedTournament] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedRegistration, setSelectedRegistration] = useState<TeamRegistration | null>(null);
@@ -93,7 +95,7 @@ export default function AdminRegistrationsPage() {
             id: Number(t.tournament?.id ?? t.tournamentId),
             name: t.tournament?.name ?? '',
             code: t.tournament?.code ?? '',
-            logo: t.tournament?.logo ?? '/images/default-tournament.png',
+            logo: t.tournament?.logo ?? '/images/logo.png',
           },
           players: Array.isArray(t.players) ? t.players.map((p: any) => ({
             id: Number(p.id ?? 0),
@@ -117,6 +119,33 @@ export default function AdminRegistrationsPage() {
       }
     };
     loadRegistrations();
+  }, []);
+
+  // Cargar torneos creados para agrupar las notificaciones por torneo
+  useEffect(() => {
+    const loadTournaments = async () => {
+      setIsLoadingTournaments(true);
+      try {
+        const res = await fetch(`/api/tournaments`, { cache: 'no-store', headers: { ...authHeaders() } });
+        if (!res.ok) throw new Error('Error al cargar torneos');
+        const data = await res.json();
+        const mapped = (Array.isArray(data) ? data : []).map((t: any) => ({
+          id: Number(t.id),
+          name: String(t.name),
+          code: String(t.code ?? ''),
+          logo: t.logo || '/images/logo.png',
+          category: (t.category === 'femenino' || t.category === 'masculino' ? t.category : 'masculino'),
+          status: (t.status === 'active' || t.status === 'upcoming' || t.status === 'finished' ? t.status : 'upcoming'),
+        }));
+        setTournaments(mapped);
+      } catch (e) {
+        console.error(e);
+        setTournaments([]);
+      } finally {
+        setIsLoadingTournaments(false);
+      }
+    };
+    loadTournaments();
   }, []);
 
   // Marcar notificación como oculta sin borrar el registro aprobado
@@ -380,53 +409,109 @@ export default function AdminRegistrationsPage() {
           </div>
         </div>
 
-        {isLoading ? (
+        {isLoading || isLoadingTournaments ? (
           <p>Cargando...</p>
-        ) : filteredRegistrations.length === 0 ? (
-          <div className="no-registrations">No hay registros.</div>
+        ) : tournaments.length === 0 ? (
+          <div className="no-registrations">No hay torneos creados.</div>
         ) : (
           <>
-            <div className="registrations-grid">
-              {filteredRegistrations.map((r) => {
-                const meta = registrationsMeta.find((m) => m.id === r.id);
+            {[...tournaments]
+              .filter(t => {
+                if (selectedTournament === 'all') return true;
                 return (
-                  <div key={r.id} className="registration-card">
-                    <div className="registration-header">
-                      <div className="team-info">
-                        <img className="team-logo-small" src={r.teamLogo || '/images/default-team.png'} alt={r.teamName} />
-                        <div>
-                          <strong>{r.teamName}</strong>
-                          <div style={{ fontSize: '0.9rem', color: '#666' }}>
-                            {r.tournament?.name || r.tournament?.code || r.tournamentId}
-                          </div>
-                        </div>
+                  t.name === selectedTournament ||
+                  t.code === selectedTournament ||
+                  String(t.id) === selectedTournament
+                );
+              })
+              .map((tournament) => {
+                const regsForTournament = filteredRegistrations.filter(r => {
+                  const tid = r.tournamentId ?? r.tournament?.id;
+                  return Number(tid) === Number(tournament.id);
+                });
+
+                const totalT = regsForTournament.length;
+                const pendingT = regsForTournament.filter(r => r.status === 'pending').length;
+                const approvedT = regsForTournament.filter(r => r.status === 'approved').length;
+                const rejectedT = regsForTournament.filter(r => r.status === 'rejected').length;
+
+                return (
+                  <div key={tournament.id} className="tournament-category" style={{ marginBottom: '24px' }}>
+                    <div className="tournament-option" style={{ padding: '16px', marginBottom: '12px' }}>
+                      <div className="tournament-logo">
+                        <img src={tournament.logo || '/images/logo.png'} alt={tournament.name} />
                       </div>
-                      <span className={`status-badge ${r.status}`}>{r.status}</span>
+                      <div className="tournament-info">
+                        <h5>{tournament.name}</h5>
+                        <p className="tournament-description">Notificaciones de registro por torneo</p>
+                      </div>
                     </div>
 
-                    <div className="registration-details">
-                      <p>Contacto: {r.contactPerson} — {r.contactNumber}</p>
-                      <p>Fecha registro: {r.registrationDate}</p>
-                      <p>Jugadores: {r.players?.length ?? 0}</p>
-                      {r.notes && <p>Notas: {r.notes}</p>}
+                    <div className="registrations-stats" style={{ marginBottom: '12px' }}>
+                      <div className="stat-card">
+                        <h4>Total</h4>
+                        <div className="stat-number">{totalT}</div>
+                      </div>
+                      <div className="stat-card pending">
+                        <h4>Pendientes</h4>
+                        <div className="stat-number">{pendingT}</div>
+                      </div>
+                      <div className="stat-card approved">
+                        <h4>Aprobados</h4>
+                        <div className="stat-number">{approvedT}</div>
+                      </div>
+                      <div className="stat-card rejected">
+                        <h4>Rechazados</h4>
+                        <div className="stat-number">{rejectedT}</div>
+                      </div>
                     </div>
 
-                    <div className="action-buttons">
-                      <button className="btn-success" onClick={() => approveRegistration(r)}>Aprobar</button>
-                      <button className="btn-danger" onClick={() => rejectRegistration(r)}>Rechazar</button>
+                    {regsForTournament.length === 0 ? (
+                      <div className="no-registrations">No hay registros para este torneo.</div>
+                    ) : (
+                      <div className="registrations-grid">
+                        {regsForTournament.map((r) => {
+                          const meta = registrationsMeta.find((m) => m.id === r.id);
+                          return (
+                            <div key={r.id} className="registration-card">
+                              <div className="registration-header">
+                                <div className="team-info">
+                                  <img className="team-logo-small" src={r.teamLogo || '/images/default-team.png'} alt={r.teamName} />
+                                  <div>
+                                    <strong>{r.teamName}</strong>
+                                    <div style={{ fontSize: '0.9rem', color: '#666' }}>{tournament.name}</div>
+                                  </div>
+                                </div>
+                                <span className={`status-badge ${r.status}`}>{r.status}</span>
+                              </div>
 
-                      {meta?.dismissed ? (
-                        <button className="btn btn-secondary" onClick={() => undismissNotification(r.id)}>Restaurar notificación</button>
-                      ) : (
-                        <button className="btn btn-danger" onClick={() => handleDeleteRegistration(r)}>Eliminar</button>
-                      )}
+                              <div className="registration-details">
+                                <p>Contacto: {r.contactPerson} — {r.contactNumber}</p>
+                                <p>Fecha registro: {r.registrationDate}</p>
+                                <p>Jugadores: {r.players?.length ?? 0}</p>
+                                {r.notes && <p>Notas: {r.notes}</p>}
+                              </div>
 
-                      <button className="btn btn-secondary" onClick={() => setSelectedRegistration(r)}>Ver detalle</button>
-                    </div>
+                              <div className="action-buttons">
+                                <button className="btn-success" onClick={() => approveRegistration(r)}>Aprobar</button>
+                                <button className="btn-danger" onClick={() => rejectRegistration(r)}>Rechazar</button>
+
+                                {meta?.dismissed ? (
+                                  <button className="btn btn-secondary" onClick={() => undismissNotification(r.id)}>Restaurar notificación</button>
+                                ) : (
+                                  <button className="btn btn-danger" onClick={() => handleDeleteRegistration(r)}>Eliminar</button>
+                                )}
+
+                                <button className="btn btn-secondary" onClick={() => setSelectedRegistration(r)}>Ver detalle</button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 );
               })}
-            </div>
 
             {selectedRegistration ? (
               <div className="registration-detail">
