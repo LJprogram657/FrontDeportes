@@ -127,7 +127,7 @@
 /* Listas de torneos */
 .admin-dashboard .update-container { background: #fff; border-radius: 15px; padding: 30px; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1); border: 1px solid #e9ecef; }
 .admin-dashboard .tournaments-list h3 { color: #333; margin-bottom: 25px; font-size: 1.3rem; }
-.admin-dashboard .tournaments-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px; }
+.admin-dashboard .tournaments-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 25px; }
 .admin-dashboard .tournament-card { background: #f8f9fa; border: 2px solid #e9ecef; border-radius: 12px; padding: 20px; transition: all 0.3s ease; }
 .admin-dashboard .tournament-card:hover { border-color: var(--primary-red); box-shadow: 0 4px 15px rgba(192, 0, 0, 0.1); }
 .admin-dashboard .tournament-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
