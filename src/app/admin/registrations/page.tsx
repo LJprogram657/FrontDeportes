@@ -37,7 +37,9 @@ export default function AdminRegistrationsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [tournaments, setTournaments] = useState<Array<{ id: number; name: string; code: string; logo: string; category: 'masculino' | 'femenino'; status: 'active' | 'upcoming' | 'finished' }>>([]);
   const [isLoadingTournaments, setIsLoadingTournaments] = useState(true);
+  // Selección de torneo (vista tipo "Actualización de información")
   const [selectedTournament, setSelectedTournament] = useState<string>('all');
+  const [selectedTournamentInfo, setSelectedTournamentInfo] = useState<{ id: number; name: string; logo?: string | null } | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedRegistration, setSelectedRegistration] = useState<TeamRegistration | null>(null);
   const [registrationsMeta, setRegistrationsMeta] = useState<RegistrationMeta[]>([]);
@@ -119,6 +121,22 @@ export default function AdminRegistrationsPage() {
       }
     };
     loadRegistrations();
+  }, []);
+
+  // Persistencia ligera de la selección de torneo (opcional)
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('admin_reg_selected_tournament');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed.id === 'number') {
+          setSelectedTournament(String(parsed.id));
+          setSelectedTournamentInfo({ id: parsed.id, name: parsed.name, logo: parsed.logo });
+        }
+      }
+    } catch {
+      // ignorar
+    }
   }, []);
 
   // Cargar torneos creados para agrupar las notificaciones por torneo
@@ -349,171 +367,167 @@ export default function AdminRegistrationsPage() {
       </div>
 
       <div className="registrations-container">
-        <div className="filters-section">
-          <div className="filters-grid">
-            <div className="filter-group">
-              <label>Torneo</label>
-              <select value={selectedTournament} onChange={(e) => setSelectedTournament(e.target.value)}>
-                <option value="all">Todos los torneos</option>
-                {Array.from(
-                  new Set(
-                    registrations
-                      .map((r) => r.tournament?.name || r.tournament?.code || r.tournamentId?.toString())
-                      .filter(Boolean) as string[]
-                  )
-                ).map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
+        {/* Vista 1: Selección de torneo con grid de logos */}
+        {!selectedTournamentInfo && (
+          <div className="update-container tournaments-list" style={{ marginBottom: '24px' }}>
+            <h3>Selecciona un torneo</h3>
+            {isLoadingTournaments ? (
+              <p>Cargando torneos...</p>
+            ) : tournaments.length === 0 ? (
+              <div className="no-registrations">No hay torneos creados.</div>
+            ) : (
+              <div className="tournaments-grid">
+                {tournaments.map((t) => (
+                  <div key={t.id} className="tournament-option" onClick={() => {
+                    setSelectedTournament(String(t.id));
+                    setSelectedTournamentInfo({ id: t.id, name: t.name, logo: t.logo });
+                    try {
+                      localStorage.setItem('admin_reg_selected_tournament', JSON.stringify({ id: t.id, name: t.name, logo: t.logo }));
+                    } catch {}
+                  }} style={{ cursor: 'pointer' }}>
+                    <div className="tournament-logo">
+                      <img src={t.logo || '/images/logo.png'} alt={t.name} />
+                    </div>
+                    <div className="tournament-info">
+                      <h5>{t.name}</h5>
+                      <p className="tournament-description">Ver inscripciones de equipos</p>
+                    </div>
+                  </div>
                 ))}
-              </select>
-            </div>
-            <div className="filter-group">
-              <label>Estado</label>
-              <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)}>
-                <option value="all">Todos</option>
-                <option value="pending">Pendiente</option>
-                <option value="approved">Aprobado</option>
-                <option value="rejected">Rechazado</option>
-              </select>
-            </div>
-            <div className="filter-group">
-              <label>Notificaciones</label>
-              <label style={{ fontWeight: 400 }}>
-                <input type="checkbox" checked={showDismissed} onChange={(e) => setShowDismissed(e.target.checked)} /> Mostrar ocultas
-              </label>
-            </div>
-            <div className="filter-group">
-              <label>Acciones</label>
-              <button className="btn-success" onClick={approveVisibleRegistrations}>Aprobar visibles</button>
-            </div>
+              </div>
+            )}
           </div>
-        </div>
+        )}
 
-        <div className="registrations-stats">
-          <div className="stat-card">
-            <h4>Total</h4>
-            <div className="stat-number">{total}</div>
-          </div>
-          <div className="stat-card pending">
-            <h4>Pendientes</h4>
-            <div className="stat-number">{pendingCount}</div>
-          </div>
-          <div className="stat-card approved">
-            <h4>Aprobados</h4>
-            <div className="stat-number">{approvedCount}</div>
-          </div>
-          <div className="stat-card rejected">
-            <h4>Rechazados</h4>
-            <div className="stat-number">{rejectedCount}</div>
-          </div>
-        </div>
-
-        {isLoading || isLoadingTournaments ? (
-          <p>Cargando...</p>
-        ) : tournaments.length === 0 ? (
-          <div className="no-registrations">No hay torneos creados.</div>
-        ) : (
+        {/* Vista 2: Torneo seleccionado con filtros y notificaciones */}
+        {selectedTournamentInfo && (
           <>
-            {[...tournaments]
-              .filter(t => {
-                if (selectedTournament === 'all') return true;
-                return (
-                  t.name === selectedTournament ||
-                  t.code === selectedTournament ||
-                  String(t.id) === selectedTournament
-                );
-              })
-              .map((tournament) => {
+            <div className="selected-tournament-header" style={{ marginBottom: '16px' }}>
+              <div className="selected-tournament-info">
+                <img className="selected-logo" src={selectedTournamentInfo.logo || '/images/logo.png'} alt={selectedTournamentInfo.name} />
+                <div>
+                  <h3>{selectedTournamentInfo.name}</h3>
+                  <p>Notificaciones de registro</p>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    setSelectedTournament('all');
+                    setSelectedTournamentInfo(null);
+                    setSelectedRegistration(null);
+                    try { localStorage.removeItem('admin_reg_selected_tournament'); } catch {}
+                  }}
+                >
+                  ← Volver a torneos
+                </button>
+                <button className="btn-success" onClick={approveVisibleRegistrations}>Aprobar visibles</button>
+              </div>
+            </div>
+
+            <div className="filters-section">
+              <div className="filters-grid">
+                <div className="filter-group">
+                  <label>Estado</label>
+                  <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)}>
+                    <option value="all">Todos</option>
+                    <option value="pending">Pendiente</option>
+                    <option value="approved">Aprobado</option>
+                    <option value="rejected">Rechazado</option>
+                  </select>
+                </div>
+                <div className="filter-group">
+                  <label>Notificaciones</label>
+                  <label style={{ fontWeight: 400 }}>
+                    <input type="checkbox" checked={showDismissed} onChange={(e) => setShowDismissed(e.target.checked)} /> Mostrar ocultas
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* Estadísticas del torneo seleccionado */}
+            <div className="registrations-stats">
+              <div className="stat-card">
+                <h4>Total</h4>
+                <div className="stat-number">{total}</div>
+              </div>
+              <div className="stat-card pending">
+                <h4>Pendientes</h4>
+                <div className="stat-number">{pendingCount}</div>
+              </div>
+              <div className="stat-card approved">
+                <h4>Aprobados</h4>
+                <div className="stat-number">{approvedCount}</div>
+              </div>
+              <div className="stat-card rejected">
+                <h4>Rechazados</h4>
+                <div className="stat-number">{rejectedCount}</div>
+              </div>
+            </div>
+
+            {/* Listado de inscripciones del torneo seleccionado */}
+            {isLoading || isLoadingTournaments ? (
+              <p>Cargando...</p>
+            ) : (
+              (() => {
                 const regsForTournament = filteredRegistrations.filter(r => {
                   const tid = r.tournamentId ?? r.tournament?.id;
-                  return Number(tid) === Number(tournament.id);
+                  return Number(tid) === Number(selectedTournamentInfo.id);
                 });
 
-                const totalT = regsForTournament.length;
-                const pendingT = regsForTournament.filter(r => r.status === 'pending').length;
-                const approvedT = regsForTournament.filter(r => r.status === 'approved').length;
-                const rejectedT = regsForTournament.filter(r => r.status === 'rejected').length;
+                if (regsForTournament.length === 0) {
+                  return <div className="no-registrations">No hay registros para este torneo.</div>;
+                }
 
                 return (
-                  <div key={tournament.id} className="tournament-category" style={{ marginBottom: '24px' }}>
-                    <div className="tournament-option" style={{ padding: '16px', marginBottom: '12px' }}>
-                      <div className="tournament-logo">
-                        <img src={tournament.logo || '/images/logo.png'} alt={tournament.name} />
-                      </div>
-                      <div className="tournament-info">
-                        <h5>{tournament.name}</h5>
-                        <p className="tournament-description">Notificaciones de registro por torneo</p>
-                      </div>
-                    </div>
-
-                    <div className="registrations-stats" style={{ marginBottom: '12px' }}>
-                      <div className="stat-card">
-                        <h4>Total</h4>
-                        <div className="stat-number">{totalT}</div>
-                      </div>
-                      <div className="stat-card pending">
-                        <h4>Pendientes</h4>
-                        <div className="stat-number">{pendingT}</div>
-                      </div>
-                      <div className="stat-card approved">
-                        <h4>Aprobados</h4>
-                        <div className="stat-number">{approvedT}</div>
-                      </div>
-                      <div className="stat-card rejected">
-                        <h4>Rechazados</h4>
-                        <div className="stat-number">{rejectedT}</div>
-                      </div>
-                    </div>
-
-                    {regsForTournament.length === 0 ? (
-                      <div className="no-registrations">No hay registros para este torneo.</div>
-                    ) : (
-                      <div className="registrations-grid">
-                        {regsForTournament.map((r) => {
-                          const meta = registrationsMeta.find((m) => m.id === r.id);
-                          return (
-                            <div key={r.id} className="registration-card">
-                              <div className="registration-header">
-                                <div className="team-info">
-                                  <img className="team-logo-small" src={r.teamLogo || '/images/default-team.png'} alt={r.teamName} />
-                                  <div>
-                                    <strong>{r.teamName}</strong>
-                                    <div style={{ fontSize: '0.9rem', color: '#666' }}>{tournament.name}</div>
-                                  </div>
-                                </div>
-                                <span className={`status-badge ${r.status}`}>{r.status}</span>
-                              </div>
-
-                              <div className="registration-details">
-                                <p>Contacto: {r.contactPerson} — {r.contactNumber}</p>
-                                <p>Fecha registro: {r.registrationDate}</p>
-                                <p>Jugadores: {r.players?.length ?? 0}</p>
-                                {r.notes && <p>Notas: {r.notes}</p>}
-                              </div>
-
-                              <div className="action-buttons">
-                                <button className="btn-success" onClick={() => approveRegistration(r)}>Aprobar</button>
-                                <button className="btn-danger" onClick={() => rejectRegistration(r)}>Rechazar</button>
-
-                                {meta?.dismissed ? (
-                                  <button className="btn btn-secondary" onClick={() => undismissNotification(r.id)}>Restaurar notificación</button>
-                                ) : (
-                                  <button className="btn btn-danger" onClick={() => handleDeleteRegistration(r)}>Eliminar</button>
-                                )}
-
-                                <button className="btn btn-secondary" onClick={() => setSelectedRegistration(r)}>Ver detalle</button>
+                  <div className="registrations-grid">
+                    {regsForTournament.map((r) => {
+                      const meta = registrationsMeta.find((m) => m.id === r.id);
+                      return (
+                        <div key={r.id} className="registration-card">
+                          <div className="registration-header">
+                            <div className="team-info">
+                              <img className="team-logo-small" src={r.teamLogo || '/images/default-team.png'} alt={r.teamName} />
+                              <div>
+                                <strong>{r.teamName}</strong>
+                                <div style={{ fontSize: '0.9rem', color: '#666' }}>{selectedTournamentInfo.name}</div>
                               </div>
                             </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                            <span className={`status-badge ${r.status}`}>{r.status}</span>
+                          </div>
+
+                          <div className="registration-details">
+                            <p>Contacto: {r.contactPerson} — {r.contactNumber}</p>
+                            <p>Fecha registro: {r.registrationDate}</p>
+                            <p>Jugadores: {r.players?.length ?? 0}</p>
+                            {r.notes && <p>Notas: {r.notes}</p>}
+                          </div>
+
+                          <div className="action-buttons">
+                            <button className="btn-success" onClick={() => approveRegistration(r)}>Aprobar</button>
+                            <button className="btn-danger" onClick={() => rejectRegistration(r)}>Rechazar</button>
+
+                            {meta?.dismissed ? (
+                              <button className="btn btn-secondary" onClick={() => undismissNotification(r.id)}>Restaurar notificación</button>
+                            ) : (
+                              <button className="btn btn-danger" onClick={() => handleDeleteRegistration(r)}>Eliminar</button>
+                            )}
+
+                            <button className="btn btn-secondary" onClick={() => setSelectedRegistration(r)}>Ver detalle</button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 );
-              })}
+              })()
+            )}
+          </>
+        )}
 
-            {selectedRegistration ? (
+        {/* Panel de detalle (persistente en la vista seleccionada) */}
+        {selectedRegistration ? (
               <div className="registration-detail">
                 <div className="detail-header">
                   <h4>Detalle de registro: {selectedRegistration.teamName}</h4>
@@ -560,8 +574,7 @@ export default function AdminRegistrationsPage() {
                 </div>
               </div>
             ) : null}
-          </>
-        )}
+        
       </div>
     </>
   );
