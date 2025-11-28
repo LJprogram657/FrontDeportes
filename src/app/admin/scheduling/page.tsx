@@ -624,7 +624,9 @@ const MatchCard: React.FC<MatchCardProps> = ({
   };
 
   const isComplete = match.homeTeam && match.awayTeam && match.venue && match.date && match.time;
-  const modalityParam = tournamentSport === 'futbol.7' ? 'futbol7' : 'futsal';
+  // Detección robusta de modalidad: acepta 'futbol7', 'fútbol7', 'futbol.7', 'f7'
+  const sportNorm = (tournamentSport || '').toLowerCase();
+  const modalityParam = /7|f7|futbol\.7/.test(sportNorm) ? 'futbol7' : 'futsal';
 
   return (
     <div className={`match-card ${readOnly ? 'readonly' : isComplete ? 'complete' : 'incomplete'}`}>

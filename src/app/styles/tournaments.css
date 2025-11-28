@@ -94,32 +94,12 @@
   z-index: 2;
 }
 
-/* Versión "stacked" moderna en móviles: filas como tarjetas con labels */
+/* En móviles, mantener tabla normal con scroll horizontal dentro de .table-responsive */
 @media (max-width: 640px) {
   .standings-table { border: 0; }
-  .standings-table thead { display: none; }
-  .standings-table tr {
-    display: block;
-    margin-bottom: 10px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid #2a2a2a;
-    border-radius: 8px;
-    padding: 8px;
-  }
-  .standings-table td {
-    display: grid;
-    grid-template-columns: 120px 1fr;
-    align-items: center;
-    gap: 8px;
-    white-space: normal;
-    padding: 6px 8px;
-    border: none;
-  }
-  .standings-table td::before {
-    content: attr(data-label);
-    font-weight: 600;
-    opacity: 0.8;
-  }
+  .standings-table thead { display: table-header-group; }
+  .standings-table tr { display: table-row; }
+  .standings-table td, .standings-table th { display: table-cell; white-space: nowrap; }
 }
 
 @media (max-width: 768px) {

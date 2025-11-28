@@ -12,11 +12,11 @@ export async function GET(req: NextRequest, { params }: { params: { matchId: str
   const modalityParam = url.searchParams.get('modality');
   const modality = modalityParam === 'futbol7' ? 'futbol7' : 'futsal';
 
-  // Soporte a nuevo nombre de plantilla para futsal y fallback seguro
+  // Selección de plantilla según modalidad, con nombres canónicos
   const candidateNames =
     modality === 'futbol7'
       ? ['planilla-futbol7.pdf']
-      : ['planilla-futsal.pdf edit.pdf', 'planilla-futsal.pdf'];
+      : ['planilla-futsal.pdf'];
 
   let fileName = candidateNames[0];
   let filePath = path.join(process.cwd(), 'public', 'templates', fileName);
