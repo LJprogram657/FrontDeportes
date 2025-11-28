@@ -68,6 +68,7 @@
   width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
 }
 
 /* Tabla de posiciones responsiva */
@@ -75,12 +76,50 @@
   width: 100%;
   border-collapse: collapse;
   font-size: clamp(13px, 2.8vw, 16px);
+  table-layout: auto;
 }
 
 .standings-table th,
 .standings-table td {
   padding: 10px 12px;
   white-space: nowrap;
+}
+
+/* Fija la primera columna y permite scroll horizontal manteniendo contexto */
+.standings-table th:first-child,
+.standings-table td:first-child {
+  position: sticky;
+  left: 0;
+  background: #1f1f1f;
+  z-index: 2;
+}
+
+/* Versión "stacked" moderna en móviles: filas como tarjetas con labels */
+@media (max-width: 640px) {
+  .standings-table { border: 0; }
+  .standings-table thead { display: none; }
+  .standings-table tr {
+    display: block;
+    margin-bottom: 10px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    padding: 8px;
+  }
+  .standings-table td {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    align-items: center;
+    gap: 8px;
+    white-space: normal;
+    padding: 6px 8px;
+    border: none;
+  }
+  .standings-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    opacity: 0.8;
+  }
 }
 
 @media (max-width: 768px) {

@@ -286,16 +286,16 @@ const Tournaments: React.FC = () => {
                       <tbody>
                         {masculineStandings.map((s, idx) => (
                           <tr key={`m-${s.team.name}-${idx}`}>
-                            <td style={cellStyle}>{idx + 1}</td>
-                            <td style={cellStyle}>{s.team.name}</td>
-                            <td style={cellStyle}>{s.played}</td>
-                            <td style={cellStyle}>{s.wins}</td>
-                            <td style={cellStyle}>{s.draws}</td>
-                            <td style={cellStyle}>{s.losses}</td>
-                            <td style={cellStyle}>{s.goalsFor}</td>
-                            <td style={cellStyle}>{s.goalsAgainst}</td>
-                            <td style={cellStyle}>{s.goalDiff}</td>
-                            <td style={cellStyle}>{s.points}</td>
+                            <td style={cellStyle} data-label="#">{idx + 1}</td>
+                            <td style={cellStyle} data-label="Equipo">{s.team.name}</td>
+                            <td style={cellStyle} data-label="J">{s.played}</td>
+                            <td style={cellStyle} data-label="G">{s.wins}</td>
+                            <td style={cellStyle} data-label="E">{s.draws}</td>
+                            <td style={cellStyle} data-label="P">{s.losses}</td>
+                            <td style={cellStyle} data-label="GF">{s.goalsFor}</td>
+                            <td style={cellStyle} data-label="GC">{s.goalsAgainst}</td>
+                            <td style={cellStyle} data-label="DG">{s.goalDiff}</td>
+                            <td style={cellStyle} data-label="Pts">{s.points}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -354,16 +354,16 @@ const Tournaments: React.FC = () => {
                       <tbody>
                         {feminineStandings.map((s, idx) => (
                           <tr key={`f-${s.team.name}-${idx}`}>
-                            <td style={cellStyle}>{idx + 1}</td>
-                            <td style={cellStyle}>{s.team.name}</td>
-                            <td style={cellStyle}>{s.played}</td>
-                            <td style={cellStyle}>{s.wins}</td>
-                            <td style={cellStyle}>{s.draws}</td>
-                            <td style={cellStyle}>{s.losses}</td>
-                            <td style={cellStyle}>{s.goalsFor}</td>
-                            <td style={cellStyle}>{s.goalsAgainst}</td>
-                            <td style={cellStyle}>{s.goalDiff}</td>
-                            <td style={cellStyle}>{s.points}</td>
+                            <td style={cellStyle} data-label="#">{idx + 1}</td>
+                            <td style={cellStyle} data-label="Equipo">{s.team.name}</td>
+                            <td style={cellStyle} data-label="J">{s.played}</td>
+                            <td style={cellStyle} data-label="G">{s.wins}</td>
+                            <td style={cellStyle} data-label="E">{s.draws}</td>
+                            <td style={cellStyle} data-label="P">{s.losses}</td>
+                            <td style={cellStyle} data-label="GF">{s.goalsFor}</td>
+                            <td style={cellStyle} data-label="GC">{s.goalsAgainst}</td>
+                            <td style={cellStyle} data-label="DG">{s.goalDiff}</td>
+                            <td style={cellStyle} data-label="Pts">{s.points}</td>
                           </tr>
                         ))}
                       </tbody>

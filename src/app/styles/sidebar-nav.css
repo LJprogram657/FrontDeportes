@@ -136,9 +136,7 @@
   box-shadow: 0 0 30px 10px rgba(220, 20, 60, 0.7);
 }
 
-.sidebar-nav .back-button {
-  width: 100%;
-}
+/* Eliminado estilo para .back-button al retirar el botón de volver */
 
 /* Responsividad: apilar sidebar encima del contenido en pantallas estrechas */
 @media (max-width: 1024px) {

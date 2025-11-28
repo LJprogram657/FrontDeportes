@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import BackButton from '@/components/BackButton';
 
 interface Tournament {
   id: number;
@@ -319,9 +318,6 @@ export default function FemeninoPage() {
 
   return (
     <div className="container">
-      <div className="back-button-container">
-        <BackButton />
-      </div>
       <h1 className="main-title">Torneos Femeninos</h1>
 
       <div style={{ maxWidth: '980px', margin: '0 auto', padding: '0 16px', marginBottom: '64px' }}>
@@ -364,16 +360,16 @@ export default function FemeninoPage() {
                   <tbody>
                     {standings.map((s, idx) => (
                       <tr key={`${s.team.name}-${idx}`}>
-                        <td>{idx + 1}</td>
-                        <td>{s.team.name}</td>
-                        <td>{s.played}</td>
-                        <td>{s.wins}</td>
-                        <td>{s.draws}</td>
-                        <td>{s.losses}</td>
-                        <td>{s.goalsFor}</td>
-                        <td>{s.goalsAgainst}</td>
-                        <td>{s.goalDiff}</td>
-                        <td>{s.points}</td>
+                        <td data-label="#">{idx + 1}</td>
+                        <td data-label="Equipo">{s.team.name}</td>
+                        <td data-label="J">{s.played}</td>
+                        <td data-label="G">{s.wins}</td>
+                        <td data-label="E">{s.draws}</td>
+                        <td data-label="P">{s.losses}</td>
+                        <td data-label="GF">{s.goalsFor}</td>
+                        <td data-label="GC">{s.goalsAgainst}</td>
+                        <td data-label="DG">{s.goalDiff}</td>
+                        <td data-label="Pts">{s.points}</td>
                       </tr>
                     ))}
                   </tbody>

@@ -1,6 +1,5 @@
 import React from 'react';
 import TournamentDetails from '@/components/TournamentDetails';
-import BackButton from '@/components/BackButton';
 
 // Interfaz actualizada para Next.js 15 con params asíncrono
 interface PaginaDetalleTorneoFemeninoProps {
@@ -14,7 +13,6 @@ export default async function PaginaDetalleTorneoFemenino({ params }: PaginaDeta
 
   return (
     <>
-      <BackButton />
       <div className="tournaments-page">
         <div className="container">
           <TournamentDetails tournamentName={tournamentName} />

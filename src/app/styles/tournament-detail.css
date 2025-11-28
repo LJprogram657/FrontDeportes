@@ -4,18 +4,7 @@
     margin: 0 auto;
 }
 
-.back-button {
-    display: inline-block;
-    margin-bottom: 40px;
-    font-size: 16px;
-    color: var(--primary-red);
-    text-decoration: none;
-    transition: color 0.3s;
-}
-
-.back-button:hover {
-    color: var(--white);
-}
+/* Estilos del botón de volver eliminados */
 
 .tournament-detail-header {
     text-align: center;

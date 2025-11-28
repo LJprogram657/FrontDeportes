@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import BackButton from '@/components/BackButton';
 import '../styles/create-team.css';
 
 interface Player {
@@ -223,10 +222,6 @@ export default function CreateTeamPage() {
 
   return (
     <div className="container">
-      <div className="back-button-container">
-        <BackButton />
-      </div>
-
       <div className="create-team-container">
         <div className="page-header">
           <h1>⚽ Crear Equipo</h1>

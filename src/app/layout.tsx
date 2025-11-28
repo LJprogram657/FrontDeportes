@@ -13,7 +13,6 @@ import "./styles/modal.css";
 import "./styles/tournament-details.css";
 import "./styles/breadcrumbs.css";
 import "./styles/sidebar-nav.css";
-import "./styles/back-button.css";
 import "./styles/logo.css";
 import "./styles/tournament-detail.css";
 

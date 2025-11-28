@@ -1,7 +1,6 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
 import TournamentDetails from '@/components/TournamentDetails';
-import BackButton from '@/components/BackButton';
 import Image from 'next/image';
 
 interface TournamentPageProps {
@@ -26,9 +25,6 @@ const TournamentPage = async ({ params }: TournamentPageProps) => {
 
   return (
     <div className="container">
-      <div className="back-button-container">
-        <BackButton />
-      </div>
       <main className="main-container">
         <div className="tournament-details">
           <Image 
