@@ -192,6 +192,132 @@ export default function AdminTournamentUpdatePage() {
   // Partidos agrupados por fase
   const [scheduledMatches, setScheduledMatches] = useState<Record<string, Match[]>>({});
   const [isLoadingMatches, setIsLoadingMatches] = useState<boolean>(false);
+  // Estado para mostrar actividad al avanzar fases por torneo
+  const [advancing, setAdvancing] = useState<Record<number, boolean>>({});
+
+  // Orden y mapeo de fases de eliminación directa
+  const ELIM_PHASE_ORDER = ['round_of_16', 'quarterfinals', 'semifinals', 'final'] as const;
+  const NEXT_BY_PHASE: Record<string, string> = {
+    round_of_16: 'quarterfinals',
+    quarterfinals: 'semifinals',
+    semifinals: 'final',
+  };
+
+  // Determina el ganador de un partido finalizado
+  const getMatchWinner = (m: Match): { teamId: number; name: string } | null => {
+    if (m.status !== 'finished') return null;
+    if (typeof m.homeScore !== 'number' || typeof m.awayScore !== 'number') return null;
+    if (!m.homeTeam?.id || !m.awayTeam?.id) return null;
+    if (m.homeScore === m.awayScore) return null; // empates requieren resolución manual
+    return m.homeScore > m.awayScore
+      ? { teamId: Number(m.homeTeam.id), name: m.homeTeam.name }
+      : { teamId: Number(m.awayTeam.id), name: m.awayTeam.name };
+  };
+
+  // Avanza el torneo a la siguiente fase creando cruces automáticamente
+  const advanceToNextPhase = async (tournamentId: number) => {
+    // Evitar doble clic
+    setAdvancing((prev) => ({ ...prev, [tournamentId]: true }));
+    try {
+      const token = apiService.getAccessToken();
+      const res = await fetch(`/api/tournaments/${tournamentId}/matches`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        credentials: 'include',
+        cache: 'no-store',
+      });
+      if (!res.ok) throw new Error('No se pudieron cargar los partidos');
+      const matches: any[] = await res.json();
+
+      // Agrupar por fase
+      const byPhase: Record<string, Match[]> = {};
+      (matches || []).forEach((m: any) => {
+        const phase = m.phase || 'General';
+        const mapped: Match = {
+          id: String(m.id),
+          homeTeam: m.homeTeam ? { id: Number(m.homeTeam.id), name: m.homeTeam.name } : undefined,
+          awayTeam: m.awayTeam ? { id: Number(m.awayTeam.id), name: m.awayTeam.name } : undefined,
+          homeScore: typeof m.homeScore === 'number' ? m.homeScore : undefined,
+          awayScore: typeof m.awayScore === 'number' ? m.awayScore : undefined,
+          status: m.status === 'finished' ? 'finished' : 'scheduled',
+        };
+        if (!byPhase[phase]) byPhase[phase] = [];
+        byPhase[phase].push(mapped);
+      });
+
+      // Encontrar la fase actual de eliminación para avanzar
+      const currentPhase = ELIM_PHASE_ORDER.find((p) => (byPhase[p] || []).length > 0) || null;
+      if (!currentPhase) {
+        toast.error('No hay una fase de eliminación para avanzar');
+        return;
+      }
+
+      const nextPhase = NEXT_BY_PHASE[currentPhase];
+      if (!nextPhase) {
+        toast.error('La fase actual es la final o no tiene siguiente');
+        return;
+      }
+
+      // Evitar duplicados si ya hay partidos en la siguiente fase
+      if ((byPhase[nextPhase] || []).length > 0) {
+        toast.warning('Ya existen partidos en la siguiente fase');
+        return;
+      }
+
+      const phaseMatches = byPhase[currentPhase] || [];
+      const allFinished = phaseMatches.length > 0 && phaseMatches.every((m) => m.status === 'finished');
+      if (!allFinished) {
+        toast.error('Aún hay partidos sin finalizar en la fase actual');
+        return;
+      }
+
+      // Calcular ganadores
+      const winners = phaseMatches
+        .map(getMatchWinner)
+        .filter(Boolean) as Array<{ teamId: number; name: string }>;
+
+      if (winners.length < 2) {
+        toast.error('No hay suficientes ganadores para crear cruces');
+        return;
+      }
+
+      // Crear cruces por pares
+      let createdCount = 0;
+      for (let i = 0; i < winners.length; i += 2) {
+        const a = winners[i];
+        const b = winners[i + 1];
+        if (!a || !b) continue;
+        const createRes = await fetch(`/api/tournaments/${tournamentId}/matches`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            phase: nextPhase,
+            homeTeamId: a.teamId,
+            awayTeamId: b.teamId,
+          }),
+        });
+        if (createRes.ok) createdCount += 1;
+      }
+
+      if (createdCount > 0) {
+        toast.success(`Se crearon ${createdCount} partido(s) en ${nextPhase}`);
+      } else {
+        toast.error('No se pudieron crear los partidos de la siguiente fase');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Error avanzando de fase');
+    } finally {
+      setAdvancing((prev) => ({ ...prev, [tournamentId]: false }));
+    }
+  };
 
   // Restaurar torneo seleccionado desde localStorage al montar
   useEffect(() => {
@@ -621,6 +747,28 @@ export default function AdminTournamentUpdatePage() {
                   </div>
                   <div className="tournament-info" style={{ textAlign: 'center', color: ui.color.text }}>
                     <strong>{t.name}</strong>
+                  </div>
+                  <div style={{ marginTop: '0.75rem', width: '100%', display: 'flex', justifyContent: 'center' }}>
+                    <button
+                      title="Siguiente fase"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (advancing[t.id]) return;
+                        advanceToNextPhase(t.id);
+                      }}
+                      style={{
+                        padding: '0.4rem 0.8rem',
+                        borderRadius: '8px',
+                        border: `1px solid ${ui.color.border}`,
+                        background: ui.color.brandAlt,
+                        color: '#111',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        minWidth: '160px',
+                      }}
+                    >
+                      {advancing[t.id] ? 'Procesando…' : 'Siguiente fase'}
+                    </button>
                   </div>
                 </div>
               ))}
