@@ -536,7 +536,6 @@ function CreateTournamentPage() {
             <h3 style={{ marginBottom: '16px' }}>
               Editar torneo: {selectedTournamentForEdit.name}
             </h3>
-        
             <div style={{ display: 'grid', gap: '12px' }}>
               <div>
                 <label style={{ fontWeight: 'bold' }}>Estado</label>
@@ -596,6 +595,23 @@ function CreateTournamentPage() {
                   ))}
                 </div>
               </div>
+
+              {/* Configuración de grupos si la fase de grupos está seleccionada */}
+              {editPhases.includes('group_stage') && (
+                <div style={{ marginTop: '12px' }}>
+                  <label style={{ fontWeight: 'bold' }}>Cantidad de grupos</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={groupCount}
+                    onChange={handleGroupCountChange}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ccc' }}
+                  />
+                  <p style={{ fontSize: '12px', color: '#666' }}>
+                    Los equipos se repartirán automáticamente entre los grupos.
+                  </p>
+                </div>
+              )}
             </div>
 
             <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
@@ -613,6 +629,13 @@ function CreateTournamentPage() {
               >
                 Guardar
               </button>
+              <button
+                className="btn-warning"
+                onClick={() => advanceToNextPhase(selectedTournamentForEdit.id)}
+                style={{ flex: 1, background: '#ffc107', color: '#222', border: 'none', borderRadius: '8px', fontWeight: 'bold' }}
+              >
+                Siguiente fase
+              </button>
             </div>
           </div>
         </div>
@@ -621,4 +644,37 @@ function CreateTournamentPage() {
   );
 
 
+};
+
+// Declarar el estado de fases y la función de avance dentro del componente principal
+const [editPhases, setEditPhases] = useState<string[]>([]);
+const [groupCount, setGroupCount] = useState(2);
+const handleGroupCountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  setGroupCount(Number(e.target.value));
+};
+
+// Declarar authHeaders dentro del componente
+const authHeaders = (): HeadersInit => {
+  try {
+    const token = localStorage.getItem('access_token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  } catch {
+    return {};
+  }
+};
+
+// Declarar advanceToNextPhase como async
+const advanceToNextPhase = async (tournamentId: number) => {
+  try {
+    const res = await fetch(`/api/tournaments/${tournamentId}/advance-phase`, {
+      method: 'POST',
+      headers: { ...authHeaders() },
+    });
+    if (!res.ok) throw new Error('No se pudo avanzar de fase');
+    toast.success('¡Fase avanzada correctamente!');
+    // Aquí podrías recargar los torneos o actualizar el estado local
+  } catch (error) {
+    console.error(error);
+    toast.error(error instanceof Error ? error.message : 'Error al avanzar de fase');
+  }
 };
