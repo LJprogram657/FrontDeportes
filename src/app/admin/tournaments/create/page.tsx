@@ -34,9 +34,7 @@ interface CreatedTournament {
   phases: string[];
 }
 
-export default CreateTournamentPage;
-
-function CreateTournamentPage() {
+export default function CreateTournamentPage() {
   const [isCreatingCustom, setIsCreatingCustom] = useState(false);
   const [customName, setCustomName] = useState('');
   const [customLogo, setCustomLogo] = useState<string | null>(null);
@@ -656,7 +654,7 @@ const handleGroupCountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 // Declarar authHeaders dentro del componente
 const authHeaders = (): HeadersInit => {
   try {
-    const token = localStorage.getItem('access_token');
+    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
     return token ? { Authorization: `Bearer ${token}` } : {};
   } catch {
     return {};
