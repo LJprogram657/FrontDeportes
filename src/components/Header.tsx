@@ -34,9 +34,6 @@ function Header() {
                 <span className="text-[#e31c25] font-bold text-lg md:text-xl">R</span>
               </div>
             </div>
-            <span className="text-white font-bold text-lg md:text-xl tracking-tight group-hover:text-[#e31c25] transition-colors">
-              SDR
-            </span>
           </Link>
 
           {/* Desktop Navigation */}
