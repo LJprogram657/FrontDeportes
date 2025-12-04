@@ -14,35 +14,53 @@ export async function GET(request: Request, { params }: { params: { id: string }
 }
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
-  const admin = await requireAdmin(request as any);
-  if (!admin) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+  try {
+    const admin = await requireAdmin(request as any);
+    if (!admin) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-  const id = Number(params.id);
+    const id = Number(params.id);
 
-  // Borrado en orden por restricciones FK (RESTRICT)
-  await prisma.$transaction([
-    // Eliminar partidos del torneo
-    prisma.match.deleteMany({ where: { tournamentId: id } }),
-    // Eliminar standings que referencian equipos del torneo o fases del torneo
-    prisma.groupStanding.deleteMany({
-      where: {
-        OR: [
-          { team: { tournamentId: id } },
-          { phase: { tournamentId: id } },
-        ],
-      },
-    }),
-    // Eliminar jugadores de equipos del torneo
-    prisma.player.deleteMany({ where: { team: { tournamentId: id } } }),
-    // Eliminar equipos del torneo
-    prisma.team.deleteMany({ where: { tournamentId: id } }),
-    // Eliminar fases del torneo (nuevo)
-    prisma.phase.deleteMany({ where: { tournamentId: id } }),
-    // Finalmente eliminar el torneo
-    prisma.tournament.delete({ where: { id } }),
-  ]);
+    // Borrado en orden por restricciones FK (RESTRICT)
+    await prisma.$transaction(async (tx) => {
+      // 1. Eliminar partidos del torneo
+      await tx.match.deleteMany({ where: { tournamentId: id } });
 
-  return NextResponse.json({ message: 'Torneo eliminado' }, { status: 200 });
+      // 2. Eliminar standings. Los standings dependen de Phase y Team.
+      // Borramos todos los standings asociados a las fases de este torneo.
+      await tx.groupStanding.deleteMany({
+        where: {
+          phase: { tournamentId: id }
+        },
+      });
+      // Por seguridad, también intentamos borrar cualquier standing huérfano asociado a equipos de este torneo
+      // (aunque teóricamente el paso anterior debería haberlos cubierto si la integridad es correcta)
+      await tx.groupStanding.deleteMany({
+        where: {
+          team: { tournamentId: id }
+        }
+      });
+
+      // 3. Eliminar jugadores de equipos del torneo
+      await tx.player.deleteMany({ where: { team: { tournamentId: id } } });
+
+      // 4. Eliminar equipos del torneo
+      await tx.team.deleteMany({ where: { tournamentId: id } });
+
+      // 5. Eliminar fases del torneo
+      await tx.phase.deleteMany({ where: { tournamentId: id } });
+
+      // 6. Finalmente eliminar el torneo
+      await tx.tournament.delete({ where: { id } });
+    });
+
+    return NextResponse.json({ message: 'Torneo eliminado correctamente' }, { status: 200 });
+  } catch (error: any) {
+    console.error('Error eliminando torneo:', error);
+    return NextResponse.json(
+      { error: 'Error eliminando el torneo', details: error.message },
+      { status: 500 }
+    );
+  }
 }
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
@@ -70,16 +88,20 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       location: body.location ?? undefined,
       prizePool: body.prize_pool ?? undefined,
       format: body.format ? (String(body.format) as any) : undefined,
+      // Guardar configuración de fases y grupos
+      selectedPhases: body.phases ? body.phases : undefined,
+      groupCount: body.group_count ? Number(body.group_count) : undefined,
     },
     select: {
       id: true, name: true, code: true, category: true, logo: true, status: true,
       startDate: true, registrationDeadline: true, maxTeams: true,
+      selectedPhases: true, groupCount: true,
     },
   });
 
-  // NOTA: No actualizamos las fases aquí porque borraría el historial y datos de fases activas.
-  // La gestión de fases se hace progresivamente con "Siguiente Fase".
-  // Si se requiere guardar la "configuración" de fases futuras, se necesitaría un campo nuevo en Tournament.
+  // NOTA: No actualizamos las fases activas (modelo Phase) aquí porque borraría el historial.
+  // La gestión de fases activas se hace con "Siguiente Fase".
+  // selectedPhases guarda la "intención" o configuración deseada.
   
   return NextResponse.json(updated, { status: 200 });
 }

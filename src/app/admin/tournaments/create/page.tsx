@@ -345,6 +345,7 @@ export default function CreateTournamentPage() {
             start_date: editForm.startDate || null,
             // Enviar fases para persistirlas
             phases: editPhases,
+            group_count: groupCount,
           }),
         });
         if (!res.ok) throw new Error('Error al actualizar torneo en BD');
