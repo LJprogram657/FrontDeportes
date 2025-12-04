@@ -123,6 +123,21 @@ function computeStandings(matches: Match[]): Standing[] {
   return table;
 }
 
+// Función auxiliar para obtener fases únicas y ordenadas
+const getAvailablePhases = (matches: Match[]) => {
+  const phases = Array.from(new Set(matches.map(m => m.phase).filter(Boolean)));
+  // Orden personalizado si es necesario, o alfabético
+  const phaseOrder = ['Todos contra todos', 'Fase Regular', 'Fase de Grupos', 'Octavos de Final', 'Cuartos de Final', 'Semifinales', 'Gran Final'];
+  return phases.sort((a, b) => {
+    const idxA = phaseOrder.indexOf(a);
+    const idxB = phaseOrder.indexOf(b);
+    if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+    if (idxA !== -1) return -1;
+    if (idxB !== -1) return 1;
+    return a.localeCompare(b);
+  });
+};
+
 const Tournaments: React.FC = () => {
   // Estado por categoría
   const [masculineTournaments, setMasculineTournaments] = useState<Tournament[]>([]);
@@ -131,14 +146,35 @@ const Tournaments: React.FC = () => {
   const [feminineMatches, setFeminineMatches] = useState<Match[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Tablas de posiciones por categoría
+  // Estados para selección de fase
+  const [masculinePhase, setMasculinePhase] = useState<string>('');
+  const [femininePhase, setFemininePhase] = useState<string>('');
+
+  // Fases disponibles
+  const masculinePhases = useMemo(() => getAvailablePhases(masculineMatches), [masculineMatches]);
+  const femininePhases = useMemo(() => getAvailablePhases(feminineMatches), [feminineMatches]);
+
+  // Actualizar fase seleccionada por defecto cuando cargan las fases
+  useEffect(() => {
+    if (masculinePhases.length > 0 && !masculinePhase) {
+      setMasculinePhase(masculinePhases[0]); // Seleccionar la primera fase (ej: Grupos) por defecto
+    }
+  }, [masculinePhases, masculinePhase]);
+
+  useEffect(() => {
+    if (femininePhases.length > 0 && !femininePhase) {
+      setFemininePhase(femininePhases[0]);
+    }
+  }, [femininePhases, femininePhase]);
+
+  // Tablas de posiciones filtradas por fase
   const masculineStandings = useMemo<Standing[]>(
-    () => computeStandings(masculineMatches),
-    [masculineMatches]
+    () => computeStandings(masculineMatches.filter(m => !masculinePhase || m.phase === masculinePhase)),
+    [masculineMatches, masculinePhase]
   );
   const feminineStandings = useMemo<Standing[]>(
-    () => computeStandings(feminineMatches),
-    [feminineMatches]
+    () => computeStandings(feminineMatches.filter(m => !femininePhase || m.phase === femininePhase)),
+    [feminineMatches, femininePhase]
   );
 
   useEffect(() => {
@@ -235,6 +271,16 @@ const Tournaments: React.FC = () => {
 
   // Estilo para celdas de tabla (más espacio)
   const cellStyle: React.CSSProperties = { padding: '10px 12px' };
+  const tabStyle = (isActive: boolean): React.CSSProperties => ({
+    padding: '8px 16px',
+    border: 'none',
+    background: isActive ? '#e31c25' : 'rgba(255,255,255,0.1)',
+    color: '#fff',
+    cursor: 'pointer',
+    borderRadius: '4px',
+    fontWeight: isActive ? 'bold' : 'normal',
+    transition: 'all 0.2s'
+  });
 
   return (
     <section className="tournaments-section">
@@ -254,21 +300,39 @@ const Tournaments: React.FC = () => {
                 className="tournament-card"
                 style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '16px' }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                  <img
-                    src={masculineTournaments[0]?.logo || '/images/logo.png'}
-                    alt={masculineTournaments[0]?.name || 'Torneo'}
-                    style={{ width: '48px', height: '48px', objectFit: 'contain', borderRadius: '8px' }}
-                  />
-                  <div>
-                    <h3 style={{ margin: 0 }}>{masculineTournaments[0]?.name || 'Torneo'}</h3>
-                    <span style={{ fontSize: '0.9rem', opacity: 0.7 }}>Tabla de Posiciones</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <img
+                      src={masculineTournaments[0]?.logo || '/images/logo.png'}
+                      alt={masculineTournaments[0]?.name || 'Torneo'}
+                      style={{ width: '48px', height: '48px', objectFit: 'contain', borderRadius: '8px' }}
+                    />
+                    <div>
+                      <h3 style={{ margin: 0 }}>{masculineTournaments[0]?.name || 'Torneo'}</h3>
+                      <span style={{ fontSize: '0.9rem', opacity: 0.7 }}>Tabla de Posiciones</span>
+                    </div>
                   </div>
+                  
+                  {/* Selector de Fases Masculino */}
+                  {masculinePhases.length > 0 && (
+                    <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto', flexWrap: 'wrap' }}>
+                      {masculinePhases.map(phase => (
+                        <button
+                          key={phase}
+                          onClick={() => setMasculinePhase(phase)}
+                          style={tabStyle(masculinePhase === phase)}
+                        >
+                          {phase}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {masculineStandings.length > 0 ? (
                   <div className="table-responsive">
                     <table className="standings-table" style={{ width: '100%', fontSize: '1.1rem' }}>
+                      {/* ... thead y tbody ... */}
                       <thead>
                         <tr>
                           <th style={cellStyle}>#</th>
@@ -302,7 +366,7 @@ const Tournaments: React.FC = () => {
                     </table>
                   </div>
                 ) : (
-                  <p style={{ margin: '12px 0' }}>No hay posiciones disponibles.</p>
+                  <p style={{ margin: '12px 0' }}>No hay posiciones disponibles para esta fase.</p>
                 )}
               </div>
             )}
@@ -322,16 +386,33 @@ const Tournaments: React.FC = () => {
                 className="tournament-card"
                 style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '16px' }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                  <img
-                    src={feminineTournaments[0]?.logo || '/images/logo.png'}
-                    alt={feminineTournaments[0]?.name || 'Torneo'}
-                    style={{ width: '48px', height: '48px', objectFit: 'contain', borderRadius: '8px' }}
-                  />
-                  <div>
-                    <h3 style={{ margin: 0 }}>{feminineTournaments[0]?.name || 'Torneo'}</h3>
-                    <span style={{ fontSize: '0.9rem', opacity: 0.7 }}>Tabla de Posiciones</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <img
+                      src={feminineTournaments[0]?.logo || '/images/logo.png'}
+                      alt={feminineTournaments[0]?.name || 'Torneo'}
+                      style={{ width: '48px', height: '48px', objectFit: 'contain', borderRadius: '8px' }}
+                    />
+                    <div>
+                      <h3 style={{ margin: 0 }}>{feminineTournaments[0]?.name || 'Torneo'}</h3>
+                      <span style={{ fontSize: '0.9rem', opacity: 0.7 }}>Tabla de Posiciones</span>
+                    </div>
                   </div>
+
+                  {/* Selector de Fases Femenino */}
+                  {femininePhases.length > 0 && (
+                    <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto', flexWrap: 'wrap' }}>
+                      {femininePhases.map(phase => (
+                        <button
+                          key={phase}
+                          onClick={() => setFemininePhase(phase)}
+                          style={tabStyle(femininePhase === phase)}
+                        >
+                          {phase}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {feminineStandings.length > 0 ? (
@@ -370,7 +451,7 @@ const Tournaments: React.FC = () => {
                     </table>
                   </div>
                 ) : (
-                  <p style={{ margin: '12px 0' }}>No hay posiciones disponibles.</p>
+                  <p style={{ margin: '12px 0' }}>No hay posiciones disponibles para esta fase.</p>
                 )}
               </div>
             )}
