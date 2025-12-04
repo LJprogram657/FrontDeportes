@@ -50,6 +50,12 @@ export default function CreateTournamentPage() {
     startDate: string;
   }>({ status: 'upcoming', registrationDeadline: '', startDate: '' });
 
+  // Estados para configuración de grupos
+  const [groupCount, setGroupCount] = useState<number>(1);
+  const handleGroupCountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setGroupCount(Number(e.target.value));
+  };
+
   // Declarar fases y estado del modal dentro del componente (no fuera)
   const PHASES = [
     { type: 'round_robin', label: 'Todos contra Todos' },
@@ -76,6 +82,20 @@ export default function CreateTournamentPage() {
       return token ? { Authorization: `Bearer ${token}` } : {};
     } catch {
       return {};
+    }
+  };
+
+  const advanceToNextPhase = async (tournamentId: number) => {
+    try {
+      const res = await fetch(`/api/tournaments/${tournamentId}/advance-phase`, {
+        method: 'POST',
+        headers: { ...authHeaders() },
+      });
+      if (!res.ok) throw new Error('No se pudo avanzar de fase');
+      toast.success('¡Fase avanzada correctamente!');
+    } catch (error) {
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : 'Error al avanzar de fase');
     }
   };
 
@@ -640,39 +660,4 @@ export default function CreateTournamentPage() {
       )}
     </div>
   );
-
-
-};
-
-// Declarar el estado de fases y la función de avance dentro del componente principal
-const [editPhases, setEditPhases] = useState<string[]>([]);
-const [groupCount, setGroupCount] = useState(2);
-const handleGroupCountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  setGroupCount(Number(e.target.value));
-};
-
-// Declarar authHeaders dentro del componente
-const authHeaders = (): HeadersInit => {
-  try {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  } catch {
-    return {};
-  }
-};
-
-// Declarar advanceToNextPhase como async
-const advanceToNextPhase = async (tournamentId: number) => {
-  try {
-    const res = await fetch(`/api/tournaments/${tournamentId}/advance-phase`, {
-      method: 'POST',
-      headers: { ...authHeaders() },
-    });
-    if (!res.ok) throw new Error('No se pudo avanzar de fase');
-    toast.success('¡Fase avanzada correctamente!');
-    // Aquí podrías recargar los torneos o actualizar el estado local
-  } catch (error) {
-    console.error(error);
-    toast.error(error instanceof Error ? error.message : 'Error al avanzar de fase');
-  }
-};
+}
