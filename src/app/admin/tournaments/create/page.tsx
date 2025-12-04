@@ -73,10 +73,7 @@ export default function CreateTournamentPage() {
     );
   };
 
-  const router = useRouter();
-
-  // Header de autorización para admin (token)
-  const authHeaders = (): HeadersInit => {
+  const authHeaders = (): Record<string, string> => {
     try {
       const token = localStorage.getItem('access_token');
       return token ? { Authorization: `Bearer ${token}` } : {};
@@ -85,55 +82,126 @@ export default function CreateTournamentPage() {
     }
   };
 
+  const loadCreatedTournaments = async () => {
+    try {
+      const res = await fetch('/api/tournaments', { cache: 'no-store', headers: { ...authHeaders() } });
+      if (!res.ok) throw new Error('No se pudieron cargar los torneos');
+      const data = await res.json();
+
+      const mapped: CreatedTournament[] = (Array.isArray(data) ? data : []).map((t: any): CreatedTournament => ({
+        id: Number(t.id),
+        name: String(t.name),
+        description: '',
+        sport: 'futbol',
+        category: (t.category === 'femenino' || t.category === 'masculino' ? t.category : 'masculino'),
+        modality: (t.modality === 'futbol7' ? 'futbol7' : 'futsal'),
+        startDate: t.start_date ? new Date(t.start_date).toISOString().slice(0, 10) : '',
+        endDate: '',
+        registrationDeadline: t.registration_deadline ? new Date(t.registration_deadline).toISOString().slice(0, 10) : '',
+        maxTeams: Number(t.max_teams ?? 16),
+        location: '',
+        format: 'round_robin',
+        prizePool: '',
+        status: (t.status === 'active' || t.status === 'upcoming' ? t.status : (t.status === 'finished' ? 'completed' : 'upcoming')),
+        logo: t.logo || '/images/logo.png',
+        origin: 'created',
+        // Precargar fases reales desde el API
+        phases: Array.isArray(t.phases) ? t.phases : ['round_robin'],
+      }));
+      setCreatedTournaments(mapped);
+      
+      // Actualizar también el torneo seleccionado si está abierto el modal
+      if (selectedTournamentForEdit) {
+         const updated = mapped.find(t => t.id === selectedTournamentForEdit.id);
+         if (updated) {
+             setSelectedTournamentForEdit(updated);
+             // IMPORTANTE: No sobrescribir editPhases aquí si el usuario está editando,
+             // pero para advanceToNextPhase necesitamos que selectedTournamentForEdit esté fresco.
+         }
+      }
+
+    } catch (error) {
+      console.error('Error cargando torneos:', error);
+      // No mostrar toast aquí para evitar spam en cada recarga, o usar uno discreto
+    }
+  };
+
   const advanceToNextPhase = async (tournamentId: number) => {
     try {
+      // 1. Encontrar el torneo actual para ver sus fases REALES
+      // Usamos createdTournaments que tiene la info fresca (o debería)
+      const tournament = createdTournaments.find(t => t.id === tournamentId);
+      if (!tournament) throw new Error('Torneo no encontrado');
+
+      // 2. Orden lógico de fases
+      const PHASE_ORDER = ['round_robin', 'group_stage', 'round_of_16', 'quarterfinals', 'semifinals', 'final'];
+      
+      // 3. Ordenar las fases seleccionadas por el usuario (editPhases)
+      // editPhases tiene lo que el usuario ve seleccionado en los botones rojos
+      const sortedSelectedPhases = [...editPhases].sort((a, b) => {
+        return PHASE_ORDER.indexOf(a) - PHASE_ORDER.indexOf(b);
+      });
+
+      if (sortedSelectedPhases.length === 0) {
+        toast.error('Debes seleccionar al menos una fase en la configuración para avanzar');
+        return;
+      }
+
+      // 4. Determinar la fase actual (la última creada)
+      const currentPhases = tournament.phases || [];
+      const lastCurrentPhase = currentPhases.length > 0 ? currentPhases[currentPhases.length - 1] : null;
+
+      let nextPhaseToSend = '';
+
+      if (!lastCurrentPhase) {
+        // Si no hay fases creadas, la siguiente es la primera de las seleccionadas
+        nextPhaseToSend = sortedSelectedPhases[0];
+      } else {
+        const currentOrderIndex = PHASE_ORDER.indexOf(lastCurrentPhase);
+        
+        // Buscar la primera fase seleccionada cuyo índice sea MAYOR que el de la fase actual
+        const nextPhase = sortedSelectedPhases.find(p => PHASE_ORDER.indexOf(p) > currentOrderIndex);
+        
+        if (nextPhase) {
+          nextPhaseToSend = nextPhase;
+        } else {
+           toast.info('Ya estás en la última fase seleccionada.');
+           return;
+        }
+      }
+
+      // Confirmación antes de avanzar
+      const phaseLabel = PHASES.find(p => p.type === nextPhaseToSend)?.label || nextPhaseToSend;
+      const confirmMsg = `¿Avanzar a la fase: ${phaseLabel}?`;
+      if (!window.confirm(confirmMsg)) return;
+
       const res = await fetch(`/api/tournaments/${tournamentId}/advance-phase`, {
         method: 'POST',
-        headers: { ...authHeaders() },
+        headers: { 
+            ...authHeaders(),
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ nextPhase: nextPhaseToSend })
       });
-      if (!res.ok) throw new Error('No se pudo avanzar de fase');
-      toast.success('¡Fase avanzada correctamente!');
+      
+      if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error || 'No se pudo avanzar de fase');
+      }
+      
+      toast.success(`¡Fase avanzada a ${phaseLabel}!`);
+      
+      // Recargar torneos para actualizar estado
+      await loadCreatedTournaments();
+
     } catch (error) {
       console.error(error);
       toast.error(error instanceof Error ? error.message : 'Error al avanzar de fase');
     }
   };
 
-  // Cargar torneos desde BD
+  // Cargar torneos desde BD al montar
   useEffect(() => {
-    const loadCreatedTournaments = async () => {
-      try {
-        const res = await fetch('/api/tournaments', { cache: 'no-store', headers: { ...authHeaders() } });
-        if (!res.ok) throw new Error('No se pudieron cargar los torneos');
-        const data = await res.json();
-
-        const mapped: CreatedTournament[] = (Array.isArray(data) ? data : []).map((t: any): CreatedTournament => ({
-          id: Number(t.id),
-          name: String(t.name),
-          description: '',
-          sport: 'futbol',
-          category: (t.category === 'femenino' || t.category === 'masculino' ? t.category : 'masculino'),
-          modality: (t.modality === 'futbol7' ? 'futbol7' : 'futsal'),
-          startDate: t.start_date ? new Date(t.start_date).toISOString().slice(0, 10) : '',
-          endDate: '',
-          registrationDeadline: t.registration_deadline ? new Date(t.registration_deadline).toISOString().slice(0, 10) : '',
-          maxTeams: Number(t.max_teams ?? 16),
-          location: '',
-          format: 'round_robin',
-          prizePool: '',
-          status: (t.status === 'active' || t.status === 'upcoming' ? t.status : (t.status === 'finished' ? 'completed' : 'upcoming')),
-          logo: t.logo || '/images/logo.png',
-          origin: 'created',
-          // Precargar fases reales desde el API
-          phases: Array.isArray(t.phases) ? t.phases : ['round_robin'],
-        }));
-        setCreatedTournaments(mapped);
-      } catch (error) {
-        console.error('Error loading tournaments:', error);
-        setCreatedTournaments([]);
-      }
-    };
-
     loadCreatedTournaments();
   }, []);
 

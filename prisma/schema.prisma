@@ -62,6 +62,8 @@ model Tournament {
   format               TournamentFormat @default(round_robin)
   location             String?
   prizePool            String?
+  selectedPhases       String[]         @default([])
+  groupCount           Int              @default(1)
   createdAt            DateTime         @default(now())
   updatedAt            DateTime         @updatedAt
 
@@ -136,6 +138,7 @@ model GroupStanding {
   id           Int @id @default(autoincrement())
   teamId       Int
   phaseId      Int
+  groupName    String? // Grupo al que pertenece (A, B, C...)
   played       Int @default(0)
   wins         Int @default(0)
   draws        Int @default(0)
@@ -176,3 +179,5 @@ model Phase {
 
   @@index([tournamentId])
 }
+
+
