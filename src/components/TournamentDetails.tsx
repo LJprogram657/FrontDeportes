@@ -34,86 +34,90 @@ const TournamentDetails: React.FC<{ tournamentName: string }> = ({ tournamentNam
   const teamsToShow = showAllTeams ? allTeams : allTeams.slice(0, 4);
 
   return (
-    <div className="tournament-details-layout">
-      <div className="tournament-main-content">
-        <h2>{tournamentName}</h2>
-        <p className="tournament-location">📍 Acacías, Meta</p>
-
-        <div className="tournament-tabs">
-          <button onClick={() => setActiveTab('all-vs-all')} className={activeTab === 'all-vs-all' ? 'active' : ''}>Todos contra Todos</button>
-          <button onClick={() => setActiveTab('groups')} className={activeTab === 'groups' ? 'active' : ''}>Fase de Grupos</button>
-          <button onClick={() => setActiveTab('quarters')} className={activeTab === 'quarters' ? 'active' : ''}>Cuartos</button>
-          <button onClick={() => setActiveTab('semis')} className={activeTab === 'semis' ? 'active' : ''}>Semifinales</button>
-          <button onClick={() => setActiveTab('final')} className={activeTab === 'final' ? 'active' : ''}>Final</button>
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 py-8 text-gray-200">
+      {/* Main Content */}
+      <div className="lg:col-span-2 space-y-8">
+        <div>
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-2">{tournamentName}</h2>
+          <p className="text-[#e31c25] flex items-center gap-2 font-medium">
+            <span className="text-lg">📍</span> Acacías, Meta
+          </p>
         </div>
 
-        <div className="tournament-content">
+        {/* Tabs Navigation */}
+        <div className="flex flex-wrap gap-2 border-b border-white/10 pb-1">
+          {['all-vs-all', 'groups', 'quarters', 'semis', 'final'].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2 rounded-t-lg text-sm font-medium transition-all relative ${
+                activeTab === tab
+                  ? 'text-white bg-white/5 border-b-2 border-[#e31c25]'
+                  : 'text-gray-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              {tab === 'all-vs-all' && 'Todos contra Todos'}
+              {tab === 'groups' && 'Fase de Grupos'}
+              {tab === 'quarters' && 'Cuartos'}
+              {tab === 'semis' && 'Semifinales'}
+              {tab === 'final' && 'Final'}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab Content */}
+        <div className="bg-[#2a2a2a] rounded-xl p-6 border border-white/5 min-h-[300px]">
           {activeTab === 'all-vs-all' && (
-            <div className="phase-content">
-              <h3>Resultados - Todos contra Todos</h3>
-              <p>Contenido de la fase &quot;Todos contra todos&quot; próximamente.</p>
+            <div className="space-y-4">
+              <h3 className="text-xl font-bold text-white">Resultados - Todos contra Todos</h3>
+              <p className="text-gray-400">Contenido de la fase &quot;Todos contra todos&quot; próximamente.</p>
             </div>
           )}
           {activeTab === 'groups' && (
-            <div className="phase-content">
-              <h3>Tabla de Posiciones - Fase de Grupos</h3>
-              <p>Contenido de la &quot;Fase de Grupos&quot; próximamente.</p>
+            <div className="space-y-4">
+              <h3 className="text-xl font-bold text-white">Tabla de Posiciones - Fase de Grupos</h3>
+              <p className="text-gray-400">Contenido de la &quot;Fase de Grupos&quot; próximamente.</p>
             </div>
           )}
-          {activeTab === 'quarters' && (
-            <div className="phase-content">
-              <h3>Cuartos de Final</h3>
-              <PhaseBracket phase="quarters" />
-            </div>
-          )}
-          {activeTab === 'semis' && (
-            <div className="phase-content">
-              <h3>Semifinales</h3>
-              <PhaseBracket phase="semis" />
-            </div>
-          )}
-          {activeTab === 'final' && (
-            <div className="phase-content">
-              <h3>La Gran Final</h3>
-              <PhaseBracket phase="final" />
+          {['quarters', 'semis', 'final'].includes(activeTab) && (
+            <div className="space-y-4">
+              <h3 className="text-xl font-bold text-white">
+                {activeTab === 'quarters' && 'Cuartos de Final'}
+                {activeTab === 'semis' && 'Semifinales'}
+                {activeTab === 'final' && 'La Gran Final'}
+              </h3>
+              <PhaseBracket phase={activeTab} />
             </div>
           )}
         </div>
       </div>
 
-      <aside className="tournament-sidebar">
-        <div className="sidebar-info-box">
-          <h3>Detalles del Torneo</h3>
-          <div className="info-item">
-            <h4>CANCHA</h4>
-            <p>{tournamentInfo.cancha}</p>
+      {/* Sidebar */}
+      <aside className="space-y-6">
+        <div className="bg-[#2a2a2a] p-6 rounded-xl border border-white/5 shadow-lg">
+          <h3 className="text-xl font-bold text-white mb-6 border-l-4 border-[#e31c25] pl-3">
+            Detalles del Torneo
+          </h3>
+          <div className="space-y-6">
+            <div>
+              <h4 className="text-xs uppercase tracking-wider text-gray-500 font-bold mb-1">Cancha</h4>
+              <p className="text-white font-medium">{tournamentInfo.cancha}</p>
+            </div>
+            <div>
+              <h4 className="text-xs uppercase tracking-wider text-gray-500 font-bold mb-1">Fecha de Inicio</h4>
+              <p className="text-white font-medium">{tournamentInfo.fechaInicio}</p>
+            </div>
           </div>
-          <div className="info-item">
-            <h4>FECHA DE INICIO</h4>
-            <p>{tournamentInfo.fechaInicio}</p>
-          </div>
-        </div>
-        <div className="sidebar-stats-box">
-          <h3>Estadísticas</h3>
-          <p>Consulta las estadísticas completas del torneo.</p>
-          <button className="stats-button">Ver Estadísticas</button>
         </div>
 
-        <div className="sidebar-teams-box">
-          <h3>Equipos Participantes</h3>
-          <ul className="team-list">
-            {teamsToShow.map((team) => (
-              <li key={team.name} className="team-item">
-                <Image src={team.logo} alt={`Logo de ${team.name}`} width={40} height={40} className="team-logo" />
-                <span>{team.name}</span>
-              </li>
-            ))}
-          </ul>
-          {!showAllTeams && allTeams.length > 4 && (
-            <button onClick={() => setShowAllTeams(true)} className="view-more-button">
-              Ver más equipos ({allTeams.length - 4} más)
-            </button>
-          )}
+        <div className="bg-gradient-to-br from-[#e31c25] to-[#a3141b] p-6 rounded-xl shadow-lg text-white">
+          <h3 className="text-xl font-bold mb-3">Estadísticas</h3>
+          <p className="text-white/80 text-sm mb-4">
+            Consulta las estadísticas completas del torneo, incluyendo goleadores y tarjetas.
+          </p>
+          <button className="w-full bg-white text-[#e31c25] font-bold py-2 px-4 rounded-lg hover:bg-gray-100 transition-colors shadow-md">
+            Ver Estadísticas
+          </button>
         </div>
       </aside>
     </div>

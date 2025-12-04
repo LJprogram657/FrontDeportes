@@ -45,16 +45,20 @@ const Breadcrumbs = () => {
   }
 
   return (
-    <nav aria-label="breadcrumb" className="breadcrumbs-nav">
-      <ol>
+    <nav aria-label="breadcrumb" className="py-4 text-sm">
+      <ol className="flex items-center space-x-2">
         {breadcrumbs.map((breadcrumb, index) => (
-          <li key={breadcrumb.href}>
+          <li key={breadcrumb.href} className="flex items-center">
             {index < breadcrumbs.length - 1 ? (
-              <Link href={breadcrumb.href}>{breadcrumb.label}</Link>
+              <Link href={breadcrumb.href} className="text-gray-400 hover:text-[#e31c25] transition-colors">
+                {breadcrumb.label}
+              </Link>
             ) : (
-              <span>{breadcrumb.label}</span>
+              <span className="text-white font-medium">{breadcrumb.label}</span>
             )}
-            {index < breadcrumbs.length - 1 && <span className="separator">&gt;</span>}
+            {index < breadcrumbs.length - 1 && (
+              <span className="mx-2 text-gray-600">&gt;</span>
+            )}
           </li>
         ))}
       </ol>

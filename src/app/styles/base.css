@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 /* Estilos base para el cuerpo del documento */
 :root {
     --primary-red: #c00;

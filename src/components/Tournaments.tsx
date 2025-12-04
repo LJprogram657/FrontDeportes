@@ -1,10 +1,21 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
+import { useEffect, useState, useMemo } from 'react';
+// import '../styles/tournaments.css'; // Eliminamos importación de CSS
 
-// Modelos usados para cargar y calcular
 interface Tournament {
+  id: number;
+  name: string;
+  logo: string;
+  category: 'masculino' | 'femenino';
+  modality: 'futsal' | 'futbol7';
+  status: string;
+  startDate?: string;
+  endDate?: string;
+  description?: string;
+}
+
+interface Team {
   id: number;
   name: string;
   logo: string;
@@ -270,189 +281,230 @@ const Tournaments: React.FC = () => {
   }, []);
 
   // Estilo para celdas de tabla (más espacio)
-  const cellStyle: React.CSSProperties = { padding: '10px 12px' };
-  const tabStyle = (isActive: boolean): React.CSSProperties => ({
-    padding: '8px 16px',
-    border: 'none',
-    background: isActive ? '#e31c25' : 'rgba(255,255,255,0.1)',
-    color: '#fff',
-    cursor: 'pointer',
-    borderRadius: '4px',
-    fontWeight: isActive ? 'bold' : 'normal',
-    transition: 'all 0.2s'
-  });
+  // Eliminamos cellStyle y tabStyle inline para usar clases Tailwind
+  // const cellStyle: React.CSSProperties = { padding: '10px 12px' };
+  // const tabStyle = ...
 
   return (
-    <section className="tournaments-section">
-      <div className="container">
-        <h1 className="main-title">Todos los Torneos Disponibles</h1>
+    <section className="py-12 bg-[#1a1a1a] min-h-screen">
+      <div className="container mx-auto px-4">
+        <h1 className="text-3xl md:text-5xl font-bold text-center text-white mb-12">
+          Todos los Torneos Disponibles
+        </h1>
 
         {/* Masculinos */}
-        <div className="tournament-category-section">
-          <h2 className="category-title">Torneos Masculinos</h2>
-          <div style={{ maxWidth: '1120px', margin: '0 auto', padding: '0 16px' }}>
+        <div className="mb-16">
+          <div className="flex items-center gap-4 mb-6 px-2 border-l-4 border-[#e31c25]">
+            <h2 className="text-2xl md:text-3xl font-bold text-white">Torneos Masculinos</h2>
+          </div>
+          
+          <div className="w-full max-w-6xl mx-auto">
             {isLoading ? (
-              <p>Cargando tabla de posiciones masculinas...</p>
+              <div className="text-center py-10 text-gray-400 animate-pulse">Cargando tabla de posiciones masculinas...</div>
             ) : masculineTournaments.length === 0 ? (
-              <p>No hay torneos masculinos activos.</p>
+              <div className="text-center py-10 text-gray-400 bg-white/5 rounded-lg">No hay torneos masculinos activos.</div>
             ) : (
-              <div
-                className="tournament-card"
-                style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '16px' }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px', flexWrap: 'wrap' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <img
-                      src={masculineTournaments[0]?.logo || '/images/logo.png'}
-                      alt={masculineTournaments[0]?.name || 'Torneo'}
-                      style={{ width: '48px', height: '48px', objectFit: 'contain', borderRadius: '8px' }}
-                    />
-                    <div>
-                      <h3 style={{ margin: 0 }}>{masculineTournaments[0]?.name || 'Torneo'}</h3>
-                      <span style={{ fontSize: '0.9rem', opacity: 0.7 }}>Tabla de Posiciones</span>
+              <div className="bg-[#2a2a2a] rounded-xl shadow-2xl overflow-hidden border border-white/5">
+                {/* Header de la Tarjeta */}
+                <div className="p-4 md:p-6 bg-gradient-to-r from-[#2a2a2a] to-[#333] border-b border-white/5">
+                  <div className="flex flex-col md:flex-row md:items-center gap-4 justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="relative w-12 h-12 md:w-16 md:h-16 flex-shrink-0 bg-white/10 rounded-lg p-1">
+                        <img
+                          src={masculineTournaments[0]?.logo || '/images/logo.png'}
+                          alt={masculineTournaments[0]?.name || 'Torneo'}
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                      <div>
+                        <h3 className="text-lg md:text-xl font-bold text-white leading-tight">
+                          {masculineTournaments[0]?.name || 'Torneo'}
+                        </h3>
+                        <span className="text-sm text-gray-400">Tabla de Posiciones</span>
+                      </div>
                     </div>
+                    
+                    {/* Selector de Fases Masculino */}
+                    {masculinePhases.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2 md:mt-0">
+                        {masculinePhases.map(phase => (
+                          <button
+                            key={phase}
+                            onClick={() => setMasculinePhase(phase)}
+                            className={`px-3 py-1.5 text-sm md:px-4 md:py-2 rounded-md transition-all duration-200 font-medium ${
+                              masculinePhase === phase
+                                ? 'bg-[#e31c25] text-white shadow-lg scale-105'
+                                : 'bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white'
+                            }`}
+                          >
+                            {phase}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  
-                  {/* Selector de Fases Masculino */}
-                  {masculinePhases.length > 0 && (
-                    <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto', flexWrap: 'wrap' }}>
-                      {masculinePhases.map(phase => (
-                        <button
-                          key={phase}
-                          onClick={() => setMasculinePhase(phase)}
-                          style={tabStyle(masculinePhase === phase)}
-                        >
-                          {phase}
-                        </button>
-                      ))}
+                </div>
+
+                {/* Tabla Responsiva */}
+                <div className="p-0">
+                  {masculineStandings.length > 0 ? (
+                    <div className="overflow-x-auto custom-scrollbar">
+                      <table className="w-full text-left border-collapse min-w-[600px] md:min-w-full">
+                        <thead>
+                          <tr className="bg-black/20 text-gray-400 text-sm uppercase tracking-wider">
+                            <th className="p-3 md:p-4 font-semibold text-center w-12">#</th>
+                            <th className="p-3 md:p-4 font-semibold">Equipo</th>
+                            <th className="p-3 md:p-4 font-semibold text-center">PJ</th>
+                            <th className="p-3 md:p-4 font-semibold text-center">G</th>
+                            <th className="p-3 md:p-4 font-semibold text-center">E</th>
+                            <th className="p-3 md:p-4 font-semibold text-center">P</th>
+                            <th className="p-3 md:p-4 font-semibold text-center hidden sm:table-cell">GF</th>
+                            <th className="p-3 md:p-4 font-semibold text-center hidden sm:table-cell">GC</th>
+                            <th className="p-3 md:p-4 font-semibold text-center hidden sm:table-cell">DG</th>
+                            <th className="p-3 md:p-4 font-bold text-center text-white bg-white/5">Pts</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5 text-gray-300 text-sm md:text-base">
+                          {masculineStandings.map((s, idx) => (
+                            <tr 
+                              key={`m-${s.team.name}-${idx}`}
+                              className="hover:bg-white/5 transition-colors duration-150"
+                            >
+                              <td className="p-3 md:p-4 text-center font-medium text-gray-500">{idx + 1}</td>
+                              <td className="p-3 md:p-4 font-medium text-white flex items-center gap-3">
+                                {s.team.logo && (
+                                  <img src={s.team.logo} alt="" className="w-6 h-6 object-contain hidden xs:block" />
+                                )}
+                                <span className="truncate max-w-[120px] md:max-w-none">{s.team.name}</span>
+                              </td>
+                              <td className="p-3 md:p-4 text-center">{s.played}</td>
+                              <td className="p-3 md:p-4 text-center text-green-400">{s.wins}</td>
+                              <td className="p-3 md:p-4 text-center text-yellow-400">{s.draws}</td>
+                              <td className="p-3 md:p-4 text-center text-red-400">{s.losses}</td>
+                              <td className="p-3 md:p-4 text-center hidden sm:table-cell opacity-70">{s.goalsFor}</td>
+                              <td className="p-3 md:p-4 text-center hidden sm:table-cell opacity-70">{s.goalsAgainst}</td>
+                              <td className="p-3 md:p-4 text-center hidden sm:table-cell font-medium">{s.goalDiff > 0 ? `+${s.goalDiff}` : s.goalDiff}</td>
+                              <td className="p-3 md:p-4 text-center font-bold text-white text-lg bg-white/5">{s.points}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="p-8 text-center text-gray-500">
+                      No hay posiciones disponibles para esta fase.
                     </div>
                   )}
                 </div>
-
-                {masculineStandings.length > 0 ? (
-                  <div className="table-responsive">
-                    <table className="standings-table" style={{ width: '100%', fontSize: '1.1rem' }}>
-                      {/* ... thead y tbody ... */}
-                      <thead>
-                        <tr>
-                          <th style={cellStyle}>#</th>
-                          <th style={cellStyle}>Equipo</th>
-                          <th style={cellStyle}>J</th>
-                          <th style={cellStyle}>G</th>
-                          <th style={cellStyle}>E</th>
-                          <th style={cellStyle}>P</th>
-                          <th style={cellStyle}>GF</th>
-                          <th style={cellStyle}>GC</th>
-                          <th style={cellStyle}>DG</th>
-                          <th style={cellStyle}>Pts</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {masculineStandings.map((s, idx) => (
-                          <tr key={`m-${s.team.name}-${idx}`}>
-                            <td style={cellStyle} data-label="#">{idx + 1}</td>
-                            <td style={cellStyle} data-label="Equipo">{s.team.name}</td>
-                            <td style={cellStyle} data-label="J">{s.played}</td>
-                            <td style={cellStyle} data-label="G">{s.wins}</td>
-                            <td style={cellStyle} data-label="E">{s.draws}</td>
-                            <td style={cellStyle} data-label="P">{s.losses}</td>
-                            <td style={cellStyle} data-label="GF">{s.goalsFor}</td>
-                            <td style={cellStyle} data-label="GC">{s.goalsAgainst}</td>
-                            <td style={cellStyle} data-label="DG">{s.goalDiff}</td>
-                            <td style={cellStyle} data-label="Pts">{s.points}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <p style={{ margin: '12px 0' }}>No hay posiciones disponibles para esta fase.</p>
-                )}
               </div>
             )}
           </div>
         </div>
 
         {/* Femeninos */}
-        <div className="tournament-category-section">
-          <h2 className="category-title">Torneos Femeninos</h2>
-          <div style={{ maxWidth: '1120px', margin: '0 auto', padding: '0 16px' }}>
+        <div className="mb-16">
+          <div className="flex items-center gap-4 mb-6 px-2 border-l-4 border-pink-500">
+            <h2 className="text-2xl md:text-3xl font-bold text-white">Torneos Femeninos</h2>
+          </div>
+          
+          <div className="w-full max-w-6xl mx-auto">
             {isLoading ? (
-              <p>Cargando tabla de posiciones femeninas...</p>
+              <div className="text-center py-10 text-gray-400 animate-pulse">Cargando tabla de posiciones femeninas...</div>
             ) : feminineTournaments.length === 0 ? (
-              <p>No hay torneos femeninos activos.</p>
+              <div className="text-center py-10 text-gray-400 bg-white/5 rounded-lg">No hay torneos femeninos activos.</div>
             ) : (
-              <div
-                className="tournament-card"
-                style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '16px' }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px', flexWrap: 'wrap' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <img
-                      src={feminineTournaments[0]?.logo || '/images/logo.png'}
-                      alt={feminineTournaments[0]?.name || 'Torneo'}
-                      style={{ width: '48px', height: '48px', objectFit: 'contain', borderRadius: '8px' }}
-                    />
-                    <div>
-                      <h3 style={{ margin: 0 }}>{feminineTournaments[0]?.name || 'Torneo'}</h3>
-                      <span style={{ fontSize: '0.9rem', opacity: 0.7 }}>Tabla de Posiciones</span>
+              <div className="bg-[#2a2a2a] rounded-xl shadow-2xl overflow-hidden border border-white/5">
+                {/* Header de la Tarjeta */}
+                <div className="p-4 md:p-6 bg-gradient-to-r from-[#2a2a2a] to-[#333] border-b border-white/5">
+                  <div className="flex flex-col md:flex-row md:items-center gap-4 justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="relative w-12 h-12 md:w-16 md:h-16 flex-shrink-0 bg-white/10 rounded-lg p-1">
+                        <img
+                          src={feminineTournaments[0]?.logo || '/images/logo.png'}
+                          alt={feminineTournaments[0]?.name || 'Torneo'}
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                      <div>
+                        <h3 className="text-lg md:text-xl font-bold text-white leading-tight">
+                          {feminineTournaments[0]?.name || 'Torneo'}
+                        </h3>
+                        <span className="text-sm text-gray-400">Tabla de Posiciones</span>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Selector de Fases Femenino */}
-                  {femininePhases.length > 0 && (
-                    <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto', flexWrap: 'wrap' }}>
-                      {femininePhases.map(phase => (
-                        <button
-                          key={phase}
-                          onClick={() => setFemininePhase(phase)}
-                          style={tabStyle(femininePhase === phase)}
-                        >
-                          {phase}
-                        </button>
-                      ))}
+                    {/* Selector de Fases Femenino */}
+                    {femininePhases.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2 md:mt-0">
+                        {femininePhases.map(phase => (
+                          <button
+                            key={phase}
+                            onClick={() => setFemininePhase(phase)}
+                            className={`px-3 py-1.5 text-sm md:px-4 md:py-2 rounded-md transition-all duration-200 font-medium ${
+                              femininePhase === phase
+                                ? 'bg-pink-600 text-white shadow-lg scale-105'
+                                : 'bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white'
+                            }`}
+                          >
+                            {phase}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Tabla Responsiva */}
+                <div className="p-0">
+                  {feminineStandings.length > 0 ? (
+                    <div className="overflow-x-auto custom-scrollbar">
+                      <table className="w-full text-left border-collapse min-w-[600px] md:min-w-full">
+                        <thead>
+                          <tr className="bg-black/20 text-gray-400 text-sm uppercase tracking-wider">
+                            <th className="p-3 md:p-4 font-semibold text-center w-12">#</th>
+                            <th className="p-3 md:p-4 font-semibold">Equipo</th>
+                            <th className="p-3 md:p-4 font-semibold text-center">PJ</th>
+                            <th className="p-3 md:p-4 font-semibold text-center">G</th>
+                            <th className="p-3 md:p-4 font-semibold text-center">E</th>
+                            <th className="p-3 md:p-4 font-semibold text-center">P</th>
+                            <th className="p-3 md:p-4 font-semibold text-center hidden sm:table-cell">GF</th>
+                            <th className="p-3 md:p-4 font-semibold text-center hidden sm:table-cell">GC</th>
+                            <th className="p-3 md:p-4 font-semibold text-center hidden sm:table-cell">DG</th>
+                            <th className="p-3 md:p-4 font-bold text-center text-white bg-white/5">Pts</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5 text-gray-300 text-sm md:text-base">
+                          {feminineStandings.map((s, idx) => (
+                            <tr 
+                              key={`f-${s.team.name}-${idx}`}
+                              className="hover:bg-white/5 transition-colors duration-150"
+                            >
+                              <td className="p-3 md:p-4 text-center font-medium text-gray-500">{idx + 1}</td>
+                              <td className="p-3 md:p-4 font-medium text-white flex items-center gap-3">
+                                {s.team.logo && (
+                                  <img src={s.team.logo} alt="" className="w-6 h-6 object-contain hidden xs:block" />
+                                )}
+                                <span className="truncate max-w-[120px] md:max-w-none">{s.team.name}</span>
+                              </td>
+                              <td className="p-3 md:p-4 text-center">{s.played}</td>
+                              <td className="p-3 md:p-4 text-center text-green-400">{s.wins}</td>
+                              <td className="p-3 md:p-4 text-center text-yellow-400">{s.draws}</td>
+                              <td className="p-3 md:p-4 text-center text-red-400">{s.losses}</td>
+                              <td className="p-3 md:p-4 text-center hidden sm:table-cell opacity-70">{s.goalsFor}</td>
+                              <td className="p-3 md:p-4 text-center hidden sm:table-cell opacity-70">{s.goalsAgainst}</td>
+                              <td className="p-3 md:p-4 text-center hidden sm:table-cell font-medium">{s.goalDiff > 0 ? `+${s.goalDiff}` : s.goalDiff}</td>
+                              <td className="p-3 md:p-4 text-center font-bold text-white text-lg bg-white/5">{s.points}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="p-8 text-center text-gray-500">
+                      No hay posiciones disponibles para esta fase.
                     </div>
                   )}
                 </div>
-
-                {feminineStandings.length > 0 ? (
-                  <div className="table-responsive">
-                    <table className="standings-table" style={{ width: '100%', fontSize: '1.1rem' }}>
-                      <thead>
-                        <tr>
-                          <th style={cellStyle}>#</th>
-                          <th style={cellStyle}>Equipo</th>
-                          <th style={cellStyle}>J</th>
-                          <th style={cellStyle}>G</th>
-                          <th style={cellStyle}>E</th>
-                          <th style={cellStyle}>P</th>
-                          <th style={cellStyle}>GF</th>
-                          <th style={cellStyle}>GC</th>
-                          <th style={cellStyle}>DG</th>
-                          <th style={cellStyle}>Pts</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {feminineStandings.map((s, idx) => (
-                          <tr key={`f-${s.team.name}-${idx}`}>
-                            <td style={cellStyle} data-label="#">{idx + 1}</td>
-                            <td style={cellStyle} data-label="Equipo">{s.team.name}</td>
-                            <td style={cellStyle} data-label="J">{s.played}</td>
-                            <td style={cellStyle} data-label="G">{s.wins}</td>
-                            <td style={cellStyle} data-label="E">{s.draws}</td>
-                            <td style={cellStyle} data-label="P">{s.losses}</td>
-                            <td style={cellStyle} data-label="GF">{s.goalsFor}</td>
-                            <td style={cellStyle} data-label="GC">{s.goalsAgainst}</td>
-                            <td style={cellStyle} data-label="DG">{s.goalDiff}</td>
-                            <td style={cellStyle} data-label="Pts">{s.points}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <p style={{ margin: '12px 0' }}>No hay posiciones disponibles para esta fase.</p>
-                )}
               </div>
             )}
           </div>
