@@ -90,6 +90,44 @@ a {
     filter: brightness(1.1);
 }
 
+/* Transiciones consistentes para TODOS los botones */
+button,
+[role="button"],
+.btn,
+[class*="btn-"] {
+  transition:
+    background-color 200ms ease,
+    color 200ms ease,
+    border-color 200ms ease,
+    box-shadow 200ms ease,
+    transform 120ms ease;
+  will-change: transform, box-shadow;
+}
+
+button:hover:not(:disabled),
+[role="button"]:hover:not(:disabled),
+.btn:hover:not(:disabled),
+[class*="btn-"]:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+}
+
+button:active:not(:disabled),
+[role="button"]:active:not(:disabled),
+.btn:active:not(:disabled),
+[class*="btn-"]:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 3px 10px rgba(0,0,0,0.12);
+}
+
+button:focus-visible,
+[role="button"]:focus-visible,
+.btn:focus-visible,
+[class*="btn-"]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(227, 28, 37, 0.35);
+}
+
 /* Estilo para el logo */
 .logo span {
     font-size: 24px;
