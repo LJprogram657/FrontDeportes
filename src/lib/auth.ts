@@ -3,11 +3,24 @@ import jwt from 'jsonwebtoken';
 import { NextRequest } from 'next/server';
 import { prisma } from './prisma';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
+const isProd = process.env.NODE_ENV === 'production';
+const JWT_SECRET = (() => {
+  const v = process.env.JWT_SECRET;
+  if (isProd && !v) {
+    throw new Error('Falta JWT_SECRET en producción');
+  }
+  return v || 'dev-secret';
+})();
 const ACCESS_EXPIRES_IN = '60m';
 
 // Añadir secretos y helpers para refresh
-const REFRESH_SECRET = process.env.REFRESH_SECRET || 'dev-refresh-secret';
+const REFRESH_SECRET = (() => {
+  const v = process.env.REFRESH_SECRET;
+  if (isProd && !v) {
+    throw new Error('Falta REFRESH_SECRET en producción');
+  }
+  return v || 'dev-refresh-secret';
+})();
 const REFRESH_EXPIRES_IN = '7d';
 
 export function signRefreshToken(payload: object) {
